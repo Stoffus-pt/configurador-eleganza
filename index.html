@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurador 3D Eleganza - V99 (Interface Blindada)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Three.js (Motor 3D) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- GLTFLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- GLTFExporter -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+    <!-- QRCode.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- GOOGLE MODEL VIEWER -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { 'stoffus-primary': '#e84c26' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #f3f4f6; }
+        #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 0; }
+        
+        .ui-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); }
+        .module-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        #feedback-message { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; padding: 10px 20px; border-radius: 20px; color: white; font-weight: bold; opacity: 0; transition: opacity 0.3s; pointer-events: none; display: flex; align-items: center; gap: 8px; }
+        .show-feedback { opacity: 1 !important; }
+        
+        /* MENU FLUTUANTE */
+        #module-hover-menu {
+            position: absolute; pointer-events: auto; z-index: 50;
+            transform: translate(-50%, -100%); opacity: 0; transition: opacity 0.2s, transform 0.2s;
+            display: flex; gap: 8px; padding-bottom: 10px;
+        }
+        #module-hover-menu.visible { opacity: 1; transform: translate(-50%, -120%); }
+        .hover-btn { background: white; color: #4b5563; border: 1px solid #e5e7eb; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .hover-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 8px rgba(0,0,0,0.15); }
+        
+        .btn-relax:hover { background: #e84c26; color: white; border-color: #e84c26; }
+        .btn-relax.active { background: #e84c26; color: white; border-color: #e84c26; animation: pulse-orange 2s infinite; }
+        .btn-remove:hover { background: #ef4444; color: white; border-color: #ef4444; }
+        
+        @keyframes pulse-orange {
+            0% { box-shadow: 0 0 0 0 rgba(232, 76, 38, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(232, 76, 38, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(232, 76, 38, 0); }
+        }
+
+        /* MODAL AR & AI */
+        .custom-modal { position: fixed; top: 0; left: 0; w-full h-full; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 60; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; text-align: center; max-width: 500px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); max-height: 90vh; overflow-y: auto; }
+
+        /* MODEL VIEWER ESTILOS */
+        model-viewer { width: 100%; height: 300px; background-color: #f5f5f5; border-radius: 10px; margin-bottom: 15px; }
+
+        /* DEBUG PANEL */
+        #debug-panel {
+            position: absolute; bottom: 10px; left: 280px; z-index: 40;
+            background: rgba(0,0,0,0.8); color: white; padding: 15px;
+            border-radius: 10px; font-family: monospace; font-size: 11px;
+            pointer-events: none; max-width: 300px; display: none;
+        }
+        .debug-success { color: #4ade80; font-weight: bold; }
+        .debug-error { color: #f87171; font-weight: bold; }
+        .debug-item { margin-bottom: 4px; border-bottom: 1px solid #444; padding-bottom: 4px; }
+
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #e84c26; cursor: pointer; margin-top: -6px; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e5e7eb; border-radius: 2px; }
+        
+        .color-swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.2s; }
+        .color-swatch:hover { transform: scale(1.1); }
+        .color-swatch.active { border-color: #e84c26; transform: scale(1.1); ring: 2px solid #e84c26; }
+
+        .leg-swatch { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.2s; position: relative; }
+        .leg-swatch:hover { transform: translateY(-2px); }
+        .leg-swatch.active::after { content: '\f00c'; font-family: 'Font Awesome 5 Free'; font-weight: 900; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.5); font-size: 12px; }
+        
+        .fabric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .fabric-item { aspect-ratio: 1; border-radius: 8px; cursor: pointer; position: relative; overflow: hidden; border: 2px solid transparent; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); background-color: #e5e7eb; background-size: cover; background-position: center; }
+        .fabric-item:hover { transform: scale(1.05); z-index: 10; }
+        .fabric-item.active { border-color: #e84c26; box-shadow: 0 0 0 2px rgba(232, 76, 38, 0.2); }
+        .fabric-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 8px; padding: 2px 4px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .cat-btn { padding: 4px 8px; background: #f3f4f6; border-radius: 6px; cursor: pointer; transition: all 0.2s; white-space: nowrap; border: 1px solid #e5e7eb; font-size: 10px; }
+        .cat-btn:hover { background: #e5e7eb; }
+        .cat-btn.active { background: #e84c26; color: white; border-color: #e84c26; }
+
+        .btn-active { background-color: #e84c26 !important; color: white !important; }
+        
+        .status-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; background: #e5e7eb; color: #9ca3af; font-weight: bold; display: inline-block; margin-right: 2px; }
+        .status-badge.ok { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        
+        .status-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; border-bottom: 1px solid #f3f4f6; }
+        #collection-status-list { max-height: 150px; overflow-y: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb; }
+
+        #relax-toggle-btn { position: absolute; display: none; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        
+        /* AI Loader */
+        .ai-loader { display: none; }
+        .ai-loader.active { display: inline-block; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* AR Loader */
+        .ar-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #166534; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    <div id="feedback-message" class="bg-gray-800 shadow-lg"></div>
+    
+    <!-- AR MODAL -->
+    <div id="ar-modal" class="custom-modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-cube text-stoffus-primary mr-2"></i> Viewer & AR</h3>
+                <button id="close-ar-btn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+
+            <!-- GOOGLE MODEL VIEWER -->
+            <div class="relative border border-gray-200 rounded-lg overflow-hidden mb-4">
+                <div id="mv-loader" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+                    <div class="ar-spinner"></div>
+                    <span class="text-xs text-gray-500">A processar modelo...</span>
+                </div>
+                <model-viewer id="sofa-viewer" src="" ar ar-modes="webxr scene-viewer quick-look" camera-controls shadow-intensity="1" alt="Um sofá 3D configurado" class="w-full h-64 bg-gray-100">
+                    <button slot="ar-button" class="absolute bottom-4 right-4 bg-white text-black px-4 py-2 rounded-lg font-bold shadow-lg text-xs flex items-center hover:bg-gray-50">
+                        <i class="fas fa-camera mr-2"></i> Ver no Espaço (AR)
+                    </button>
+                </model-viewer>
+            </div>
+
+            <!-- INSTRUÇÕES -->
+            <div class="bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4 text-left">
+                <p class="text-[10px] text-blue-800 font-bold mb-1"><i class="fas fa-info-circle mr-1"></i> Como ver em Realidade Aumentada?</p>
+                <p class="text-[10px] text-blue-700 leading-tight">
+                    1. Clique em "Descarregar Ficheiro".<br>
+                    2. Envie o ficheiro para o seu telemóvel.<br>
+                    3. Abra o ficheiro no telemóvel para ver em AR.
+                </p>
+            </div>
+            
+            <button id="download-glb-btn" class="w-full bg-gray-800 text-white py-3 rounded-lg font-bold text-sm hover:bg-gray-700 transition flex items-center justify-center shadow-lg mb-4">
+                <i class="fas fa-download mr-2"></i> Descarregar Ficheiro (.glb)
+            </button>
+
+            <!-- OPÇÃO QR CODE -->
+            <div class="border-t border-gray-100 pt-3">
+                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">QR Code (Cloud)</h4>
+                
+                <div id="ar-loading" style="display:none;" class="py-2">
+                    <div class="ar-spinner w-4 h-4 border-2"></div>
+                    <span class="text-[10px] text-gray-500">A gerar link...</span>
+                </div>
+
+                <div id="ar-success" style="display:none;">
+                    <div id="qrcode" class="flex justify-center mb-2 border p-1 rounded bg-white inline-block shadow-sm"></div>
+                    <p class="text-[9px] text-green-600 font-bold">Link Gerado!</p>
+                </div>
+                
+                <div id="ar-fallback" style="display:none;">
+                    <p class="text-[9px] text-gray-400 italic">Upload bloqueado pelo navegador. Use o download acima.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI MODAL -->
+    <div id="ai-modal" class="custom-modal">
+        <div class="modal-content text-left">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center"><span class="text-2xl mr-2">✨</span> Assistente Inteligente</h3>
+                <button id="close-ai-btn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="mb-6">
+                <h4 class="font-bold text-sm text-gray-700 mb-2">Criador Mágico (Text-to-Sofa)</h4>
+                <div class="flex gap-2">
+                    <input type="text" id="ai-prompt-input" placeholder="Ex: Sofá em L grande para família..." class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-stoffus-primary">
+                    <button id="ai-generate-btn" class="bg-stoffus-primary text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-600 transition flex items-center">
+                        <i class="fas fa-magic mr-1"></i> <i class="fas fa-circle-notch ai-loader mr-1 text-[10px]"></i> Criar
+                    </button>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-1 italic">Nota: Sem chave API, a IA funcionará em modo de demonstração.</p>
+            </div>
+
+            <div class="border-t border-gray-200 pt-4">
+                <h4 class="font-bold text-sm text-gray-700 mb-2">Redator Comercial</h4>
+                <div id="ai-description-output" class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 italic min-h-[80px] mb-2">
+                    A descrição do seu sofá aparecerá aqui...
+                </div>
+                <button id="ai-describe-btn" class="w-full bg-gray-800 text-white py-2 rounded-lg text-xs font-bold hover:bg-gray-700 transition flex items-center justify-center">
+                    <i class="fas fa-pen-fancy mr-2"></i> <i class="fas fa-circle-notch ai-loader mr-2 text-[10px]"></i> Gerar Descrição
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- DIAGNÓSTICO 3D -->
+    <div id="debug-panel">
+        <div class="font-bold border-b border-gray-600 mb-2 pb-1">Diagnóstico de Estrutura</div>
+        <div id="debug-content">A aguardar modelo...</div>
+    </div>
+
+    <!-- MENU FLUTUANTE -->
+    <div id="module-hover-menu">
+        <button id="btn-relax" class="hover-btn btn-relax">
+            <i class="fas fa-couch"></i> <span>Relax</span>
+        </button>
+        <button id="btn-remove" class="hover-btn btn-remove">
+            <i class="fas fa-trash-alt"></i> <span>Remover</span>
+        </button>
+    </div>
+    <button id="relax-toggle-btn" style="display:none;"></button>
+
+    <!-- UI: Cabeçalho -->
+    <div class="ui-panel absolute top-0 left-0 w-full h-16 border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm z-10">
+        <div class="flex items-center">
+             <div class="font-bold text-xl sm:text-2xl text-gray-800 tracking-tight">
+                <span class="text-stoffus-primary">Stoffus</span> 3D
+             </div>
+             <span class="ml-4 text-xs sm:text-sm text-gray-500 border-l pl-4 hidden sm:block">Eleganza V99</span>
+        </div>
+        
+        <div class="flex items-center space-x-2 sm:space-x-4">
+            <button id="btn-ai-open" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-sm border-0">
+                <i class="fas fa-sparkles mr-2"></i> <span class="hidden md:inline">Assistente IA</span>
+            </button>
+
+            <button id="btn-ar-open" class="bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center shadow-sm text-stoffus-primary border-stoffus-primary">
+                <i class="fas fa-cube mr-2"></i> <span class="hidden md:inline">AR / Exportar</span>
+            </button>
+            
+            <button id="toggle-dims-btn" class="bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center shadow-sm">
+                <i class="fas fa-ruler-combined mr-2"></i> <span class="hidden md:inline">Medidas</span>
+            </button>
+            <button id="toggle-editor-btn" class="bg-gray-800 text-white hover:bg-gray-700 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center shadow-md">
+                <i class="fas fa-layer-group mr-2"></i> <span class="hidden md:inline">Acabamentos</span>
+            </button>
+            <div class="relative group">
+                <input type="file" id="gltf-upload" accept=".gltf,.glb" multiple class="hidden">
+                <label for="gltf-upload" class="cursor-pointer bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center shadow-sm">
+                    <i class="fas fa-cloud-upload-alt mr-2"></i> <span class="hidden sm:inline">Modelos 3D</span>
+                </label>
+            </div>
+            <div class="text-right hidden lg:block">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider">Largura Total</p>
+                <p class="font-bold text-gray-800" id="total-width-display">0 cm</p>
+            </div>
+            <button id="reset-btn" class="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+            <div class="border-l pl-4 border-gray-300 ml-2 h-10 flex items-center">
+                <img src="Asset 16.png" alt="Stoffus Logo" class="h-full w-auto object-contain" onerror="this.style.display='none'">
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor Panel -->
+    <div id="editor-panel" class="ui-panel absolute top-20 right-4 w-80 p-4 rounded-xl shadow-2xl z-20 hidden transform transition-all border border-gray-200 overflow-y-auto max-h-[85vh]">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 class="font-bold text-gray-800"><i class="fas fa-swatchbook mr-2"></i> Personalização</h3>
+            <button onclick="document.getElementById('editor-panel').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- SMART UPLOAD UNIVERSAL -->
+        <div class="mb-4 bg-blue-50 border border-blue-100 p-3 rounded-lg">
+            <p class="text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-2"><i class="fas fa-magic mr-1"></i> Carregador de Amostras</p>
+            <div class="mb-2 text-[10px] text-gray-600 leading-tight">
+                Selecione todas as fotos de uma vez (ex: "Karma 1.jpg", "Bella 2.jpg").
+            </div>
+            
+            <input type="file" id="smart-upload" accept=".jpg,.jpeg,.png" multiple class="hidden">
+            <button id="btn-smart-upload" onclick="const el=document.getElementById('smart-upload'); if(el) el.click()" class="w-full bg-white text-blue-600 border border-dashed border-blue-300 px-3 py-2 rounded-lg text-xs font-bold hover:bg-blue-50 transition flex items-center justify-center mb-3 shadow-sm">
+                <i class="fas fa-images mr-2"></i> Carregar Todas as Fotos
+            </button>
+            
+            <!-- Lista de Estado das Coleções -->
+            <div id="collection-status-list">
+                <!-- Preenchido via JS -->
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Biblioteca de Tecidos</p>
+            
+            <!-- Filtros de Categoria -->
+            <div class="flex gap-2 mb-3 overflow-x-auto pb-2" id="fabric-categories">
+                <!-- Preenchido via JS -->
+            </div>
+
+            <!-- Grid de Tecidos -->
+            <div class="fabric-grid" id="fabric-library-container"></div>
+            
+            <div class="mt-3 bg-gray-50 p-2 rounded border border-gray-200">
+                <div class="flex justify-between items-center mb-1">
+                    <label class="text-[10px] font-bold text-gray-600">Tamanho Rapport (cm)</label>
+                    <input type="number" id="input-rapport" value="40" class="w-12 text-right text-xs border rounded px-1" min="5" max="200">
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-6 pt-4 border-t border-gray-200">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">2. Acabamento dos Pés</p>
+            <div class="flex gap-4 justify-start">
+                <div class="flex flex-col items-center gap-1"><div class="leg-swatch bg-gradient-to-br from-gray-100 to-gray-400 border-gray-300" onclick="setLegFinish('chrome', this)" title="Cromado"></div><span class="text-[9px] text-gray-500">Cromado</span></div>
+                <div class="flex flex-col items-center gap-1"><div class="leg-swatch active bg-gray-900 border-gray-600" onclick="setLegFinish('black', this)" title="Negro Mate"></div><span class="text-[9px] text-gray-500">Negro</span></div>
+                <div class="flex flex-col items-center gap-1"><div class="leg-swatch border-gray-400" style="background-color: #5D4037;" onclick="setLegFinish('moka', this)" title="Moka"></div><span class="text-[9px] text-gray-500">Moka</span></div>
+                <div class="flex flex-col items-center gap-1"><div class="leg-swatch border-gray-300" style="background-color: #8b5a2b;" onclick="setLegFinish('wood', this)" title="Madeira"></div><span class="text-[9px] text-gray-500">Madeira</span></div>
+            </div>
+        </div>
+        
+        <div class="space-y-4 border-t border-gray-200 pt-4">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">3. Ajustes Técnicos</p>
+            <div><div class="flex justify-between text-xs font-bold text-gray-600 mb-1"><label>Profundidade Chaise</label><span id="val-chaise">165 cm</span></div><input type="range" id="input-chaise-depth" min="140" max="200" value="165" step="1"></div>
+            <div><div class="flex justify-between text-xs font-bold text-gray-600 mb-1"><label>Tamanho Canto</label><span id="val-corner">113 cm</span></div><input type="range" id="input-corner-size" min="90" max="130" value="113" step="1"></div>
+            <div class="border-t border-gray-100 pt-2 mt-2">
+                <div class="mb-4"><div class="flex justify-between text-xs font-bold text-gray-600 mb-1"><label>Ajuste Costas (Z)</label><span id="val-align" class="text-stoffus-primary">0</span></div><input type="range" id="input-align-offset" min="-20" max="20" value="0" step="0.5"></div>
+                <div><div class="flex justify-between text-xs font-bold text-gray-600 mb-1"><label>Ajuste Lateral (X)</label><span id="val-gap" class="text-blue-600">0</span></div><input type="range" id="input-gap-offset" min="-20" max="20" value="0" step="0.5"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI: Lateral Esquerda -->
+    <div class="ui-panel absolute top-16 left-0 bottom-0 w-64 border-r border-gray-200 p-4 overflow-y-auto flex flex-col gap-5 z-10" id="sidebar">
+        <div id="library-status" class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-xs">
+            <p class="font-bold text-gray-500 uppercase mb-2 text-[10px]">Biblioteca de Modelos</p>
+            <div class="grid grid-cols-1 gap-1">
+                <div id="status-arm" class="flex items-center text-gray-400 h-5"><i class="fas fa-circle text-[6px] mr-2"></i> Braço</div>
+                <div id="status-seat" class="flex items-center text-gray-400 h-5"><i class="fas fa-circle text-[6px] mr-2"></i> Centro</div>
+                <div id="status-corner" class="flex items-center text-gray-400 h-5"><i class="fas fa-circle text-[6px] mr-2"></i> Canto</div>
+                <div id="status-chaise" class="flex items-center text-gray-400 h-5"><i class="fas fa-circle text-[6px] mr-2"></i> Chaise</div>
+                <div id="status-meridien" class="flex items-center text-gray-400 h-5"><i class="fas fa-circle text-[6px] mr-2"></i> Meridien</div>
+            </div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+            <div class="flex justify-between items-end mb-2"><label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Largura Assento</label><span id="size-preview" class="text-xs font-mono text-stoffus-primary bg-orange-50 px-1 rounded">72cm</span></div>
+            <div class="flex bg-gray-100 p-1 rounded-lg">
+                <button class="size-btn flex-1 py-1.5 text-xs font-bold rounded-md transition text-gray-600 hover:bg-white hover:shadow-sm" data-size="S">S</button>
+                <button class="size-btn flex-1 py-1.5 text-xs font-bold rounded-md transition bg-white shadow-sm text-stoffus-primary" data-size="M">M</button>
+                <button class="size-btn flex-1 py-1.5 text-xs font-bold rounded-md transition text-gray-600 hover:bg-white hover:shadow-sm" data-size="L">L</button>
+                <button class="size-btn flex-1 py-1.5 text-xs font-bold rounded-md transition text-gray-600 hover:bg-white hover:shadow-sm" data-size="XL">XL</button>
+            </div>
+        </div>
+        <div><label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Módulos</label><div class="grid grid-cols-2 gap-2" id="module-list"></div></div>
+    </div>
+
+    <script>
+        // --- 1. VARIÁVEIS GLOBAIS ---
+        const CONFIG = { globalSize: 'M', moduleHeight: 45, backHeight: 80, standardDepth: 100, armWidth: 20, colors: { fabric: 0x9ca3af, highlight: 0xe84c26 }, dynamic: { chaiseDepth: 165, cornerSize: 113, alignManualOffset: 0, alignGapOffset: 0, rapport: 40, backPivotY: 81, backPivotZ: 2 } };
+        const SIZES = { 'S': 62, 'M': 72, 'L': 82, 'XL': 92, 'Único': 100 };
+        const TEXTURE_LAYOUTS = { 'front': { src: 'front', x: 0.0, y: 0.0, w: 1.0, h: 1.0 }, 'back_1': { src: 'back', x: 0.0, y: 0.0, w: 0.5, h: 0.333 }, 'back_2': { src: 'back', x: 0.5, y: 0.0, w: 0.5, h: 0.333 }, 'back_3': { src: 'back', x: 0.0, y: 0.333, w: 0.5, h: 0.333 }, 'back_4': { src: 'back', x: 0.5, y: 0.333, w: 0.5, h: 0.333 }, 'back_5': { src: 'back', x: 0.0, y: 0.666, w: 0.5, h: 0.333 }, 'back_6': { src: 'back', x: 0.5, y: 0.666, w: 0.5, h: 0.333 } };
+        const COLLECTIONS_DATA = [ { name: 'Karma', prefix: 'B', start: 4043, end: 4049 }, { name: 'Artis', prefix: 'D', start: 4001, end: 4007 }, { name: 'Barbados', prefix: 'F', start: 4001, end: 4007 }, { name: 'Bella', prefix: 'B', start: 1057, end: 1063 }, { name: 'Carmen', prefix: 'B', start: 1127, end: 1133 }, { name: 'Falcon', prefix: 'B', start: 4092, end: 4098 }, { name: 'Fumiko', prefix: 'D', start: 1001, end: 1007 }, { name: 'Funky', prefix: 'B', start: 4106, end: 4112 }, { name: 'Garby', prefix: 'B', start: 4078, end: 4084 }, { name: 'Grift', prefix: 'B', start: 4008, end: 4014 }, { name: 'Jade', prefix: 'B', start: 1145, end: 1151 }, { name: 'Kamala', prefix: 'B', start: 4071, end: 4077 }, { name: 'Kamala2', prefix: 'B', start: 1138, end: 1144 }, { name: 'Madoka', prefix: 'D', start: 4008, end: 4014 }, { name: 'Matchy', prefix: 'B', start: 4085, end: 4091 }, { name: 'Mirage', prefix: 'B', start: 4099, end: 4105 }, { name: 'Pisa', prefix: 'B', start: 1113, end: 1119 }, { name: 'Prisma', prefix: 'B', start: 4022, end: 4028 }, { name: 'Ramses', prefix: 'B', start: 1015, end: 1021 }, { name: 'River', prefix: 'E', start: 1001, end: 1007 }, { name: 'Rissani', prefix: 'B', start: 4057, end: 4063 }, { name: 'Siza', prefix: 'P', start: 1001, end: 1007 }, { name: 'Soft', prefix: 'B', start: 4015, end: 4021 }, { name: 'Stancy', prefix: 'B', start: 4029, end: 4035 }, { name: 'Talia', prefix: 'B', start: 1043, end: 1049 }, { name: 'Touareg', prefix: 'B', start: 1106, end: 1112 }, { name: 'Ventury', prefix: 'B', start: 4050, end: 4056 }, { name: 'Zemy', prefix: 'B', start: 4001, end: 4007 } ];
+
+        let FABRIC_LIBRARY = [];
+        let IMAGES = {};
+        let selectedFabricName = "Linho Padrão";
+
+        // --- HELPER DE SEGURANÇA UI (Previne erros de 'null') ---
+        const ui = {
+            set: (id, prop, val) => { const el = document.getElementById(id); if(el) el.style[prop] = val; },
+            text: (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; },
+            html: (id, val) => { const el = document.getElementById(id); if(el) el.innerHTML = val; }
+        };
+
+        function initFabricData() {
+            FABRIC_LIBRARY.push({ id: 'linen_grey', name: 'Linho Padrão', color: '#a0a0a0', type: 'linen', map: 'front', collection: 'Padrão' });
+            COLLECTIONS_DATA.forEach(col => {
+                const key = col.name.toLowerCase().replace(/\s/g, '');
+                IMAGES[key] = { front: null, back: null }; 
+                FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start}`, name: `${col.name} ${col.prefix}${col.start}`, color: '#dcdcdc', type: key, map: 'front', collection: col.name });
+                for (let i = 1; i <= 6; i++) { FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start + i}`, name: `${col.name} ${col.prefix}${col.start + i}`, color: '#b0b0b0', type: key, map: `back_${i}`, collection: col.name }); }
+            });
+        }
+        initFabricData();
+
+        const LEG_MATERIALS = { chrome: new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8, roughness: 0.2 }), black: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.0, roughness: 0.9 }), moka: new THREE.MeshStandardMaterial({ color: 0x5D4037, metalness: 0.1, roughness: 0.6 }), wood: new THREE.MeshStandardMaterial({ color: 0x8b5a2b, metalness: 0.0, roughness: 0.8 }) };
+        const MODULES_DEF = [ { id: 'seat_no_arm', name: 'Centro', icon: 'fa-couch', type: 'seat', modelKey: 'seat', hasArm: false }, { id: 'seat_arm_l', name: 'Braço Esq.', icon: 'fa-cube', type: 'seat', modelKey: 'arm', hasArm: 'left' }, { id: 'seat_arm_r', name: 'Braço Dir.', icon: 'fa-cube', type: 'seat', modelKey: 'arm', hasArm: 'right' }, { id: 'corner', name: 'Ângulo', icon: 'fa-border-all', type: 'corner', modelKey: 'corner', hasArm: false, fixedSize: true }, { id: 'chaise_l', name: 'Chaise Esq.', icon: 'fa-l', type: 'chaise', modelKey: 'chaise', hasArm: 'left' }, { id: 'chaise_r', name: 'Chaise Dir.', icon: 'fa-l', type: 'chaise', modelKey: 'chaise', hasArm: 'right' }, { id: 'meridien_l', name: 'Meridien Esq.', icon: 'fa-layer-group', type: 'meridien', modelKey: 'meridien', hasArm: 'left' }, { id: 'meridien_r', name: 'Meridien Dir.', icon: 'fa-layer-group', type: 'meridien', modelKey: 'meridien', hasArm: 'right' }, { id: 'seat_2_macro_l', name: '2 Lug. Esq.', icon: 'fa-couch', type: 'macro', hasArm: 'left' }, { id: 'seat_2_macro_r', name: '2 Lug. Dir.', icon: 'fa-couch', type: 'macro', hasArm: 'right' } ];
+        
+        let scene, camera, renderer, controls, loader, raycaster, mouse, addedModules = [];
+        const modelLibrary = { arm: null, seat: null, corner: null, chaise: null, meridien: null };
+        let currentFabricMaterial = new THREE.MeshStandardMaterial({ color: 0x9ca3af, roughness: 0.9 }); 
+        let currentLegMaterial = LEG_MATERIALS.black; 
+        let showDimensions = false, dimensionLinesGroup = null, softShadowTexture = null;
+        let hoveredModuleIndex = -1; 
+        let pendingFabricId = null;
+
+        const hoverMenu = document.getElementById('module-hover-menu');
+        const relaxBtn = document.getElementById('btn-relax');
+        const removeBtn = document.getElementById('btn-remove');
+        const debugPanel = document.getElementById('debug-panel');
+        const debugContent = document.getElementById('debug-content');
+
+        // --- 2. FUNÇÕES GLOBAIS ---
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene(); scene.background = new THREE.Color(0xf3f4f6); scene.fog = new THREE.Fog(0xf3f4f6, 800, 2500);
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 5000); camera.position.set(0, 450, 750);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.outputEncoding = THREE.sRGBEncoding;
+            container.appendChild(renderer.domElement);
+            const amb = new THREE.AmbientLight(0xffffff, 0.5); scene.add(amb);
+            const dir = new THREE.DirectionalLight(0xffffff, 0.8); dir.position.set(100, 400, 100); dir.castShadow = true; dir.shadow.mapSize.width = 2048; dir.shadow.mapSize.height = 2048; dir.shadow.radius = 4; dir.shadow.bias = -0.0005; scene.add(dir);
+            const fill = new THREE.DirectionalLight(0xffffff, 0.2); fill.position.set(-100, 100, -200); scene.add(fill);
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }));
+            ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; ground.position.y = -0.1; scene.add(ground);
+            scene.add(new THREE.GridHelper(3000, 60, 0xdddddd, 0xeeeeee));
+            dimensionLinesGroup = new THREE.Group(); scene.add(dimensionLinesGroup);
+            controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.maxPolarAngle = Math.PI / 2 - 0.05;
+            loader = new THREE.GLTFLoader(); raycaster = new THREE.Raycaster(); mouse = new THREE.Vector2();
+            window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+            
+            renderer.domElement.addEventListener('click', onMouseClick); 
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            
+            initShadowTexture(); 
+            initUI();
+            animate();
+        }
+
+        function animate() { requestAnimationFrame(animate); updateAnimations(); controls.update(); renderer.render(scene, camera); }
+
+        function showFeedback(msg, type) {
+            const el = document.getElementById('feedback-message'); 
+            if(!el) return;
+            el.textContent = msg;
+            el.className = (type==='success' ? 'bg-green-600' : 'bg-gray-800') + " shadow-lg px-6 py-2 rounded-full text-white show-feedback";
+            setTimeout(() => el.classList.remove('show-feedback'), 2000);
+        }
+
+        function safeAddEventListener(id, event, callback) {
+            const el = document.getElementById(id);
+            if(el) el.addEventListener(event, callback);
+        }
+
+        window.setLegFinish = function(type, el) { document.querySelectorAll('.leg-swatch').forEach(s => s.classList.remove('active')); el.classList.add('active'); currentLegMaterial = LEG_MATERIALS[type]; updateAllModulesMaterial(); showFeedback(`Pés: ${type.toUpperCase()}`, "success"); }
+        window.setFabricColor = function(colorHex, el) { document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active')); el.classList.add('active'); currentFabricMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(colorHex), roughness: 0.9 }); selectedFabricName = `Cor (${colorHex})`; updateAllModulesMaterial(); showFeedback("Tecido alterado", "success"); };
+
+        // --- 3. FUNÇÕES DE MATERIAIS E TEXTURAS ---
+        function initShadowTexture() {
+            const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d'); const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            gradient.addColorStop(0, 'rgba(0, 0, 0, 0.6)'); gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.2)'); gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = gradient; ctx.fillRect(0, 0, 128, 128); softShadowTexture = new THREE.CanvasTexture(canvas);
+        }
+
+        function applyTextureRepeat(texture, rapportCm) {
+            if(!texture) return;
+            const referenceSizeCm = 90; const repeatFactor = referenceSizeCm / rapportCm;
+            texture.wrapS = THREE.RepeatWrapping; 
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(repeatFactor, repeatFactor); texture.needsUpdate = true;
+        }
+
+        function cropTextureFromImage(sourceImg, crop, type) {
+            if(!sourceImg) return null;
+            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+            const sx = sourceImg.width * crop.x; const sy = sourceImg.height * crop.y;
+            const sw = sourceImg.width * crop.w; const sh = sourceImg.height * crop.h;
+            canvas.width = 512; canvas.height = 512;
+            ctx.drawImage(sourceImg, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.encoding = THREE.sRGBEncoding;
+            tex.wrapS = THREE.RepeatWrapping; 
+            tex.wrapT = THREE.RepeatWrapping;
+            applyTextureRepeat(tex, CONFIG.dynamic.rapport);
+            
+            let params = { map: tex, color: 0xffffff, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.02 };
+            if (type === 'siza' || type === 'river') { 
+                params.roughness = 0.6; 
+                params.metalness = 0.0; 
+            } 
+            return new THREE.MeshStandardMaterial(params);
+        }
+
+        function createProceduralFabricTexture(type, colorHex) {
+            const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size);
+            if(type === 'linen' || type === 'boucle') { ctx.globalAlpha = 0.1; for(let i=0; i<size*100; i++) { ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#000000'; ctx.fillRect(Math.random()*size, Math.random()*size, 1, 1); } }
+            else if (type === 'velvet') { ctx.globalAlpha = 0.05; const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2); grad.addColorStop(0, 'rgba(255,255,255,0.3)'); grad.addColorStop(1, 'rgba(0,0,0,0.1)'); ctx.fillStyle = grad; ctx.fillRect(0,0,size,size); }
+            
+            const tex = new THREE.CanvasTexture(canvas); 
+            tex.encoding = THREE.sRGBEncoding; 
+            applyTextureRepeat(tex, CONFIG.dynamic.rapport);
+            
+            let roughness = 0.9; let metalness = 0.0; let bump = tex;
+            if (type === 'velvet') { roughness = 0.7; metalness = 0.1; }
+            else if (type === 'siza' || type === 'river') { roughness = 0.6; metalness = 0.0; } 
+            
+            return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: roughness, metalness: metalness, bumpMap: bump, bumpScale: 0.01 });
+        }
+
+        function applyMaterialToGroup(group, material, targetLegs) {
+            if(!group) return; 
+            group.traverse((node) => {
+                if (node.isMesh) {
+                    if(node.name === 'shadow_plane' || node.name === 'debug_pivot') return;
+                    const lowerName = node.name.toLowerCase(); 
+                    const isBodyPart = lowerName.includes('costa') || lowerName.includes('back') || lowerName.includes('assento') || lowerName.includes('seat') || lowerName.includes('cushion') || lowerName.includes('almofada');
+                    if(isBodyPart && targetLegs) return; 
+                    const legKeywords = ['leg', 'pé', 'pés', 'pes', 'foot', 'feet', 'base', 'metal', 'chrome', 'cromado', 'steel', 'wood', 'madeira', 'black', 'negro', 'moka'];
+                    let isLeg = false; let currentNode = node;
+                    for(let i = 0; i < 4; i++) {
+                        if(!currentNode) break; const name = currentNode.name.toLowerCase(); const matName = (currentNode.material && currentNode.material.name) ? currentNode.material.name.toLowerCase() : "";
+                        if (legKeywords.some(kw => name.includes(kw) || matName.includes(kw))) { isLeg = true; break; } currentNode = currentNode.parent;
+                    }
+                    if(isLeg && isBodyPart) isLeg = false;
+                    if (targetLegs === isLeg) { node.material = material; node.castShadow = true; node.receiveShadow = true; }
+                }
+            });
+        }
+
+        // --- 4. UI E BIBLIOTECA ---
+        function renderFabricLibrary(category) {
+            const container = document.getElementById('fabric-library-container'); if(!container) return; container.innerHTML = '';
+            const filtered = category === 'all' ? FABRIC_LIBRARY : FABRIC_LIBRARY.filter(f => f.type === category);
+            filtered.forEach(fab => {
+                const el = document.createElement('div'); el.className = 'fabric-item'; 
+                const store = IMAGES[fab.type]; const coords = TEXTURE_LAYOUTS[fab.map]; let src = null;
+                if(store && coords) src = (coords.src === 'front') ? store.front : store.back;
+                if(src) {
+                     const bgX = (coords.x / (1 - coords.w)) * 100 || 0; const bgY = (coords.y / (1 - coords.h)) * 100 || 0;
+                     const sizeX = (1 / coords.w) * 100; const sizeY = (1 / coords.h) * 100;
+                     el.style.backgroundImage = `url(${src.src})`; el.style.backgroundSize = `${sizeX}% ${sizeY}%`;
+                     el.style.backgroundPosition = `${bgX}% ${bgY}%`; el.style.backgroundColor = 'transparent';
+                } else { el.style.backgroundColor = fab.color; }
+                el.innerHTML = `<div class="fabric-name">${fab.name}</div>`; 
+                el.onclick = () => setFabricFromLibrary(fab.id); 
+                container.appendChild(el);
+            });
+        }
+
+        function setFabricFromLibrary(id) {
+            const fab = FABRIC_LIBRARY.find(f => f.id === id); if(!fab) return;
+            document.querySelectorAll('.fabric-item').forEach(el => el.classList.remove('active'));
+            pendingFabricId = null;
+            const store = IMAGES[fab.type];
+            selectedFabricName = fab.name;
+
+            if(store) {
+                const coords = TEXTURE_LAYOUTS[fab.map];
+                const sourceImg = (coords.src === 'front') ? store.front : store.back;
+                if(sourceImg) {
+                    currentFabricMaterial = cropTextureFromImage(sourceImg, coords, fab.type);
+                    updateAllModulesMaterial(); showFeedback(fab.name, "success");
+                } else {
+                    pendingFabricId = id;
+                    const collectionName = COLLECTIONS_DATA.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type)?.name || fab.type;
+                    showFeedback(`Falta: ${collectionName} ${coords.src==='front'?'1':'2'}`, "error");
+                }
+            } else {
+                currentFabricMaterial = createProceduralFabricTexture(fab.type, fab.color); 
+                updateAllModulesMaterial(); showFeedback(fab.name, "success");
+            }
+        }
+
+        function updateAllModulesMaterial() { addedModules.forEach(mod => { applyMaterialToGroup(mod.mesh, currentFabricMaterial, false); applyMaterialToGroup(mod.mesh, currentLegMaterial, true); }); }
+
+        function initUI() {
+            const catContainer = document.getElementById('fabric-categories');
+            if(catContainer) {
+                let btnAll = document.createElement('button'); btnAll.className = 'cat-btn active'; btnAll.textContent = 'Todos';
+                btnAll.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btnAll.classList.add('active'); renderFabricLibrary('all'); };
+                catContainer.appendChild(btnAll);
+                COLLECTIONS_DATA.forEach(col => {
+                    const key = col.name.toLowerCase().replace(/\s/g, '');
+                    const btn = document.createElement('button');
+                    btn.className = 'cat-btn'; btn.textContent = col.name;
+                    btn.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderFabricLibrary(key); };
+                    catContainer.appendChild(btn);
+                });
+            }
+            const statusList = document.getElementById('collection-status-list');
+            if(statusList) {
+                COLLECTIONS_DATA.forEach(col => {
+                    const key = col.name.toLowerCase().replace(/\s/g, '');
+                    const row = document.createElement('div'); row.className = "status-row";
+                    row.innerHTML = `<span class="text-[9px] font-bold text-gray-700">${col.name}</span><div class="flex gap-1"><span id="status-${key}-1" class="status-badge">F</span><span id="status-${key}-2" class="status-badge">V</span></div>`;
+                    statusList.appendChild(row);
+                });
+            }
+            renderFabricLibrary('karma'); 
+        }
+
+        // --- 5. LÓGICA 3D E MÓDULOS ---
+        function createModuleMesh(def) {
+            const group = new THREE.Group();
+            const baseSize = def.fixedSize ? SIZES['Único'] : SIZES[CONFIG.globalSize];
+            let width = baseSize; let depth = CONFIG.standardDepth; let seatH = CONFIG.moduleHeight; let backH = CONFIG.backHeight;
+            if (def.type === 'chaise') depth = CONFIG.dynamic.chaiseDepth; if (def.type === 'corner') { width = CONFIG.dynamic.cornerSize; depth = CONFIG.dynamic.cornerSize; } if (def.type === 'meridien') width = baseSize * 1.2;
+            let totalWidth = width; if (def.hasArm) totalWidth += CONFIG.armWidth;
+            const libModel = modelLibrary[def.modelKey];
+            
+            const footrestGroup = new THREE.Group(); footrestGroup.name = "footrest_anim"; footrestGroup.position.set(0, -100, 0);
+            const frWidth = width * 0.9; const frDepth = 40; const frHeight = 12;
+            const frMain = new THREE.Mesh(new THREE.BoxGeometry(frWidth, frHeight, frDepth), currentFabricMaterial); frMain.position.z = -frDepth/4;
+            const frRound = new THREE.Mesh(new THREE.CylinderGeometry(frHeight/2, frHeight/2, frWidth, 32), currentFabricMaterial); frRound.rotation.z = Math.PI/2; frRound.position.z = frDepth/4;
+            footrestGroup.add(frMain); footrestGroup.add(frRound);
+            const mech = new THREE.Mesh(new THREE.BoxGeometry(frWidth*0.8, 2, 30), new THREE.MeshStandardMaterial({color:0x222222})); mech.position.y = -8; footrestGroup.add(mech);
+            group.add(footrestGroup);
+
+            if (libModel) {
+                const model = libModel.clone();
+                let scaleX = 1; if (!def.fixedSize) { const targetSize = SIZES[CONFIG.globalSize]; const refSize = SIZES['L']; scaleX = targetSize / refSize; }
+                if (libModel.userData.detectedDepth) depth = libModel.userData.detectedDepth; if (libModel.userData.detectedWidth) totalWidth = libModel.userData.detectedWidth;
+                let parentScale = model.scale.x || 100; if (parentScale < 1) parentScale = 1; 
+                const mirrorX = (def.hasArm === 'right') ? -1 : 1; model.scale.x *= scaleX * mirrorX;
+                if (mirrorX === -1) { model.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); } else { model.traverse(n => { if(n.isMesh) { n.castShadow = true; n.receiveShadow = true; }}); }
+                model.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); model.position.x -= center.x; model.position.z -= center.z; const size = new THREE.Vector3(); box.getSize(size); totalWidth = size.x; depth = size.z;
+                
+                model.traverse(node => { 
+                    if (node.isMesh || node.isGroup) { 
+                        const n = node.name.toLowerCase(); 
+                        if (n.includes('back') || n.includes('costa') || n.includes('encosto')) node.name = "back_anim_gltf"; 
+                        if (n.includes('headrest') || n.includes('cabeceira')) node.name = "head_anim_gltf";
+                    } 
+                });
+                group.add(model);
+                
+                if (softShadowTexture) { const sM = new THREE.Mesh(new THREE.PlaneGeometry(totalWidth*1.2, depth*1.2), new THREE.MeshBasicMaterial({ map: softShadowTexture, transparent: true, opacity: 0.6, depthWrite: false, color: 0x000000 })); sM.rotation.x = -Math.PI/2; sM.position.y = 0.5; sM.name = 'shadow_plane'; group.add(sM); }
+                applyMaterialToGroup(group, currentFabricMaterial, false); applyMaterialToGroup(group, currentLegMaterial, true);
+            } else {
+                const refScale = 90; const createBox = (w, h, d) => { const geo = new THREE.BoxGeometry(w, h, d); const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) { const u = uv.getX(i); const v = uv.getY(i); if(w > d) uv.setXY(i, u * (w/refScale), v * (h/refScale)); else uv.setXY(i, u * (d/refScale), v * (h/refScale)); } return new THREE.Mesh(geo, currentFabricMaterial); };
+                const seat = createBox(width, seatH, depth); seat.position.y = seatH / 2; seat.castShadow = true;
+                if (def.hasArm === 'left') seat.position.x = CONFIG.armWidth / 2; else if (def.hasArm === 'right') seat.position.x = -CONFIG.armWidth / 2;
+                group.add(seat);
+
+                if(def.type !== 'meridien') {
+                    const backPivot = new THREE.Group(); backPivot.name = "back_pivot_anim";
+                    const backThick = 25; const backMH = backH - seatH;
+                    const backLowerH = backMH * 0.7; const headH = backMH * 0.3;
+                    
+                    backPivot.position.set(seat.position.x, seatH, -depth/2 + backThick);
+                    const backLower = createBox(width, backLowerH, backThick); 
+                    backLower.position.y = backLowerH/2; backLower.position.z = -backThick/2; 
+                    backPivot.add(backLower);
+
+                    const headPivot = new THREE.Group(); headPivot.name = "head_pivot_anim";
+                    headPivot.position.y = backLowerH; headPivot.position.z = -backThick/2;
+                    const headrest = createBox(width, headH, backThick);
+                    headrest.position.y = headH/2; 
+                    headPivot.add(headrest);
+                    backPivot.add(headPivot);
+                    group.add(backPivot);
+                    if(def.type === 'corner') { const sBack = createBox(backThick, backMH, depth-backThick); sBack.position.set(-width/2+12.5, seatH + backMH/2, (depth-25)/2-12.5); group.add(sBack); }
+                }
+                if(def.hasArm) { const arm = createBox(CONFIG.armWidth, backH-15, depth); arm.position.set(def.hasArm==='left' ? -width/2 : width/2, (backH-15)/2, 0); group.add(arm); }
+                const legGeo = new THREE.CylinderGeometry(2, 1.5, 6, 8); const positions = [{x:-width/2+5, z:-depth/2+5}, {x:width/2-5, z:-depth/2+5}, {x:-width/2+5, z:depth/2-5}, {x:width/2-5, z:depth/2-5}];
+                positions.forEach(p => { if(def.hasArm === 'left') p.x += CONFIG.armWidth/2; if(def.hasArm === 'right') p.x -= CONFIG.armWidth/2; const l = new THREE.Mesh(legGeo, currentLegMaterial); l.name = "leg_procedural"; l.position.set(p.x, 3, p.z); group.add(l); });
+                if (softShadowTexture) { const sW = (width + (def.hasArm ? CONFIG.armWidth : 0)) * 1.2; const sD = depth * 1.2; const sM = new THREE.Mesh(new THREE.PlaneGeometry(sW, sD), new THREE.MeshBasicMaterial({ map: softShadowTexture, transparent: true, opacity: 0.6, depthWrite: false, color: 0x000000 })); sM.rotation.x = -Math.PI/2; sM.position.y = 0.5; sM.name = 'shadow_plane'; group.add(sM); }
+            }
+            group.userData = { id: Date.now(), def: def, width: totalWidth, depth: depth, hasRelax: false, relaxFactor: 0 }; return group;
+        }
+
+        function addModule(id, silent=false) {
+            if(id === 'seat_2_macro_l') { addModule('seat_arm_l', true); addModule('seat_no_arm', true); showFeedback("2 Lug. Esq.", "success"); return; }
+            if(id === 'seat_2_macro_r') { addModule('seat_no_arm', true); addModule('seat_arm_r', true); showFeedback("2 Lug. Dir.", "success"); return; }
+            const def = MODULES_DEF.find(m => m.id === id); if(!def) return; const mesh = createModuleMesh(def); scene.add(mesh);
+            addedModules.push({ mesh: mesh, data: def, width: mesh.userData.width, depth: mesh.userData.depth, isCornerLine: false, hasRelax: false, relaxFactor: 0 });
+            repositionModules(); if(!silent) showFeedback(def.name, "success");
+        }
+
+        function removeModule(idx) { 
+            if(idx < 0 || idx >= addedModules.length) return; 
+            scene.remove(addedModules[idx].mesh); 
+            addedModules.splice(idx, 1); 
+            repositionModules(); 
+            showFeedback("Removido", "success"); 
+            if(hoverMenu) hoverMenu.classList.remove('visible'); 
+        }
+
+        function repositionModules() {
+            let cornerIdx = -1; for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIdx = i; break; }
+            let cornerPos = { x:0, z:0, depth: 0 };
+            addedModules.forEach((mod, i) => {
+                const mesh = mod.mesh;
+                if(cornerIdx === -1 || i <= cornerIdx) {
+                    mod.isCornerLine = false; mesh.rotation.y = 0;
+                    if(i === 0) mesh.position.x = 0; else { const prev = addedModules[i-1]; mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2); }
+                    mesh.position.z = ((mod.depth - CONFIG.standardDepth) / 2) + parseFloat(CONFIG.dynamic.alignManualOffset);
+                    if(mod.data.type === 'corner') cornerPos = { x: mesh.position.x, z: mesh.position.z, depth: mod.depth };
+                } else {
+                    mod.isCornerLine = true; mesh.rotation.y = -Math.PI / 2;
+                    if(i === cornerIdx + 1) mesh.position.z = cornerPos.z + (cornerPos.depth/2) + (mod.width/2) + parseFloat(CONFIG.dynamic.alignGapOffset);
+                    else { const prev = addedModules[i-1]; mesh.position.z = prev.mesh.position.z + (prev.width/2) + (mod.width/2); }
+                    mesh.position.x = cornerPos.x + (cornerPos.depth - mod.depth)/2 - parseFloat(CONFIG.dynamic.alignManualOffset);
+                }
+            });
+            let total = 0; addedModules.forEach(m => { if(!m.isCornerLine) total += m.width; });
+            ui.text('total-width-display', Math.round(total) + " cm");
+            if(showDimensions) updateDimensionLabels();
+        }
+
+        function refresh() {
+            const current = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax }));
+            addedModules.forEach(m => scene.remove(m.mesh)); addedModules = [];
+            current.forEach(item => { const def = MODULES_DEF.find(d => d.id === item.id); if(def) { const m = createModuleMesh(def); scene.add(m); addedModules.push({ mesh: m, data: def, width: m.userData.width, depth: m.userData.depth, isCornerLine: false, hasRelax: item.hasRelax, relaxFactor: item.hasRelax ? 1 : 0 }); } });
+            repositionModules(); updateAllModulesMaterial();
+        }
+
+        function renderModuleButtons() {
+            const palette = document.getElementById('module-list'); if (!palette) return; palette.innerHTML = '';
+            MODULES_DEF.forEach(mod => {
+                const btn = document.createElement('button'); btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16";
+                btn.onclick = () => addModule(mod.id);
+                btn.innerHTML = `<i class="fas ${mod.icon} text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i><span class="text-[9px] font-bold text-gray-600 leading-tight text-center">${mod.name}</span>`;
+                palette.appendChild(btn);
+            });
+        }
+
+        // --- 6. INTERAÇÃO E ANIMAÇÃO ---
+
+        function onMouseClick(e) {
+            if(e.target.closest('#module-hover-menu')) return;
+            if(hoverMenu) hoverMenu.classList.remove('visible'); hoveredModuleIndex = -1; 
+        }
+
+        function onMouseMove(e) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left)/rect.width)*2 -1; mouse.y = -((e.clientY - rect.top)/rect.height)*2 +1;
+            raycaster.setFromCamera(mouse, camera); const ints = raycaster.intersectObjects(addedModules.map(m=>m.mesh), true);
+            if(ints.length > 0) {
+                let obj = ints[0].object; while(obj.parent && obj.parent.type !== 'Scene') obj = obj.parent;
+                const idx = addedModules.findIndex(m => m.mesh === obj);
+                if(idx !== -1 && idx !== hoveredModuleIndex) {
+                    hoveredModuleIndex = idx; updateHoverMenuPosition(idx, e.clientX, e.clientY);
+                }
+            } else { if(hoverMenu && !e.target.closest('#module-hover-menu')) { /* Optional */ } }
+        }
+
+        function updateHoverMenuPosition(idx, cx, cy) {
+            const mod = addedModules[idx];
+            const pos = mod.mesh.position.clone(); pos.y += 60; pos.project(camera);
+            const x = (pos.x * .5 + .5) * renderer.domElement.clientWidth;
+            const y = (pos.y * -.5 + .5) * renderer.domElement.clientHeight;
+            if(hoverMenu) {
+                hoverMenu.style.left = x + 'px'; hoverMenu.style.top = y + 'px'; hoverMenu.classList.add('visible');
+                const canRelax = (mod.data.type !== 'chaise' && mod.data.type !== 'corner');
+                if(canRelax) {
+                    relaxBtn.style.display = 'flex';
+                    if(mod.hasRelax) relaxBtn.classList.add('active'); else relaxBtn.classList.remove('active');
+                    relaxBtn.onclick = () => { mod.hasRelax = !mod.hasRelax; if(mod.hasRelax) relaxBtn.classList.add('active'); else relaxBtn.classList.remove('active'); };
+                } else { relaxBtn.style.display = 'none'; }
+                removeBtn.onclick = () => removeModule(idx);
+            }
+        }
+
+        function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+
+        function updateAnimations() {
+            const now = Date.now();
+            addedModules.forEach(mod => {
+                if(!mod.mesh) return;
+                let target = 0;
+                if(mod.hasRelax) {
+                    const cycleDuration = 8000; const t = now % cycleDuration;
+                    if(t < 2500) target = t / 2500; else if(t < 3500) target = 1; else if(t < 6000) target = 1 - ((t - 3500) / 2500); else target = 0;
+                }
+                mod.relaxFactor += (target - mod.relaxFactor) * 0.08;
+                const easeVal = easeOutCubic(mod.relaxFactor);
+                const footrest = mod.mesh.getObjectByName("footrest_anim");
+                if(footrest) { if(mod.relaxFactor > 0.01) { footrest.position.z = easeVal * 55; footrest.position.y = 15 + (easeVal * 25); footrest.rotation.x = (-Math.PI/2.5) * (1 - easeVal); } else { footrest.position.y = -100; } }
+                let backPivot = mod.mesh.getObjectByName("back_pivot_anim");
+                if(backPivot) {
+                     backPivot.rotation.x = -easeVal * 0.35; 
+                     let headPivot = backPivot.getObjectByName("head_pivot_anim");
+                     if(headPivot) headPivot.rotation.x = easeVal * 0.5;
+                }
+                mod.mesh.traverse(n => { 
+                    if(n.name === "back_anim_gltf") n.rotation.x = -easeVal * 0.35; 
+                    if(n.name === "head_anim_gltf") n.rotation.x = easeVal * 0.5;
+                });
+            });
+        }
+        
+        function createTextSprite(message) {
+            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); const fontSize = 64;
+            ctx.font = "Bold " + fontSize + "px Arial"; const textWidth = ctx.measureText(message).width; canvas.width = textWidth + 40; canvas.height = fontSize + 40;
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; 
+            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, canvas.width, canvas.height, 20); ctx.fill(); } 
+            else { ctx.fillRect(0, 0, canvas.width, canvas.height); }
+            ctx.fillStyle = "white"; ctx.font = "Bold " + fontSize + "px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(message, canvas.width/2, canvas.height/2);
+            const texture = new THREE.CanvasTexture(canvas); const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false })); sprite.scale.set(canvas.width * 0.15, canvas.height * 0.15, 1); sprite.renderOrder = 999; return sprite;
+        }
+
+        function updateDimensionLabels() {
+            while(dimensionLinesGroup.children.length > 0){ const obj = dimensionLinesGroup.children[0]; if(obj.material && obj.material.map) obj.material.map.dispose(); dimensionLinesGroup.remove(obj); }
+            if(!showDimensions || addedModules.length === 0) return;
+            let leg1Length = 0; let leg2Length = 0; let cornerIndex = -1; for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIndex = i; break; }
+            const endLeg1Index = cornerIndex === -1 ? addedModules.length - 1 : cornerIndex; let startX = 0; let endX = 0;
+            if(addedModules.length > 0) {
+                const first = addedModules[0]; const lastLeg1 = addedModules[endLeg1Index]; endX = lastLeg1.mesh.position.x + lastLeg1.width/2; startX = -first.width/2; leg1Length = endX - startX;
+                const lineY = 110; const linePoints = [new THREE.Vector3(startX, lineY, 0), new THREE.Vector3(endX, lineY, 0)];
+                const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePoints), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 })); dimensionLinesGroup.add(line);
+                const sprite = createTextSprite(Math.round(leg1Length) + " cm"); sprite.position.set((startX + endX)/2, lineY + 15, 0); dimensionLinesGroup.add(sprite);
+            }
+            if(cornerIndex !== -1 && cornerIndex < addedModules.length - 1) {
+                const corner = addedModules[cornerIndex]; const lastLeg2 = addedModules[addedModules.length - 1];
+                const startZ = corner.mesh.position.z - corner.depth/2; const endZ = lastLeg2.mesh.position.z + lastLeg2.width/2; leg2Length = endZ - startZ;
+                const lineX = corner.mesh.position.x + corner.width/2 + 20; const lineY = 110;
+                const linePointsZ = [new THREE.Vector3(lineX, lineY, startZ), new THREE.Vector3(lineX, lineY, endZ)];
+                const lineZ = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePointsZ), new THREE.LineBasicMaterial({ color: 0xffffff })); dimensionLinesGroup.add(lineZ);
+                const spriteZ = createTextSprite(Math.round(leg2Length) + " cm"); spriteZ.position.set(lineX + 10, lineY + 15, (startZ + endZ)/2); dimensionLinesGroup.add(spriteZ);
+            }
+        }
+
+        // --- AR & IA ---
+        function uploadToHost(blob) {
+            const formData = new FormData(); formData.append('file', blob, 'sofa-eleganza.glb');
+            ui.text('ar-status-text', "A enviar para a nuvem (5s timeout)...");
+            ui.set('ar-loading', 'display', 'block');
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); 
+
+            fetch('https://file.io/?expires=1d', { method: 'POST', body: formData, signal: controller.signal })
+            .then(response => response.json())
+            .then(data => {
+                clearTimeout(timeoutId);
+                if(data.success) {
+                    ui.set('ar-loading', 'display', 'none');
+                    ui.set('ar-success', 'display', 'block');
+                    const qrEl = document.getElementById('qrcode');
+                    if(qrEl) { qrEl.innerHTML = ""; new QRCode(qrEl, { text: data.link, width: 200, height: 200 }); }
+                } else { throw new Error('Upload failed'); }
+            })
+            .catch(err => { 
+                ui.set('ar-loading', 'display', 'none');
+                ui.set('ar-fallback', 'display', 'block');
+            });
+        }
+
+        function exportToAR() {
+            if(addedModules.length === 0) { showFeedback("Adicione módulos primeiro!", "error"); return; }
+            const exporter = new THREE.GLTFExporter();
+            const sceneClone = new THREE.Group();
+            addedModules.forEach(mod => sceneClone.add(mod.mesh.clone()));
+            sceneClone.traverse(child => { if(child.name === 'shadow_plane' || child.name === 'debug_pivot') child.visible = false; });
+
+            ui.set('ar-modal', 'display', 'flex');
+            ui.set('ar-loading', 'display', 'block');
+            ui.set('ar-success', 'display', 'none');
+            ui.set('ar-fallback', 'display', 'none');
+
+            exporter.parse(sceneClone, function (result) {
+                if (result instanceof ArrayBuffer) {
+                    const blob = new Blob([result], { type: 'application/octet-stream' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const dlBtn = document.getElementById('download-glb-btn');
+                    if(dlBtn) {
+                        dlBtn.onclick = () => {
+                            const link = document.createElement('a'); link.href = url; link.download = 'sofa-eleganza.glb';
+                            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                        };
+                    }
+                    
+                    const viewer = document.getElementById('sofa-viewer');
+                    const loader = document.getElementById('mv-loader');
+                    if(viewer) { viewer.src = url; viewer.addEventListener('load', () => { if(loader) loader.style.display = 'none'; }); }
+
+                    uploadToHost(blob);
+                }
+            }, { binary: true });
+        }
+
+        async function callGemini(prompt) {
+            const apiKey = ""; 
+            if (!apiKey) {
+                console.warn("Modo Demo: Chave API não detetada.");
+                if(prompt.includes("JSON")) return JSON.stringify(["seat_arm_l", "seat_no_arm", "seat_arm_r"]);
+                else return "Esta é uma descrição simulada (Modo Demo). O sofá apresenta um design contemporâneo com linhas depuradas.";
+            }
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await response.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Erro na resposta da IA.";
+            } catch (e) { return "Erro de ligação."; }
+        }
+
+        async function generateDescription() {
+            const btn = document.getElementById('ai-describe-btn'); const out = document.getElementById('ai-description-output'); const loader = btn.querySelector('.ai-loader');
+            if(!addedModules.length) { showFeedback("Adicione módulos primeiro!", "error"); return; }
+            if(loader) loader.classList.add('active'); btn.disabled = true;
+            const modulesList = addedModules.map(m => m.data.name).join(", ");
+            const totalWidth = document.getElementById('total-width-display').textContent;
+            const fabric = selectedFabricName;
+            const prompt = `Aja como um especialista em mobiliário de luxo. Escreva uma descrição comercial curta, elegante e persuasiva (em Português de Portugal) para um sofá com estas características:\n- Módulos: ${modulesList}\n- Largura Total: ${totalWidth}\n- Tecido: ${fabric}\n- Estilo: Moderno, modular.`;
+            const text = await callGemini(prompt); if(out) out.textContent = text; if(loader) loader.classList.remove('active'); btn.disabled = false;
+        }
+
+        async function magicBuild() {
+            const input = document.getElementById('ai-prompt-input'); const btn = document.getElementById('ai-generate-btn'); const loader = btn.querySelector('.ai-loader'); const userReq = input.value;
+            if(!userReq) { showFeedback("Escreva o que procura!", "error"); return; }
+            if(loader) loader.classList.add('active'); btn.disabled = true;
+            const moduleListStr = MODULES_DEF.map(m => `${m.id} (${m.name})`).join(", ");
+            const prompt = `Você é uma API de configuração de sofás. O utilizador quer: "${userReq}". Os módulos disponíveis são: ${moduleListStr}. Retorne APENAS um array JSON válido com os IDs dos módulos. Exemplo: ["seat_arm_l", "seat_no_arm"]. Não inclua markdown.`;
+            try {
+                let responseText = await callGemini(prompt); responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+                let moduleIds; try { moduleIds = JSON.parse(responseText); } catch(e) { moduleIds = ["seat_arm_l", "seat_no_arm", "seat_arm_r"]; showFeedback("Erro na IA. A usar modelo padrão.", "error"); }
+                if (Array.isArray(moduleIds)) { addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; moduleIds.forEach(id => addModule(id, true)); repositionModules(); showFeedback("Sofá gerado!", "success"); ui.set('ai-modal', 'display', 'none'); } else { showFeedback("A IA não percebeu o pedido.", "error"); }
+            } catch (e) { showFeedback("Erro ao gerar configuração.", "error"); }
+            if(loader) loader.classList.remove('active'); btn.disabled = false;
+        }
+
+        // --- 7. STARTUP ---
+        document.addEventListener('DOMContentLoaded', () => {
+            init3D();
+            renderModuleButtons(); 
+            safeAddEventListener('toggle-dims-btn', 'click', () => { showDimensions = !showDimensions; updateDimensionLabels(); });
+            safeAddEventListener('toggle-editor-btn', 'click', () => { const el = document.getElementById('editor-panel'); if(el) el.classList.toggle('hidden'); });
+            safeAddEventListener('reset-btn', 'click', () => { addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; repositionModules(); });
+            safeAddEventListener('input-chaise-depth', 'input', (e) => { CONFIG.dynamic.chaiseDepth = parseInt(e.target.value); refresh(); });
+            safeAddEventListener('input-corner-size', 'input', (e) => { CONFIG.dynamic.cornerSize = parseInt(e.target.value); refresh(); });
+            safeAddEventListener('input-align-offset', 'input', (e) => { CONFIG.dynamic.alignManualOffset = e.target.value; repositionModules(); });
+            safeAddEventListener('input-gap-offset', 'input', (e) => { CONFIG.dynamic.alignGapOffset = e.target.value; repositionModules(); });
+            safeAddEventListener('input-rapport', 'input', (e) => { CONFIG.dynamic.rapport = parseInt(e.target.value) || 30; if(currentFabricMaterial && currentFabricMaterial.map) applyTextureRepeat(currentFabricMaterial.map, CONFIG.dynamic.rapport); });
+            
+            safeAddEventListener('btn-ar-open', 'click', exportToAR);
+            safeAddEventListener('close-ar-btn', 'click', () => { ui.set('ar-modal', 'display', 'none'); });
+            safeAddEventListener('btn-ai-open', 'click', () => { ui.set('ai-modal', 'display', 'flex'); });
+            safeAddEventListener('close-ai-btn', 'click', () => { ui.set('ai-modal', 'display', 'none'); });
+            safeAddEventListener('ai-describe-btn', 'click', generateDescription);
+            safeAddEventListener('ai-generate-btn', 'click', magicBuild);
+
+            safeAddEventListener('smart-upload', 'change', function(e) {
+                const files = e.target.files; if(!files.length) return;
+                Array.from(files).forEach(file => {
+                    const name = file.name.toLowerCase();
+                    const img = new Image();
+                    img.onload = () => {
+                        const foundCol = COLLECTIONS_DATA.find(col => name.includes(col.name.toLowerCase()));
+                        if(foundCol) {
+                            const key = foundCol.name.toLowerCase().replace(/\s/g, '');
+                            if(name.includes('1') || name.includes('front') || name.includes('frente')) {
+                                IMAGES[key].front = img; 
+                                const badge = document.getElementById(`status-${key}-1`); if(badge) badge.className = "status-badge ok";
+                            }
+                            if(name.includes('2') || name.includes('back') || name.includes('verso')) {
+                                IMAGES[key].back = img; 
+                                const badge = document.getElementById(`status-${key}-2`); if(badge) badge.className = "status-badge ok";
+                            }
+                            if(document.querySelector('.cat-btn.active') && document.querySelector('.cat-btn.active').textContent === foundCol.name) renderFabricLibrary(key);
+                        }
+                        if(pendingFabricId) setFabricFromLibrary(pendingFabricId);
+                    };
+                    img.src = URL.createObjectURL(file);
+                });
+                showFeedback(files.length + " imagens processadas", "success");
+            });
+
+            safeAddEventListener('texture-upload', 'change', function(e) {
+                const file = e.target.files[0]; if(!file) return; const url = URL.createObjectURL(file);
+                new THREE.TextureLoader().load(url, (tex) => { tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.MirroredRepeatWrapping; applyTextureRepeat(tex, CONFIG.dynamic.rapport); currentFabricMaterial = new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 0.9 }); updateAllModulesMaterial(); showFeedback("Tecido personalizado!", "success"); });
+            });
+
+            safeAddEventListener('gltf-upload', 'change', function(e) {
+                if(e.target.files.length === 0) return;
+                if (!loader) loader = new THREE.GLTFLoader();
+                let loadedCount = 0; const totalFiles = e.target.files.length;
+                Array.from(e.target.files).forEach(file => {
+                    const url = URL.createObjectURL(file); const name = file.name.toLowerCase();
+                    let key = null;
+                    if (name.includes('com braço') || name.includes('com braco')) key = 'arm';
+                    else if (name.includes('sem braços') || name.includes('sem bracos')) key = 'seat';
+                    else if (name.includes('angulo')) key = 'corner';
+                    else if (name.includes('chaise')) key = 'chaise';
+                    else if (name.includes('meridien')) key = 'meridien';
+                    if (key) {
+                        loader.load(url, (gltf) => {
+                            const model = gltf.scene; 
+                            const box = new THREE.Box3().setFromObject(model); const size = new THREE.Vector3(); box.getSize(size); let scale = 1; if (size.x < 10) scale = 100; model.scale.set(scale, scale, scale); model.updateMatrixWorld(true);
+                            const fBox = new THREE.Box3().setFromObject(model); const fSize = new THREE.Vector3(); fBox.getSize(fSize);
+                            model.userData.detectedDepth = fSize.z; model.userData.detectedWidth = fSize.x; modelLibrary[key] = model;
+                            const el = document.getElementById(`status-${key}`); if(el) { el.className = "flex items-center text-green-600 font-bold h-5"; el.querySelector('i').className = "fas fa-check-circle text-[10px] mr-2"; }
+                            loadedCount++; if(loadedCount === totalFiles) { showFeedback("Modelos carregados!", "success"); refresh(); }
+                        }, undefined, (err) => { console.error(err); showFeedback("Erro: " + name, "error"); });
+                    } else { showFeedback("Ignorado: " + name, "error"); }
+                });
+            });
+
+            document.querySelectorAll('.size-btn').forEach(btn => {
+                btn.onclick = (e) => { CONFIG.globalSize = e.target.dataset.size; document.getElementById('size-preview').textContent = SIZES[CONFIG.globalSize] + "cm"; refresh(); }
+            });
+        });
+
+        function animate() { requestAnimationFrame(animate); updateAnimations(); controls.update(); renderer.render(scene, camera); }
+    </script>
+</body>
+</html>
