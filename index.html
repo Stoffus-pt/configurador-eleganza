@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V116 (Global Scope)</title>
+    <title>Configurador 3D Eleganza - V118 (Estável)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -44,6 +44,7 @@
         .loader-bar { width: 200px; height: 4px; background: #eee; border-radius: 2px; overflow: hidden; margin-top: 15px; }
         .loader-progress { width: 0%; height: 100%; background: #e84c26; transition: width 0.3s; }
         
+        /* UI PANELS */
         .ui-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); }
         .module-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
         #feedback-message { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; padding: 10px 20px; border-radius: 20px; color: white; font-weight: bold; opacity: 0; transition: opacity 0.3s; pointer-events: none; display: flex; align-items: center; gap: 8px; }
@@ -166,7 +167,7 @@
     <div class="ui-panel absolute top-0 left-0 w-full h-16 border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm z-10">
         <div class="flex items-center">
              <div class="font-bold text-xl sm:text-2xl text-gray-800 tracking-tight"><span class="text-stoffus-primary">Stoffus</span> 3D</div>
-             <span class="ml-4 text-xs sm:text-sm text-gray-500 border-l pl-4 hidden sm:block">Eleganza V116</span>
+             <span class="ml-4 text-xs sm:text-sm text-gray-500 border-l pl-4 hidden sm:block">Eleganza V118</span>
         </div>
         <div class="flex items-center space-x-2 sm:space-x-4">
             <button id="btn-ai-open" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-sm border-0"><i class="fas fa-sparkles mr-2"></i> <span class="hidden md:inline">Assistente</span></button>
@@ -222,8 +223,21 @@
     </div>
 
     <script>
-        // --- 0. GLOBAIS ---
+        // --- 0. GLOBAIS ABSOLUTAS ---
         let hoverMenu = null, relaxBtn = null, removeBtn = null; 
+
+        // --- 1. HELPER FUNCTIONS ---
+        function uiSet(id, prop, val) { const el = document.getElementById(id); if(el) el.style[prop] = val; }
+        function uiText(id, txt) { const el = document.getElementById(id); if(el) el.textContent = txt; }
+        function showFeedback(msg, type) { const el = document.getElementById('feedback-message'); if(!el) return; el.textContent = msg; el.className = (type==='success' ? 'bg-green-600' : 'bg-gray-800') + " shadow-lg px-6 py-2 rounded-full text-white show-feedback"; setTimeout(() => el.classList.remove('show-feedback'), 2000); }
+        function safeAddEventListener(id, event, callback) { const el = document.getElementById(id); if(el) el.addEventListener(event, callback); }
+
+        // --- 2. CONFIG & DATA ---
+        const USAR_ASSETS_ONLINE = true; // ATIVADO PARA GITHUB
+        const CONFIG = { globalSize: 'M', moduleHeight: 45, backHeight: 80, standardDepth: 100, armWidth: 20, colors: { fabric: 0x9ca3af, highlight: 0xe84c26 }, dynamic: { chaiseDepth: 165, cornerSize: 113, alignManualOffset: 0, alignGapOffset: 0, rapport: 40, backPivotY: 81, backPivotZ: 2 } };
+        const SIZES = { 'S': 62, 'M': 72, 'L': 82, 'XL': 92, 'Único': 100 };
+        const TEXTURE_LAYOUTS = { 'front': { src: 'front', x: 0.0, y: 0.0, w: 1.0, h: 1.0 }, 'back_1': { src: 'back', x: 0.0, y: 0.0, w: 0.5, h: 0.333 }, 'back_2': { src: 'back', x: 0.5, y: 0.0, w: 0.5, h: 0.333 }, 'back_3': { src: 'back', x: 0.0, y: 0.333, w: 0.5, h: 0.333 }, 'back_4': { src: 'back', x: 0.5, y: 0.333, w: 0.5, h: 0.333 }, 'back_5': { src: 'back', x: 0.0, y: 0.666, w: 0.5, h: 0.333 }, 'back_6': { src: 'back', x: 0.5, y: 0.666, w: 0.5, h: 0.333 } };
+        const COLLECTIONS_DATA = [ { name: 'Karma', prefix: 'B', start: 4043, end: 4049 }, { name: 'Artis', prefix: 'D', start: 4001, end: 4007 }, { name: 'Barbados', prefix: 'F', start: 4001, end: 4007 }, { name: 'Bella', prefix: 'B', start: 1057, end: 1063 }, { name: 'Carmen', prefix: 'B', start: 1127, end: 1133 }, { name: 'Falcon', prefix: 'B', start: 4092, end: 4098 }, { name: 'Fumiko', prefix: 'D', start: 1001, end: 1007 }, { name: 'Funky', prefix: 'B', start: 4106, end: 4112 }, { name: 'Garby', prefix: 'B', start: 4078, end: 4084 }, { name: 'Grift', prefix: 'B', start: 4008, end: 4014 }, { name: 'Jade', prefix: 'B', start: 1145, end: 1151 }, { name: 'Kamala', prefix: 'B', start: 4071, end: 4077 }, { name: 'Kamala2', prefix: 'B', start: 1138, end: 1144 }, { name: 'Madoka', prefix: 'D', start: 4008, end: 4014 }, { name: 'Matchy', prefix: 'B', start: 4085, end: 4091 }, { name: 'Mirage', prefix: 'B', start: 4099, end: 4105 }, { name: 'Pisa', prefix: 'B', start: 1113, end: 1119 }, { name: 'Prisma', prefix: 'B', start: 4022, end: 4028 }, { name: 'Ramses', prefix: 'B', start: 1015, end: 1021 }, { name: 'River', prefix: 'E', start: 1001, end: 1007 }, { name: 'Rissani', prefix: 'B', start: 4057, end: 4063 }, { name: 'Siza', prefix: 'P', start: 1001, end: 1007 }, { name: 'Soft', prefix: 'B', start: 4015, end: 4021 }, { name: 'Stancy', prefix: 'B', start: 4029, end: 4035 }, { name: 'Talia', prefix: 'B', start: 1043, end: 1049 }, { name: 'Touareg', prefix: 'B', start: 1106, end: 1112 }, { name: 'Ventury', prefix: 'B', start: 4050, end: 4056 }, { name: 'Zemy', prefix: 'B', start: 4001, end: 4007 } ];
         let FABRIC_LIBRARY = [], IMAGES = {}, addedModules = [], modelLibrary = { arm: null, seat: null, corner: null, chaise: null, meridien: null };
         let scene, camera, renderer, controls, loader, raycaster, mouse;
         let currentFabricMaterial = null;
@@ -231,49 +245,225 @@
         let currentLegMaterial = LEG_MATERIALS.black;
         let showDimensions = false, dimensionLinesGroup = null, softShadowTexture = null;
         let hoveredModuleIndex = -1, pendingFabricId = null;
-
-        // --- 1. CONFIG ---
-        const USAR_ASSETS_ONLINE = false; // ATIVADO PARA GITHUB
-        const CONFIG = { globalSize: 'M', moduleHeight: 45, backHeight: 80, standardDepth: 100, armWidth: 20, colors: { fabric: 0x9ca3af, highlight: 0xe84c26 }, dynamic: { chaiseDepth: 165, cornerSize: 113, alignManualOffset: 0, alignGapOffset: 0, rapport: 40, backPivotY: 81, backPivotZ: 2 } };
-        const SIZES = { 'S': 62, 'M': 72, 'L': 82, 'XL': 92, 'Único': 100 };
-        const TEXTURE_LAYOUTS = { 'front': { src: 'front', x: 0.0, y: 0.0, w: 1.0, h: 1.0 }, 'back_1': { src: 'back', x: 0.0, y: 0.0, w: 0.5, h: 0.333 }, 'back_2': { src: 'back', x: 0.5, y: 0.0, w: 0.5, h: 0.333 }, 'back_3': { src: 'back', x: 0.0, y: 0.333, w: 0.5, h: 0.333 }, 'back_4': { src: 'back', x: 0.5, y: 0.333, w: 0.5, h: 0.333 }, 'back_5': { src: 'back', x: 0.0, y: 0.666, w: 0.5, h: 0.333 }, 'back_6': { src: 'back', x: 0.5, y: 0.666, w: 0.5, h: 0.333 } };
-        const COLLECTIONS_DATA = [ { name: 'Karma', prefix: 'B', start: 4043, end: 4049 }, { name: 'Artis', prefix: 'D', start: 4001, end: 4007 }, { name: 'Barbados', prefix: 'F', start: 4001, end: 4007 }, { name: 'Bella', prefix: 'B', start: 1057, end: 1063 }, { name: 'Carmen', prefix: 'B', start: 1127, end: 1133 }, { name: 'Falcon', prefix: 'B', start: 4092, end: 4098 }, { name: 'Fumiko', prefix: 'D', start: 1001, end: 1007 }, { name: 'Funky', prefix: 'B', start: 4106, end: 4112 }, { name: 'Garby', prefix: 'B', start: 4078, end: 4084 }, { name: 'Grift', prefix: 'B', start: 4008, end: 4014 }, { name: 'Jade', prefix: 'B', start: 1145, end: 1151 }, { name: 'Kamala', prefix: 'B', start: 4071, end: 4077 }, { name: 'Kamala2', prefix: 'B', start: 1138, end: 1144 }, { name: 'Madoka', prefix: 'D', start: 4008, end: 4014 }, { name: 'Matchy', prefix: 'B', start: 4085, end: 4091 }, { name: 'Mirage', prefix: 'B', start: 4099, end: 4105 }, { name: 'Pisa', prefix: 'B', start: 1113, end: 1119 }, { name: 'Prisma', prefix: 'B', start: 4022, end: 4028 }, { name: 'Ramses', prefix: 'B', start: 1015, end: 1021 }, { name: 'River', prefix: 'E', start: 1001, end: 1007 }, { name: 'Rissani', prefix: 'B', start: 4057, end: 4063 }, { name: 'Siza', prefix: 'P', start: 1001, end: 1007 }, { name: 'Soft', prefix: 'B', start: 4015, end: 4021 }, { name: 'Stancy', prefix: 'B', start: 4029, end: 4035 }, { name: 'Talia', prefix: 'B', start: 1043, end: 1049 }, { name: 'Touareg', prefix: 'B', start: 1106, end: 1112 }, { name: 'Ventury', prefix: 'B', start: 4050, end: 4056 }, { name: 'Zemy', prefix: 'B', start: 4001, end: 4007 } ];
+        
         const MODULES_DEF = [ { id: 'seat_no_arm', name: 'Centro', icon: 'fa-couch', type: 'seat', modelKey: 'seat', hasArm: false }, { id: 'seat_arm_l', name: 'Braço Esq.', icon: 'fa-cube', type: 'seat', modelKey: 'arm', hasArm: 'left' }, { id: 'seat_arm_r', name: 'Braço Dir.', icon: 'fa-cube', type: 'seat', modelKey: 'arm', hasArm: 'right' }, { id: 'corner', name: 'Ângulo', icon: 'fa-border-all', type: 'corner', modelKey: 'corner', hasArm: false, fixedSize: true }, { id: 'chaise_l', name: 'Chaise Esq.', icon: 'fa-l', type: 'chaise', modelKey: 'chaise', hasArm: 'left' }, { id: 'chaise_r', name: 'Chaise Dir.', icon: 'fa-l', type: 'chaise', modelKey: 'chaise', hasArm: 'right' }, { id: 'meridien_l', name: 'Meridien Esq.', icon: 'fa-layer-group', type: 'meridien', modelKey: 'meridien', hasArm: 'left' }, { id: 'meridien_r', name: 'Meridien Dir.', icon: 'fa-layer-group', type: 'meridien', modelKey: 'meridien', hasArm: 'right' }, { id: 'seat_2_macro_l', name: '2 Lug. Esq.', icon: 'fa-couch', type: 'macro', hasArm: 'left' }, { id: 'seat_2_macro_r', name: '2 Lug. Dir.', icon: 'fa-couch', type: 'macro', hasArm: 'right' } ];
 
-        // --- 2. FUNÇÕES CORE (HOISTED) ---
-        function uiSet(id, prop, val) { const el = document.getElementById(id); if(el) el.style[prop] = val; }
-        function uiText(id, txt) { const el = document.getElementById(id); if(el) el.textContent = txt; }
-        function showFeedback(msg, type) { const el = document.getElementById('feedback-message'); if(!el) return; el.textContent = msg; el.className = (type==='success' ? 'bg-green-600' : 'bg-gray-800') + " shadow-lg px-6 py-2 rounded-full text-white show-feedback"; setTimeout(() => el.classList.remove('show-feedback'), 2000); }
-        function safeAddEventListener(id, event, callback) { const el = document.getElementById(id); if(el) el.addEventListener(event, callback); }
-
-        function refresh() {
-            const current = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax })); 
-            addedModules.forEach(m => scene.remove(m.mesh)); 
-            addedModules = []; 
-            current.forEach(item => { 
-                const def = MODULES_DEF.find(d => d.id === item.id); 
-                if(def) { 
-                    const m = createModuleMesh(def); 
-                    scene.add(m); 
-                    addedModules.push({ mesh: m, data: def, width: m.userData.width, depth: m.userData.depth, isCornerLine: false, hasRelax: item.hasRelax, relaxFactor: item.hasRelax ? 1 : 0 }); 
-                } 
-            }); 
-            repositionModules(); 
-            updateAllModulesMaterial();
+        // --- 3. LOGICA UI E MATERIAIS (DEFINIDOS ANTES DO USO) ---
+        function initFabricData() {
+            FABRIC_LIBRARY.push({ id: 'linen_grey', name: 'Linho Padrão', color: '#a0a0a0', type: 'linen', map: 'front', collection: 'Padrão' });
+            COLLECTIONS_DATA.forEach(col => {
+                const key = col.name.toLowerCase().replace(/\s/g, '');
+                IMAGES[key] = { front: null, back: null }; 
+                FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start}`, name: `${col.name} ${col.prefix}${col.start}`, color: '#dcdcdc', type: key, map: 'front', collection: col.name });
+                for (let i = 1; i <= 6; i++) { FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start + i}`, name: `${col.name} ${col.prefix}${col.start + i}`, color: '#b0b0b0', type: key, map: `back_${i}`, collection: col.name }); }
+            });
         }
 
+        function applyMaterialToGroup(group, material, targetLegs) {
+            if(!group) return; 
+            group.traverse((node) => { 
+                if (node.isMesh) { 
+                    if(node.name === 'shadow_plane' || node.name === 'debug_pivot') return; 
+                    const lowerName = node.name.toLowerCase(); 
+                    const isBodyPart = lowerName.includes('costa') || lowerName.includes('back') || lowerName.includes('assento') || lowerName.includes('seat') || lowerName.includes('cushion') || lowerName.includes('almofada'); 
+                    if(isBodyPart && targetLegs) return; 
+                    const legKeywords = ['leg', 'pé', 'pés', 'pes', 'foot', 'feet', 'base', 'metal', 'chrome', 'cromado', 'steel', 'wood', 'madeira', 'black', 'negro', 'moka']; 
+                    let isLeg = false; 
+                    let currentNode = node; 
+                    for(let i = 0; i < 4; i++) { 
+                        if(!currentNode) break; 
+                        const name = currentNode.name.toLowerCase(); 
+                        const matName = (currentNode.material && currentNode.material.name) ? currentNode.material.name.toLowerCase() : ""; 
+                        if (legKeywords.some(kw => name.includes(kw) || matName.includes(kw))) { isLeg = true; break; } 
+                        currentNode = currentNode.parent; 
+                    } 
+                    if(isLeg && isBodyPart) isLeg = false; 
+                    if (targetLegs === isLeg) { node.material = material; node.castShadow = true; node.receiveShadow = true; } 
+                } 
+            });
+        }
+
+        function updateAllModulesMaterial() { 
+            addedModules.forEach(mod => { 
+                applyMaterialToGroup(mod.mesh, currentFabricMaterial, false); 
+                applyMaterialToGroup(mod.mesh, currentLegMaterial, true); 
+            }); 
+        }
+
+        function initShadowTexture() {
+            const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d'); const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            gradient.addColorStop(0, 'rgba(0, 0, 0, 0.6)'); gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.2)'); gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = gradient; ctx.fillRect(0, 0, 128, 128); softShadowTexture = new THREE.CanvasTexture(canvas);
+        }
+
+        function applyTextureRepeat(texture, rapportCm) {
+            if(!texture) return; 
+            const referenceSizeCm = 90; const repeatFactor = referenceSizeCm / rapportCm;
+            texture.wrapS = THREE.RepeatWrapping; 
+            texture.wrapT = THREE.RepeatWrapping; 
+            texture.repeat.set(repeatFactor, repeatFactor); 
+            texture.needsUpdate = true;
+        }
+
+        function cropTextureFromImage(sourceImg, crop, type) {
+            if(!sourceImg) return null; 
+            const canvas = document.createElement('canvas'); 
+            const ctx = canvas.getContext('2d');
+            canvas.width = 512; canvas.height = 512; 
+            ctx.drawImage(sourceImg, sourceImg.width * crop.x, sourceImg.height * crop.y, sourceImg.width * crop.w, sourceImg.height * crop.h, 0, 0, 512, 512);
+            const tex = new THREE.CanvasTexture(canvas); 
+            tex.encoding = THREE.sRGBEncoding;
+            tex.wrapS = THREE.RepeatWrapping; 
+            tex.wrapT = THREE.RepeatWrapping;
+            applyTextureRepeat(tex, CONFIG.dynamic.rapport);
+            
+            let params = { map: tex, color: 0xffffff, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.02 };
+            if (type === 'siza' || type === 'river') { params.roughness = 0.6; params.metalness = 0.0; }
+            else if (type === 'rissani') { params.roughness = 0.9; params.bumpMap = tex; params.bumpScale = 0.02; }
+            
+            return new THREE.MeshStandardMaterial(params);
+        }
+
+        function createProceduralFabricTexture(type, colorHex) {
+            const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size);
+            if(type === 'linen' || type === 'boucle') { ctx.globalAlpha = 0.1; for(let i=0; i<size*100; i++) { ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#000000'; ctx.fillRect(Math.random()*size, Math.random()*size, 1, 1); } }
+            else if (type === 'velvet') { ctx.globalAlpha = 0.05; const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2); grad.addColorStop(0, 'rgba(255,255,255,0.3)'); grad.addColorStop(1, 'rgba(0,0,0,0.1)'); ctx.fillStyle = grad; ctx.fillRect(0,0,size,size); }
+            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; applyTextureRepeat(tex, CONFIG.dynamic.rapport);
+            let roughness = 0.9; let metalness = 0.0; let bump = tex;
+            if (type === 'velvet') { roughness = 0.7; metalness = 0.1; } else if (type === 'siza' || type === 'river') { roughness = 0.6; metalness = 0.0; }
+            return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: roughness, metalness: metalness, bumpMap: bump, bumpScale: 0.01 });
+        }
+
+        function setFabricFromLibrary(id) {
+            const fab = FABRIC_LIBRARY.find(f => f.id === id); if(!fab) return; 
+            document.querySelectorAll('.fabric-item').forEach(el => el.classList.remove('active')); 
+            pendingFabricId = null; 
+            const store = IMAGES[fab.type]; 
+            selectedFabricName = fab.name;
+            if(store) { 
+                const coords = TEXTURE_LAYOUTS[fab.map]; 
+                const sourceImg = (coords.src === 'front') ? store.front : store.back; 
+                if(sourceImg) { 
+                    currentFabricMaterial = cropTextureFromImage(sourceImg, coords, fab.type); 
+                    updateAllModulesMaterial(); 
+                    showFeedback(fab.name, "success"); 
+                } else { 
+                    pendingFabricId = id; 
+                    const collectionName = COLLECTIONS_DATA.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type)?.name || fab.type; 
+                    showFeedback(`Falta: ${collectionName} ${coords.src==='front'?'1':'2'}`, "error"); 
+                } 
+            } else { 
+                currentFabricMaterial = createProceduralFabricTexture(fab.type, fab.color); 
+                updateAllModulesMaterial(); 
+                showFeedback(fab.name, "success"); 
+            }
+        }
+
+        function renderFabricLibrary(category) {
+            const container = document.getElementById('fabric-library-container'); if(!container) return; container.innerHTML = '';
+            const filtered = category === 'all' ? FABRIC_LIBRARY : FABRIC_LIBRARY.filter(f => f.type === category);
+            filtered.forEach(fab => { 
+                const el = document.createElement('div'); el.className = 'fabric-item'; 
+                const store = IMAGES[fab.type]; 
+                const coords = TEXTURE_LAYOUTS[fab.map]; 
+                let src = null; 
+                if(store && coords) src = (coords.src === 'front') ? store.front : store.back; 
+                if(src) { 
+                    const bgX = (coords.x / (1 - coords.w)) * 100 || 0; 
+                    const bgY = (coords.y / (1 - coords.h)) * 100 || 0; 
+                    const sizeX = (1 / coords.w) * 100; 
+                    const sizeY = (1 / coords.h) * 100; 
+                    el.style.backgroundImage = `url(${src.src})`; 
+                    el.style.backgroundSize = `${sizeX}% ${sizeY}%`; 
+                    el.style.backgroundPosition = `${bgX}% ${bgY}%`; 
+                    el.style.backgroundColor = 'transparent'; 
+                } else { 
+                    el.style.backgroundColor = fab.color; 
+                } 
+                el.innerHTML = `<div class="fabric-name">${fab.name}</div>`; 
+                el.onclick = () => setFabricFromLibrary(fab.id); 
+                container.appendChild(el); 
+            });
+        }
+
+        function initUI() {
+            const catContainer = document.getElementById('fabric-categories'); 
+            if(catContainer) { 
+                let btnAll = document.createElement('button'); 
+                btnAll.className = 'cat-btn active'; 
+                btnAll.textContent = 'Todos'; 
+                btnAll.onclick = () => { 
+                    document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); 
+                    btnAll.classList.add('active'); 
+                    renderFabricLibrary('all'); 
+                }; 
+                catContainer.appendChild(btnAll); 
+                COLLECTIONS_DATA.forEach(col => { 
+                    const key = col.name.toLowerCase().replace(/\s/g, ''); 
+                    const btn = document.createElement('button'); 
+                    btn.className = 'cat-btn'; 
+                    btn.textContent = col.name; 
+                    btn.onclick = () => { 
+                        document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); 
+                        btn.classList.add('active'); 
+                        renderFabricLibrary(key); 
+                    }; 
+                    catContainer.appendChild(btn); 
+                }); 
+            }
+            
+            const statusList = document.getElementById('collection-status-list'); 
+            if(statusList) { 
+                COLLECTIONS_DATA.forEach(col => { 
+                    const key = col.name.toLowerCase().replace(/\s/g, ''); 
+                    const row = document.createElement('div'); 
+                    row.className = "status-row"; 
+                    row.innerHTML = `<span class="text-[9px] font-bold text-gray-700">${col.name}</span><div class="flex gap-1"><span id="status-${key}-1" class="status-badge">F</span><span id="status-${key}-2" class="status-badge">V</span></div>`; 
+                    statusList.appendChild(row); 
+                }); 
+            }
+            renderFabricLibrary('karma'); 
+        }
+
+        function renderModuleButtons() { 
+            const palette = document.getElementById('module-list'); if (!palette) return; palette.innerHTML = ''; 
+            MODULES_DEF.forEach(mod => { 
+                const btn = document.createElement('button'); 
+                btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16"; 
+                btn.onclick = () => addModule(mod.id); 
+                btn.innerHTML = `<i class="fas ${mod.icon} text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i><span class="text-[9px] font-bold text-gray-600 leading-tight text-center">${mod.name}</span>`; 
+                palette.appendChild(btn); 
+            }); 
+        }
+
+        // --- 4. LOGICA 3D E MÓDULOS ---
         function createModuleMesh(def) {
             const group = new THREE.Group(); 
             const baseSize = def.fixedSize ? SIZES['Único'] : SIZES[CONFIG.globalSize]; 
-            let width = baseSize; let depth = CONFIG.standardDepth; let seatH = CONFIG.moduleHeight; let backH = CONFIG.backHeight; 
+            let width = baseSize; 
+            let depth = CONFIG.standardDepth; 
+            let seatH = CONFIG.moduleHeight; 
+            let backH = CONFIG.backHeight; 
+            
             if (def.type === 'chaise') depth = CONFIG.dynamic.chaiseDepth; 
             if (def.type === 'corner') { width = CONFIG.dynamic.cornerSize; depth = CONFIG.dynamic.cornerSize; } 
             if (def.type === 'meridien') width = baseSize * 1.2; 
+            
             let totalWidth = width; 
             if (def.hasArm) totalWidth += CONFIG.armWidth; 
-            const libModel = modelLibrary[def.modelKey]; 
-            const footrestGroup = new THREE.Group(); footrestGroup.name = "footrest_anim"; footrestGroup.position.set(0, -100, 0); const frWidth = width * 0.9; const frDepth = 40; const frHeight = 12; const frMain = new THREE.Mesh(new THREE.BoxGeometry(frWidth, frHeight, frDepth), currentFabricMaterial); frMain.position.z = -frDepth/4; const frRound = new THREE.Mesh(new THREE.CylinderGeometry(frHeight/2, frHeight/2, frWidth, 32), currentFabricMaterial); frRound.rotation.z = Math.PI/2; frRound.position.z = frDepth/4; footrestGroup.add(frMain); footrestGroup.add(frRound); const mech = new THREE.Mesh(new THREE.BoxGeometry(frWidth*0.8, 2, 30), new THREE.MeshStandardMaterial({color:0x222222})); mech.position.y = -8; footrestGroup.add(mech); group.add(footrestGroup);
             
+            const libModel = modelLibrary[def.modelKey]; 
+            
+            // Footrest
+            const footrestGroup = new THREE.Group(); footrestGroup.name = "footrest_anim"; footrestGroup.position.set(0, -100, 0); 
+            const frWidth = width * 0.9; const frDepth = 40; const frHeight = 12; 
+            const frMain = new THREE.Mesh(new THREE.BoxGeometry(frWidth, frHeight, frDepth), currentFabricMaterial); frMain.position.z = -frDepth/4; 
+            const frRound = new THREE.Mesh(new THREE.CylinderGeometry(frHeight/2, frHeight/2, frWidth, 32), currentFabricMaterial); frRound.rotation.z = Math.PI/2; frRound.position.z = frDepth/4; 
+            footrestGroup.add(frMain); footrestGroup.add(frRound); 
+            const mech = new THREE.Mesh(new THREE.BoxGeometry(frWidth*0.8, 2, 30), new THREE.MeshStandardMaterial({color:0x222222})); mech.position.y = -8; footrestGroup.add(mech); 
+            group.add(footrestGroup);
+
             if (libModel) { 
                 const model = libModel.clone(); 
                 let scaleX = 1; 
@@ -282,7 +472,8 @@
                 if (libModel.userData.detectedWidth) totalWidth = libModel.userData.detectedWidth; 
                 let parentScale = model.scale.x || 100; 
                 if (parentScale < 1) parentScale = 1; 
-                const mirrorX = (def.hasArm === 'right') ? -1 : 1; model.scale.x *= scaleX * mirrorX; 
+                const mirrorX = (def.hasArm === 'right') ? -1 : 1; 
+                model.scale.x *= scaleX * mirrorX; 
                 if (mirrorX === -1) { model.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); } else { model.traverse(n => { if(n.isMesh) { n.castShadow = true; n.receiveShadow = true; }}); } 
                 model.updateMatrixWorld(true); 
                 const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); model.position.x -= center.x; model.position.z -= center.z; 
@@ -363,6 +554,96 @@
             if(showDimensions) updateDimensionLabels();
         }
 
+        function refresh() {
+            const current = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax })); 
+            addedModules.forEach(m => scene.remove(m.mesh)); 
+            addedModules = []; 
+            current.forEach(item => { 
+                const def = MODULES_DEF.find(d => d.id === item.id); 
+                if(def) { 
+                    const m = createModuleMesh(def); 
+                    scene.add(m); 
+                    addedModules.push({ mesh: m, data: def, width: m.userData.width, depth: m.userData.depth, isCornerLine: false, hasRelax: item.hasRelax, relaxFactor: item.hasRelax ? 1 : 0 }); 
+                } 
+            }); 
+            repositionModules(); 
+            updateAllModulesMaterial();
+        }
+
+        // --- 5. INTERAÇÃO E ANIMAÇÃO ---
+        function onMouseClick(e) {
+            if(e.target.closest('#module-hover-menu')) return;
+            if(hoverMenu) hoverMenu.classList.remove('visible'); hoveredModuleIndex = -1; 
+        }
+
+        function onMouseMove(e) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left)/rect.width)*2 -1; mouse.y = -((e.clientY - rect.top)/rect.height)*2 +1;
+            raycaster.setFromCamera(mouse, camera); const ints = raycaster.intersectObjects(addedModules.map(m=>m.mesh), true);
+            if(ints.length > 0) {
+                let obj = ints[0].object; while(obj.parent && obj.parent.type !== 'Scene') obj = obj.parent;
+                const idx = addedModules.findIndex(m => m.mesh === obj);
+                if(idx !== -1 && idx !== hoveredModuleIndex) {
+                    hoveredModuleIndex = idx; updateHoverMenuPosition(idx, e.clientX, e.clientY);
+                }
+            } else { if(hoverMenu && !e.target.closest('#module-hover-menu')) { /* Optional */ } }
+        }
+
+        function updateHoverMenuPosition(idx, cx, cy) {
+            const mod = addedModules[idx];
+            const pos = mod.mesh.position.clone(); pos.y += 60; pos.project(camera);
+            const x = (pos.x * .5 + .5) * renderer.domElement.clientWidth;
+            const y = (pos.y * -.5 + .5) * renderer.domElement.clientHeight;
+            if(hoverMenu) {
+                hoverMenu.style.left = x + 'px'; hoverMenu.style.top = y + 'px'; hoverMenu.classList.add('visible');
+                const canRelax = (mod.data.type !== 'chaise' && mod.data.type !== 'corner');
+                if(canRelax) {
+                    relaxBtn.style.display = 'flex';
+                    if(mod.hasRelax) relaxBtn.classList.add('active'); else relaxBtn.classList.remove('active');
+                    relaxBtn.onclick = () => { mod.hasRelax = !mod.hasRelax; if(mod.hasRelax) relaxBtn.classList.add('active'); else relaxBtn.classList.remove('active'); };
+                } else { relaxBtn.style.display = 'none'; }
+                removeBtn.onclick = () => removeModule(idx);
+            }
+        }
+
+        function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+
+        function updateAnimations() {
+            const now = Date.now();
+            addedModules.forEach(mod => {
+                if(!mod.mesh) return;
+                let target = 0;
+                if(mod.hasRelax) {
+                    const cycleDuration = 8000; const t = now % cycleDuration;
+                    if(t < 2500) target = t / 2500; else if(t < 3500) target = 1; else if(t < 6000) target = 1 - ((t - 3500) / 2500); else target = 0;
+                }
+                mod.relaxFactor += (target - mod.relaxFactor) * 0.08;
+                const easeVal = easeOutCubic(mod.relaxFactor);
+                const footrest = mod.mesh.getObjectByName("footrest_anim");
+                if(footrest) { if(mod.relaxFactor > 0.01) { footrest.position.z = easeVal * 55; footrest.position.y = 15 + (easeVal * 25); footrest.rotation.x = (-Math.PI/2.5) * (1 - easeVal); } else { footrest.position.y = -100; } }
+                let backPivot = mod.mesh.getObjectByName("back_pivot_anim");
+                if(backPivot) {
+                     backPivot.rotation.x = -easeVal * 0.35; 
+                     let headPivot = backPivot.getObjectByName("head_pivot_anim");
+                     if(headPivot) headPivot.rotation.x = easeVal * 0.5;
+                }
+                mod.mesh.traverse(n => { 
+                    if(n.name === "back_anim_gltf") n.rotation.x = -easeVal * 0.35; 
+                    if(n.name === "head_anim_gltf") n.rotation.x = easeVal * 0.5;
+                });
+            });
+        }
+        
+        function createTextSprite(message) {
+            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); const fontSize = 64;
+            ctx.font = "Bold " + fontSize + "px Arial"; const textWidth = ctx.measureText(message).width; canvas.width = textWidth + 40; canvas.height = fontSize + 40;
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; 
+            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, canvas.width, canvas.height, 20); ctx.fill(); } 
+            else { ctx.fillRect(0, 0, canvas.width, canvas.height); }
+            ctx.fillStyle = "white"; ctx.font = "Bold " + fontSize + "px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(message, canvas.width/2, canvas.height/2);
+            const texture = new THREE.CanvasTexture(canvas); const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false })); sprite.scale.set(canvas.width * 0.15, canvas.height * 0.15, 1); sprite.renderOrder = 999; return sprite;
+        }
+
         function updateDimensionLabels() {
             while(dimensionLinesGroup.children.length > 0){ const obj = dimensionLinesGroup.children[0]; if(obj.material && obj.material.map) obj.material.map.dispose(); dimensionLinesGroup.remove(obj); }
             if(!showDimensions || addedModules.length === 0) return;
@@ -383,44 +664,27 @@
                 const spriteZ = createTextSprite(Math.round(leg2Length) + " cm"); spriteZ.position.set(lineX + 10, lineY + 15, (startZ + endZ)/2); dimensionLinesGroup.add(spriteZ);
             }
         }
-        
-        function updateAllModulesMaterial() { addedModules.forEach(mod => { applyMaterialToGroup(mod.mesh, currentFabricMaterial, false); applyMaterialToGroup(mod.mesh, currentLegMaterial, true); }); }
-        
-        function applyMaterialToGroup(group, material, targetLegs) {
-            if(!group) return; 
-            group.traverse((node) => { 
-                if (node.isMesh) { 
-                    if(node.name === 'shadow_plane' || node.name === 'debug_pivot') return; 
-                    const lowerName = node.name.toLowerCase(); 
-                    const isBodyPart = lowerName.includes('costa') || lowerName.includes('back') || lowerName.includes('assento') || lowerName.includes('seat') || lowerName.includes('cushion') || lowerName.includes('almofada'); 
-                    if(isBodyPart && targetLegs) return; 
-                    const legKeywords = ['leg', 'pé', 'pés', 'pes', 'foot', 'feet', 'base', 'metal', 'chrome', 'cromado', 'steel', 'wood', 'madeira', 'black', 'negro', 'moka']; 
-                    let isLeg = false; 
-                    let currentNode = node; 
-                    for(let i = 0; i < 4; i++) { 
-                        if(!currentNode) break; 
-                        const name = currentNode.name.toLowerCase(); 
-                        const matName = (currentNode.material && currentNode.material.name) ? currentNode.material.name.toLowerCase() : ""; 
-                        if (legKeywords.some(kw => name.includes(kw) || matName.includes(kw))) { isLeg = true; break; } 
-                        currentNode = currentNode.parent; 
-                    } 
-                    if(isLeg && isBodyPart) isLeg = false; 
-                    if (targetLegs === isLeg) { node.material = material; node.castShadow = true; node.receiveShadow = true; } 
-                } 
-            });
-        }
-        
-        function renderFabricLibrary(category) {
-            const container = document.getElementById('fabric-library-container'); if(!container) return; container.innerHTML = '';
-            const filtered = category === 'all' ? FABRIC_LIBRARY : FABRIC_LIBRARY.filter(f => f.type === category);
-            filtered.forEach(fab => { const el = document.createElement('div'); el.className = 'fabric-item'; const store = IMAGES[fab.type]; const coords = TEXTURE_LAYOUTS[fab.map]; let src = null; if(store && coords) src = (coords.src === 'front') ? store.front : store.back; if(src) { const bgX = (coords.x / (1 - coords.w)) * 100 || 0; const bgY = (coords.y / (1 - coords.h)) * 100 || 0; const sizeX = (1 / coords.w) * 100; const sizeY = (1 / coords.h) * 100; el.style.backgroundImage = `url(${src.src})`; el.style.backgroundSize = `${sizeX}% ${sizeY}%`; el.style.backgroundPosition = `${bgX}% ${bgY}%`; el.style.backgroundColor = 'transparent'; } else { el.style.backgroundColor = fab.color; } el.innerHTML = `<div class="fabric-name">${fab.name}</div>`; el.onclick = () => setFabricFromLibrary(fab.id); container.appendChild(el); });
-        }
-        function setFabricFromLibrary(id) {
-            const fab = FABRIC_LIBRARY.find(f => f.id === id); if(!fab) return; document.querySelectorAll('.fabric-item').forEach(el => el.classList.remove('active')); pendingFabricId = null; const store = IMAGES[fab.type]; selectedFabricName = fab.name;
-            if(store) { const coords = TEXTURE_LAYOUTS[fab.map]; const sourceImg = (coords.src === 'front') ? store.front : store.back; if(sourceImg) { currentFabricMaterial = cropTextureFromImage(sourceImg, coords, fab.type); updateAllModulesMaterial(); showFeedback(fab.name, "success"); } else { pendingFabricId = id; const collectionName = COLLECTIONS_DATA.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type)?.name || fab.type; showFeedback(`Falta: ${collectionName} ${coords.src==='front'?'1':'2'}`, "error"); } } else { currentFabricMaterial = createProceduralFabricTexture(fab.type, fab.color); updateAllModulesMaterial(); showFeedback(fab.name, "success"); }
-        }
 
-        // --- MANAGER & PRELOAD ---
+        // --- AR & IA ---
+        function uploadToHost(blob) {
+            const formData = new FormData(); formData.append('file', blob, 'sofa-eleganza.glb');
+            uiSet('ar-loading', 'display', 'block'); uiText('ar-status-text', "A enviar...");
+            fetch('https://file.io/?expires=1d', { method: 'POST', body: formData }).then(r => r.json()).then(d => { if(d.success) { uiSet('ar-loading', 'display', 'none'); uiSet('ar-success', 'display', 'block'); const qr = document.getElementById('qrcode'); if(qr) { qr.innerHTML = ""; new QRCode(qr, { text: d.link, width: 200, height: 200 }); } } else throw new Error('Upload failed'); }).catch(() => { uiSet('ar-loading', 'display', 'none'); uiSet('ar-fallback', 'display', 'block'); });
+        }
+        function exportToAR() {
+            if(addedModules.length === 0) { showFeedback("Adicione módulos primeiro!", "error"); return; }
+            const exporter = new THREE.GLTFExporter();
+            const sceneClone = new THREE.Group();
+            addedModules.forEach(mod => sceneClone.add(mod.mesh.clone()));
+            sceneClone.traverse(child => { if(child.name === 'shadow_plane' || child.name === 'debug_pivot') child.visible = false; });
+            uiSet('ar-modal', 'display', 'flex'); uiSet('ar-loading', 'display', 'block'); uiSet('ar-success', 'display', 'none'); uiSet('ar-fallback', 'display', 'none');
+            exporter.parse(sceneClone, function (result) { if (result instanceof ArrayBuffer) { const blob = new Blob([result], { type: 'application/octet-stream' }); const url = URL.createObjectURL(blob); const dlBtn = document.getElementById('download-glb-btn'); if(dlBtn) dlBtn.onclick = () => { const link = document.createElement('a'); link.href = url; link.download = 'sofa-eleganza.glb'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }; const viewer = document.getElementById('sofa-viewer'); const loader = document.getElementById('mv-loader'); if(viewer) { viewer.src = url; viewer.addEventListener('load', () => { if(loader) loader.style.display = 'none'; }); } uploadToHost(blob); } }, { binary: true });
+        }
+        async function callGemini(prompt) { return new Promise(resolve => setTimeout(() => resolve(prompt.includes("JSON") ? JSON.stringify(["seat_arm_l", "seat_no_arm", "seat_arm_r"]) : "Descrição simulada do sofá Eleganza."), 1000)); }
+        async function generateDescription() { const btn = document.getElementById('ai-describe-btn'); const out = document.getElementById('ai-description-output'); const loader = btn.querySelector('.ai-loader'); if(!addedModules.length) { showFeedback("Adicione módulos!", "error"); return; } loader.classList.add('active'); btn.disabled = true; const text = await callGemini("desc"); out.textContent = text; loader.classList.remove('active'); btn.disabled = false; }
+        async function magicBuild() { const btn = document.getElementById('ai-generate-btn'); const loader = btn.querySelector('.ai-loader'); loader.classList.add('active'); btn.disabled = true; const text = await callGemini("JSON"); const ids = JSON.parse(text); addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; ids.forEach(id => addModule(id, true)); repositionModules(); loader.classList.remove('active'); btn.disabled = false; showFeedback("Sofá gerado!", "success"); uiSet('ai-modal', 'display', 'none'); }
+
+        // --- ASSETS MANAGER ---
         const manager = new THREE.LoadingManager();
         manager.onStart = function (url) { uiSet('app-loader', 'display', 'flex'); };
         manager.onLoad = function () { uiSet('app-loader', 'display', 'none'); refresh(); };
@@ -452,7 +716,7 @@
             if(badge) { badge.className = "flex items-center text-green-600 font-bold h-5"; badge.innerHTML = `<i class="fas fa-check-circle text-[10px] mr-2"></i> ${name}`; } 
         }
 
-        // --- MAIN INIT ---
+        // --- 6. INIT (LAST) ---
         function init3D() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene(); scene.background = new THREE.Color(0xf3f4f6); scene.fog = new THREE.Fog(0xf3f4f6, 800, 2500);
@@ -500,19 +764,25 @@
                 }
             }, 3000);
         }
+        
+        function animate() { 
+            requestAnimationFrame(animate); 
+            updateAnimations(); 
+            controls.update(); 
+            renderer.render(scene, camera); 
+        }
 
-        // --- AR / IA / EXTRAS ---
-        // (Mantidos aqui para poupar espaço, são as mesmas funções da versão anterior)
-        // ... (exportToAR, uploadToHost, etc.)
-
+        // --- 7. DOM CONTENT LOADED (GATILHO) ---
         document.addEventListener('DOMContentLoaded', () => {
+            // Inicialização de UI Global
             hoverMenu = document.getElementById('module-hover-menu');
             relaxBtn = document.getElementById('btn-relax');
             removeBtn = document.getElementById('btn-remove');
-            init3D(); 
+
+            init3D();
             renderModuleButtons(); 
-            // ... (Event Listeners de UI da versão anterior)
-             safeAddEventListener('toggle-dims-btn', 'click', () => { showDimensions = !showDimensions; updateDimensionLabels(); });
+            
+            safeAddEventListener('toggle-dims-btn', 'click', () => { showDimensions = !showDimensions; updateDimensionLabels(); });
             safeAddEventListener('toggle-editor-btn', 'click', () => { const el = document.getElementById('editor-panel'); if(el) el.classList.toggle('hidden'); });
             safeAddEventListener('reset-btn', 'click', () => { addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; repositionModules(); });
             safeAddEventListener('input-chaise-depth', 'input', (e) => { CONFIG.dynamic.chaiseDepth = parseInt(e.target.value); refresh(); });
@@ -520,16 +790,106 @@
             safeAddEventListener('input-align-offset', 'input', (e) => { CONFIG.dynamic.alignManualOffset = e.target.value; repositionModules(); });
             safeAddEventListener('input-gap-offset', 'input', (e) => { CONFIG.dynamic.alignGapOffset = e.target.value; repositionModules(); });
             safeAddEventListener('input-rapport', 'input', (e) => { CONFIG.dynamic.rapport = parseInt(e.target.value) || 30; if(currentFabricMaterial && currentFabricMaterial.map) applyTextureRepeat(currentFabricMaterial.map, CONFIG.dynamic.rapport); });
+            
             safeAddEventListener('btn-ar-open', 'click', exportToAR);
             safeAddEventListener('close-ar-btn', 'click', () => { uiSet('ar-modal', 'display', 'none'); });
+            safeAddEventListener('btn-ai-open', 'click', () => { uiSet('ai-modal', 'display', 'flex'); });
+            safeAddEventListener('close-ai-btn', 'click', () => { uiSet('ai-modal', 'display', 'none'); });
+            safeAddEventListener('ai-describe-btn', 'click', generateDescription);
+            safeAddEventListener('ai-generate-btn', 'click', magicBuild);
+
+            // --- CARREGADOR MANUAL ---
             safeAddEventListener('smart-upload', 'change', function(e) {
-                // (Lógica de upload inteligente mantida)
+                const files = e.target.files;
+                if(!files.length) return;
+                
+                Array.from(files).forEach(file => {
+                    const name = file.name.toLowerCase();
+                    const foundCol = COLLECTIONS_DATA.find(col => name.includes(col.name.toLowerCase()));
+                    
+                    if (foundCol) {
+                        const key = foundCol.name.toLowerCase().replace(/\s/g, '');
+                        const img = new Image();
+                        img.onload = () => {
+                            if(!IMAGES[key]) IMAGES[key] = {};
+                            if(name.includes('1') || name.includes('front') || name.includes('frente')) {
+                                IMAGES[key].front = img;
+                                const badge = document.getElementById(`status-${key}-1`); if(badge) badge.className="status-badge ok";
+                            } else if(name.includes('2') || name.includes('back') || name.includes('verso')) {
+                                IMAGES[key].back = img;
+                                const badge = document.getElementById(`status-${key}-2`); if(badge) badge.className="status-badge ok";
+                            }
+                            
+                            const activeBtn = document.querySelector('.cat-btn.active');
+                            if(activeBtn && activeBtn.textContent === foundCol.name) {
+                                renderFabricLibrary(key);
+                            }
+                            
+                            if(pendingFabricId && pendingFabricId.includes(key)) {
+                                setFabricFromLibrary(pendingFabricId);
+                            }
+                        };
+                        img.src = URL.createObjectURL(file);
+                        showFeedback(`Tecido ${foundCol.name} detetado.`, "success");
+                    } else {
+                        console.warn("Imagem ignorada:", name);
+                    }
+                });
             });
+
             safeAddEventListener('gltf-upload', 'change', function(e) {
-                // (Lógica de upload GLTF mantida)
+                if(e.target.files.length === 0) return;
+                
+                const manualLoader = new THREE.GLTFLoader();
+                let successCount = 0;
+
+                Array.from(e.target.files).forEach(file => {
+                    const url = URL.createObjectURL(file);
+                    const name = file.name.toLowerCase();
+                    let key = null;
+
+                    if (name.includes('arm') || name.includes('braço') || name.includes('braco')) key = 'arm';
+                    else if (name.includes('seat') || name.includes('assento') || name.includes('centro')) key = 'seat';
+                    else if (name.includes('corner') || name.includes('canto') || name.includes('angulo')) key = 'corner';
+                    else if (name.includes('chaise')) key = 'chaise';
+                    else if (name.includes('meridien')) key = 'meridien';
+
+                    if (key) {
+                        manualLoader.load(url, (gltf) => {
+                            const model = gltf.scene;
+                            const box = new THREE.Box3().setFromObject(model);
+                            const size = new THREE.Vector3(); box.getSize(size);
+                            let scale = 1; if (size.x < 10) scale = 100; 
+                            model.scale.set(scale, scale, scale);
+                            model.updateMatrixWorld(true);
+                            
+                            const fBox = new THREE.Box3().setFromObject(model);
+                            const fSize = new THREE.Vector3(); fBox.getSize(fSize);
+                            model.userData.detectedDepth = fSize.z;
+                            model.userData.detectedWidth = fSize.x;
+                            
+                            modelLibrary[key] = model;
+                            
+                            const badge = document.getElementById(`status-${key}`);
+                            if(badge) {
+                                badge.className = "flex items-center text-green-600 font-bold h-5";
+                                badge.innerHTML = `<i class="fas fa-check-circle text-[10px] mr-2"></i> ${key.toUpperCase()}`;
+                            }
+                            
+                            successCount++;
+                            refresh(); 
+                        }, undefined, (err) => {
+                            console.error("Erro ao ler GLTF:", err);
+                            showFeedback("Erro no ficheiro " + name, "error");
+                        });
+                    } else {
+                        showFeedback("Ficheiro ignorado: " + name, "error");
+                    }
+                });
+                
+                if(successCount > 0) showFeedback(`${successCount} modelos carregados!`, "success");
             });
         });
     </script>
 </body>
 </html>
-
