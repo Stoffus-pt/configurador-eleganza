@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V104 (Estável)</title>
+    <title>Configurador 3D Eleganza - V108 (Final Expandido)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -166,7 +166,7 @@
     <div class="ui-panel absolute top-0 left-0 w-full h-16 border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm z-10">
         <div class="flex items-center">
              <div class="font-bold text-xl sm:text-2xl text-gray-800 tracking-tight"><span class="text-stoffus-primary">Stoffus</span> 3D</div>
-             <span class="ml-4 text-xs sm:text-sm text-gray-500 border-l pl-4 hidden sm:block">Eleganza V104</span>
+             <span class="ml-4 text-xs sm:text-sm text-gray-500 border-l pl-4 hidden sm:block">Eleganza V108</span>
         </div>
         <div class="flex items-center space-x-2 sm:space-x-4">
             <button id="btn-ai-open" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-sm border-0"><i class="fas fa-sparkles mr-2"></i> <span class="hidden md:inline">Assistente</span></button>
@@ -222,6 +222,9 @@
     </div>
 
     <script>
+        // --- GLOBAIS ABSOLUTAS ---
+        let hoverMenu = null, relaxBtn = null, removeBtn = null; 
+
         // --- ERROR HANDLING ---
         window.onerror = function(message, source, lineno, colno, error) {
             const errBox = document.getElementById('critical-error');
@@ -232,13 +235,8 @@
             }
         };
 
-        // --- HELPERS ---
-        function uiSet(id, prop, val) { const el = document.getElementById(id); if(el) el.style[prop] = val; }
-        function uiText(id, txt) { const el = document.getElementById(id); if(el) el.textContent = txt; }
-        function showFeedback(msg, type) { const el = document.getElementById('feedback-message'); if(!el) return; el.textContent = msg; el.className = (type==='success' ? 'bg-green-600' : 'bg-gray-800') + " shadow-lg px-6 py-2 rounded-full text-white show-feedback"; setTimeout(() => el.classList.remove('show-feedback'), 2000); }
-
         // --- CONFIG & DATA ---
-        const USAR_ASSETS_ONLINE = false; 
+        const USAR_ASSETS_ONLINE = false; // MUDAR PARA TRUE NO GITHUB
         const CONFIG = { globalSize: 'M', moduleHeight: 45, backHeight: 80, standardDepth: 100, armWidth: 20, colors: { fabric: 0x9ca3af, highlight: 0xe84c26 }, dynamic: { chaiseDepth: 165, cornerSize: 113, alignManualOffset: 0, alignGapOffset: 0, rapport: 40, backPivotY: 81, backPivotZ: 2 } };
         const SIZES = { 'S': 62, 'M': 72, 'L': 82, 'XL': 92, 'Único': 100 };
         const TEXTURE_LAYOUTS = { 'front': { src: 'front', x: 0.0, y: 0.0, w: 1.0, h: 1.0 }, 'back_1': { src: 'back', x: 0.0, y: 0.0, w: 0.5, h: 0.333 }, 'back_2': { src: 'back', x: 0.5, y: 0.0, w: 0.5, h: 0.333 }, 'back_3': { src: 'back', x: 0.0, y: 0.333, w: 0.5, h: 0.333 }, 'back_4': { src: 'back', x: 0.5, y: 0.333, w: 0.5, h: 0.333 }, 'back_5': { src: 'back', x: 0.0, y: 0.666, w: 0.5, h: 0.333 }, 'back_6': { src: 'back', x: 0.5, y: 0.666, w: 0.5, h: 0.333 } };
@@ -300,23 +298,68 @@
             
             initShadowTexture(); 
             initUI();
+            initFabricData();
             
             if(USAR_ASSETS_ONLINE) {
-                // Preload Logic would go here
+                preloadAssets();
             } else {
                  uiSet('app-loader', 'display', 'none'); 
             }
             
-            animate();
+            animate(); // Calls the animate function defined below
             
             // FAILSAFE: Force hide loader after 3s if something breaks
             setTimeout(() => {
                 const loader = document.getElementById('app-loader');
                 if(loader && loader.style.display !== 'none') {
-                    console.warn("Force hiding loader...");
                     loader.style.display = 'none';
                 }
             }, 3000);
+        }
+        
+        function animate() { 
+            requestAnimationFrame(animate); 
+            updateAnimations(); 
+            controls.update(); 
+            renderer.render(scene, camera); 
+        }
+
+        // --- HELPERS ---
+        function uiSet(id, prop, val) { const el = document.getElementById(id); if(el) el.style[prop] = val; }
+        function uiText(id, txt) { const el = document.getElementById(id); if(el) el.textContent = txt; }
+        function showFeedback(msg, type) { const el = document.getElementById('feedback-message'); if(!el) return; el.textContent = msg; el.className = (type==='success' ? 'bg-green-600' : 'bg-gray-800') + " shadow-lg px-6 py-2 rounded-full text-white show-feedback"; setTimeout(() => el.classList.remove('show-feedback'), 2000); }
+        function safeAddEventListener(id, event, callback) { const el = document.getElementById(id); if(el) el.addEventListener(event, callback); }
+
+        // --- ASSETS MANAGER ---
+        const manager = new THREE.LoadingManager();
+        manager.onStart = function (url) { uiSet('app-loader', 'display', 'flex'); };
+        manager.onLoad = function () { uiSet('app-loader', 'display', 'none'); refresh(); };
+        function preloadAssets() { 
+            if (!USAR_ASSETS_ONLINE) return; 
+            const gltfLoader = new THREE.GLTFLoader(manager); 
+            const texLoader = new THREE.TextureLoader(manager); 
+            ['arm', 'seat', 'corner', 'chaise', 'meridien'].forEach(name => { 
+                gltfLoader.load(`assets/models/${name}.glb`, (gltf) => { 
+                    const model = gltf.scene; 
+                    const box = new THREE.Box3().setFromObject(model); 
+                    const size = new THREE.Vector3(); box.getSize(size); 
+                    let scale = 1; if (size.x < 10) scale = 100; 
+                    model.scale.set(scale, scale, scale); 
+                    model.updateMatrixWorld(true); 
+                    const fBox = new THREE.Box3().setFromObject(model); 
+                    const fSize = new THREE.Vector3(); fBox.getSize(fSize); 
+                    model.userData.detectedDepth = fSize.z; 
+                    model.userData.detectedWidth = fSize.x; 
+                    modelLibrary[name] = model; 
+                    const badge = document.getElementById(`status-${name}`); 
+                    if(badge) { badge.className = "flex items-center text-green-600 font-bold h-5"; badge.innerHTML = `<i class="fas fa-check-circle text-[10px] mr-2"></i> ${name}`; } 
+                }, undefined, () => {}); 
+            }); 
+            COLLECTIONS_DATA.forEach(col => { 
+                const key = col.name.toLowerCase().replace(/\s/g, ''); 
+                texLoader.load(`assets/textures/${col.name}_1.jpg`, (tex) => { if(!IMAGES[key]) IMAGES[key]={}; IMAGES[key].front = tex.image; }, undefined, ()=>{}); 
+                texLoader.load(`assets/textures/${col.name}_2.jpg`, (tex) => { if(!IMAGES[key]) IMAGES[key]={}; IMAGES[key].back = tex.image; }, undefined, ()=>{}); 
+            }); 
         }
 
         // --- CORE LOGIC ---
@@ -356,87 +399,95 @@
 
         function applyMaterialToGroup(group, material, targetLegs) {
             if(!group) return; 
-            group.traverse((node) => {
-                if (node.isMesh) {
-                    if(node.name === 'shadow_plane' || node.name === 'debug_pivot') return;
+            group.traverse((node) => { 
+                if (node.isMesh) { 
+                    if(node.name === 'shadow_plane' || node.name === 'debug_pivot') return; 
                     const lowerName = node.name.toLowerCase(); 
-                    const isBodyPart = lowerName.includes('costa') || lowerName.includes('back') || lowerName.includes('assento') || lowerName.includes('seat') || lowerName.includes('cushion') || lowerName.includes('almofada');
+                    const isBodyPart = lowerName.includes('costa') || lowerName.includes('back') || lowerName.includes('assento') || lowerName.includes('seat') || lowerName.includes('cushion') || lowerName.includes('almofada'); 
                     if(isBodyPart && targetLegs) return; 
-                    const legKeywords = ['leg', 'pé', 'pés', 'pes', 'foot', 'feet', 'base', 'metal', 'chrome', 'cromado', 'steel', 'wood', 'madeira', 'black', 'negro', 'moka'];
-                    let isLeg = false; let currentNode = node;
-                    for(let i = 0; i < 4; i++) {
-                        if(!currentNode) break; const name = currentNode.name.toLowerCase(); const matName = (currentNode.material && currentNode.material.name) ? currentNode.material.name.toLowerCase() : "";
-                        if (legKeywords.some(kw => name.includes(kw) || matName.includes(kw))) { isLeg = true; break; } currentNode = currentNode.parent;
-                    }
-                    if(isLeg && isBodyPart) isLeg = false;
-                    if (targetLegs === isLeg) { node.material = material; node.castShadow = true; node.receiveShadow = true; }
-                }
+                    const legKeywords = ['leg', 'pé', 'pés', 'pes', 'foot', 'feet', 'base', 'metal', 'chrome', 'cromado', 'steel', 'wood', 'madeira', 'black', 'negro', 'moka']; 
+                    let isLeg = false; 
+                    let currentNode = node; 
+                    for(let i = 0; i < 4; i++) { 
+                        if(!currentNode) break; 
+                        const name = currentNode.name.toLowerCase(); 
+                        const matName = (currentNode.material && currentNode.material.name) ? currentNode.material.name.toLowerCase() : ""; 
+                        if (legKeywords.some(kw => name.includes(kw) || matName.includes(kw))) { isLeg = true; break; } 
+                        currentNode = currentNode.parent; 
+                    } 
+                    if(isLeg && isBodyPart) isLeg = false; 
+                    if (targetLegs === isLeg) { node.material = material; node.castShadow = true; node.receiveShadow = true; } 
+                } 
             });
         }
 
+        function renderFabricLibrary(category) {
+            const container = document.getElementById('fabric-library-container'); if(!container) return; container.innerHTML = '';
+            const filtered = category === 'all' ? FABRIC_LIBRARY : FABRIC_LIBRARY.filter(f => f.type === category);
+            filtered.forEach(fab => { const el = document.createElement('div'); el.className = 'fabric-item'; const store = IMAGES[fab.type]; const coords = TEXTURE_LAYOUTS[fab.map]; let src = null; if(store && coords) src = (coords.src === 'front') ? store.front : store.back; if(src) { const bgX = (coords.x / (1 - coords.w)) * 100 || 0; const bgY = (coords.y / (1 - coords.h)) * 100 || 0; const sizeX = (1 / coords.w) * 100; const sizeY = (1 / coords.h) * 100; el.style.backgroundImage = `url(${src.src})`; el.style.backgroundSize = `${sizeX}% ${sizeY}%`; el.style.backgroundPosition = `${bgX}% ${bgY}%`; el.style.backgroundColor = 'transparent'; } else { el.style.backgroundColor = fab.color; } el.innerHTML = `<div class="fabric-name">${fab.name}</div>`; el.onclick = () => setFabricFromLibrary(fab.id); container.appendChild(el); });
+        }
+        function setFabricFromLibrary(id) {
+            const fab = FABRIC_LIBRARY.find(f => f.id === id); if(!fab) return; document.querySelectorAll('.fabric-item').forEach(el => el.classList.remove('active')); pendingFabricId = null; const store = IMAGES[fab.type]; selectedFabricName = fab.name;
+            if(store) { const coords = TEXTURE_LAYOUTS[fab.map]; const sourceImg = (coords.src === 'front') ? store.front : store.back; if(sourceImg) { currentFabricMaterial = cropTextureFromImage(sourceImg, coords, fab.type); updateAllModulesMaterial(); showFeedback(fab.name, "success"); } else { pendingFabricId = id; const collectionName = COLLECTIONS_DATA.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type)?.name || fab.type; showFeedback(`Falta: ${collectionName} ${coords.src==='front'?'1':'2'}`, "error"); } } else { currentFabricMaterial = createProceduralFabricTexture(fab.type, fab.color); updateAllModulesMaterial(); showFeedback(fab.name, "success"); }
+        }
+        function updateAllModulesMaterial() { addedModules.forEach(mod => { applyMaterialToGroup(mod.mesh, currentFabricMaterial, false); applyMaterialToGroup(mod.mesh, currentLegMaterial, true); }); }
+        
+        function initUI() {
+            const catContainer = document.getElementById('fabric-categories'); if(catContainer) { let btnAll = document.createElement('button'); btnAll.className = 'cat-btn active'; btnAll.textContent = 'Todos'; btnAll.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btnAll.classList.add('active'); renderFabricLibrary('all'); }; catContainer.appendChild(btnAll); COLLECTIONS_DATA.forEach(col => { const key = col.name.toLowerCase().replace(/\s/g, ''); const btn = document.createElement('button'); btn.className = 'cat-btn'; btn.textContent = col.name; btn.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderFabricLibrary(key); }; catContainer.appendChild(btn); }); }
+            const statusList = document.getElementById('collection-status-list'); if(statusList) { COLLECTIONS_DATA.forEach(col => { const key = col.name.toLowerCase().replace(/\s/g, ''); const row = document.createElement('div'); row.className = "status-row"; row.innerHTML = `<span class="text-[9px] font-bold text-gray-700">${col.name}</span><div class="flex gap-1"><span id="status-${key}-1" class="status-badge">F</span><span id="status-${key}-2" class="status-badge">V</span></div>`; statusList.appendChild(row); }); } renderFabricLibrary('karma'); 
+        }
+        
         function createModuleMesh(def) {
-            const group = new THREE.Group();
-            const baseSize = def.fixedSize ? SIZES['Único'] : SIZES[CONFIG.globalSize];
-            let width = baseSize; let depth = CONFIG.standardDepth; let seatH = CONFIG.moduleHeight; let backH = CONFIG.backHeight;
+            const group = new THREE.Group(); const baseSize = def.fixedSize ? SIZES['Único'] : SIZES[CONFIG.globalSize]; let width = baseSize; let depth = CONFIG.standardDepth; let seatH = CONFIG.moduleHeight; let backH = CONFIG.backHeight; 
             if (def.type === 'chaise') depth = CONFIG.dynamic.chaiseDepth; 
             if (def.type === 'corner') { width = CONFIG.dynamic.cornerSize; depth = CONFIG.dynamic.cornerSize; } 
-            if (def.type === 'meridien') width = baseSize * 1.2;
-            
+            if (def.type === 'meridien') width = baseSize * 1.2; 
             let totalWidth = width; 
-            if (def.hasArm) totalWidth += CONFIG.armWidth;
+            if (def.hasArm) totalWidth += CONFIG.armWidth; 
+            const libModel = modelLibrary[def.modelKey]; 
+            const footrestGroup = new THREE.Group(); footrestGroup.name = "footrest_anim"; footrestGroup.position.set(0, -100, 0); const frWidth = width * 0.9; const frDepth = 40; const frHeight = 12; const frMain = new THREE.Mesh(new THREE.BoxGeometry(frWidth, frHeight, frDepth), currentFabricMaterial); frMain.position.z = -frDepth/4; const frRound = new THREE.Mesh(new THREE.CylinderGeometry(frHeight/2, frHeight/2, frWidth, 32), currentFabricMaterial); frRound.rotation.z = Math.PI/2; frRound.position.z = frDepth/4; footrestGroup.add(frMain); footrestGroup.add(frRound); const mech = new THREE.Mesh(new THREE.BoxGeometry(frWidth*0.8, 2, 30), new THREE.MeshStandardMaterial({color:0x222222})); mech.position.y = -8; footrestGroup.add(mech); group.add(footrestGroup);
             
-            const libModel = modelLibrary[def.modelKey];
-            
-            const footrestGroup = new THREE.Group(); footrestGroup.name = "footrest_anim"; footrestGroup.position.set(0, -100, 0);
-            const frWidth = width * 0.9; const frDepth = 40; const frHeight = 12;
-            const frMain = new THREE.Mesh(new THREE.BoxGeometry(frWidth, frHeight, frDepth), currentFabricMaterial); frMain.position.z = -frDepth/4;
-            const frRound = new THREE.Mesh(new THREE.CylinderGeometry(frHeight/2, frHeight/2, frWidth, 32), currentFabricMaterial); frRound.rotation.z = Math.PI/2; frRound.position.z = frDepth/4;
-            footrestGroup.add(frMain); footrestGroup.add(frRound);
-            const mech = new THREE.Mesh(new THREE.BoxGeometry(frWidth*0.8, 2, 30), new THREE.MeshStandardMaterial({color:0x222222})); mech.position.y = -8; footrestGroup.add(mech);
-            group.add(footrestGroup);
-
-            if (libModel) {
-                const model = libModel.clone();
-                let scaleX = 1; if (!def.fixedSize) { const targetSize = SIZES[CONFIG.globalSize]; const refSize = SIZES['L']; scaleX = targetSize / refSize; }
-                if (libModel.userData.detectedDepth) depth = libModel.userData.detectedDepth; if (libModel.userData.detectedWidth) totalWidth = libModel.userData.detectedWidth;
-                let parentScale = model.scale.x || 100; if (parentScale < 1) parentScale = 1; 
-                const mirrorX = (def.hasArm === 'right') ? -1 : 1; model.scale.x *= scaleX * mirrorX;
-                if (mirrorX === -1) { model.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); } else { model.traverse(n => { if(n.isMesh) { n.castShadow = true; n.receiveShadow = true; }}); }
-                model.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); model.position.x -= center.x; model.position.z -= center.z; const size = new THREE.Vector3(); box.getSize(size); totalWidth = size.x; depth = size.z;
-                model.traverse(node => { 
-                    if (node.isMesh || node.isGroup) { 
-                        const n = node.name.toLowerCase(); 
-                        if (n.includes('back') || n.includes('costa') || n.includes('encosto')) node.name = "back_anim_gltf"; 
-                        if (n.includes('headrest') || n.includes('cabeceira')) node.name = "head_anim_gltf"; 
-                    } 
-                });
-                group.add(model);
-                if (softShadowTexture) { const sM = new THREE.Mesh(new THREE.PlaneGeometry(totalWidth*1.2, depth*1.2), new THREE.MeshBasicMaterial({ map: softShadowTexture, transparent: true, opacity: 0.6, depthWrite: false, color: 0x000000 })); sM.rotation.x = -Math.PI/2; sM.position.y = 0.5; sM.name = 'shadow_plane'; group.add(sM); }
-                applyMaterialToGroup(group, currentFabricMaterial, false); applyMaterialToGroup(group, currentLegMaterial, true);
-            } else {
-                const createBox = (w, h, d) => { const geo = new THREE.BoxGeometry(w, h, d); const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) { const u = uv.getX(i); const v = uv.getY(i); if(w > d) uv.setXY(i, u * (w/90), v * (h/90)); else uv.setXY(i, u * (d/90), v * (h/90)); } return new THREE.Mesh(geo, currentFabricMaterial); };
-                const seat = createBox(width, seatH, depth); seat.position.y = seatH / 2; seat.castShadow = true;
-                if (def.hasArm === 'left') seat.position.x = CONFIG.armWidth / 2; else if (def.hasArm === 'right') seat.position.x = -CONFIG.armWidth / 2;
-                group.add(seat);
-
-                if(def.type !== 'meridien') {
-                    const backPivot = new THREE.Group(); backPivot.name = "back_pivot_anim"; const backThick = 25; const backMH = backH - seatH; const backLowerH = backMH * 0.7; const headH = backMH * 0.3;
-                    backPivot.position.set(seat.position.x, seatH, -depth/2 + backThick);
-                    const backLower = createBox(width, backLowerH, backThick); backLower.position.y = backLowerH/2; backLower.position.z = -backThick/2; backPivot.add(backLower);
-                    const headPivot = new THREE.Group(); headPivot.name = "head_pivot_anim"; headPivot.position.y = backLowerH; headPivot.position.z = -backThick/2;
-                    const headrest = createBox(width, headH, backThick); headrest.position.y = headH/2; headPivot.add(headrest);
-                    backPivot.add(headPivot); group.add(backPivot);
-                    if(def.type === 'corner') { const sBack = createBox(backThick, backMH, depth-backThick); sBack.position.set(-width/2+12.5, seatH + backMH/2, (depth-25)/2-12.5); group.add(sBack); }
-                }
-                if(def.hasArm) { const arm = createBox(CONFIG.armWidth, backH-15, depth); arm.position.set(def.hasArm==='left' ? -width/2 : width/2, (backH-15)/2, 0); group.add(arm); }
-                const legGeo = new THREE.CylinderGeometry(2, 1.5, 6, 8); const positions = [{x:-width/2+5, z:-depth/2+5}, {x:width/2-5, z:-depth/2+5}, {x:-width/2+5, z:depth/2-5}, {x:width/2-5, z:depth/2-5}];
-                positions.forEach(p => { if(def.hasArm === 'left') p.x += CONFIG.armWidth/2; if(def.hasArm === 'right') p.x -= CONFIG.armWidth/2; const l = new THREE.Mesh(legGeo, currentLegMaterial); l.name = "leg_procedural"; l.position.set(p.x, 3, p.z); group.add(l); });
-                if (softShadowTexture) { const sW = (width + (def.hasArm ? CONFIG.armWidth : 0)) * 1.2; const sD = depth * 1.2; const sM = new THREE.Mesh(new THREE.PlaneGeometry(sW, sD), new THREE.MeshBasicMaterial({ map: softShadowTexture, transparent: true, opacity: 0.6, depthWrite: false, color: 0x000000 })); sM.rotation.x = -Math.PI/2; sM.position.y = 0.5; sM.name = 'shadow_plane'; group.add(sM); }
-            }
+            if (libModel) { 
+                const model = libModel.clone(); 
+                let scaleX = 1; 
+                if (!def.fixedSize) { const targetSize = SIZES[CONFIG.globalSize]; const refSize = SIZES['L']; scaleX = targetSize / refSize; } 
+                if (libModel.userData.detectedDepth) depth = libModel.userData.detectedDepth; 
+                if (libModel.userData.detectedWidth) totalWidth = libModel.userData.detectedWidth; 
+                let parentScale = model.scale.x || 100; 
+                if (parentScale < 1) parentScale = 1; 
+                const mirrorX = (def.hasArm === 'right') ? -1 : 1; model.scale.x *= scaleX * mirrorX; 
+                if (mirrorX === -1) { model.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); } else { model.traverse(n => { if(n.isMesh) { n.castShadow = true; n.receiveShadow = true; }}); } 
+                model.updateMatrixWorld(true); 
+                const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); model.position.x -= center.x; model.position.z -= center.z; 
+                const size = new THREE.Vector3(); box.getSize(size); totalWidth = size.x; depth = size.z; 
+                model.traverse(node => { if (node.isMesh || node.isGroup) { const n = node.name.toLowerCase(); if (n.includes('back') || n.includes('costa') || n.includes('encosto')) node.name = "back_anim_gltf"; if (n.includes('headrest') || n.includes('cabeceira')) node.name = "head_anim_gltf"; } }); 
+                group.add(model); 
+                if (softShadowTexture) { const sM = new THREE.Mesh(new THREE.PlaneGeometry(totalWidth*1.2, depth*1.2), new THREE.MeshBasicMaterial({ map: softShadowTexture, transparent: true, opacity: 0.6, depthWrite: false, color: 0x000000 })); sM.rotation.x = -Math.PI/2; sM.position.y = 0.5; sM.name = 'shadow_plane'; group.add(sM); } 
+                applyMaterialToGroup(group, currentFabricMaterial, false); applyMaterialToGroup(group, currentLegMaterial, true); 
+            } else { 
+                const refScale = 90; 
+                const createBox = (w, h, d) => { const geo = new THREE.BoxGeometry(w, h, d); const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) { const u = uv.getX(i); const v = uv.getY(i); if(w > d) uv.setXY(i, u * (w/90), v * (h/90)); else uv.setXY(i, u * (d/90), v * (h/90)); } return new THREE.Mesh(geo, currentFabricMaterial); }; 
+                const seat = createBox(width, seatH, depth); seat.position.y = seatH / 2; seat.castShadow = true; 
+                if (def.hasArm === 'left') seat.position.x = CONFIG.armWidth / 2; else if (def.hasArm === 'right') seat.position.x = -CONFIG.armWidth / 2; 
+                group.add(seat); 
+                if(def.type !== 'meridien') { 
+                    const backPivot = new THREE.Group(); backPivot.name = "back_pivot_anim"; 
+                    const backThick = 25; const backMH = backH - seatH; const backLowerH = backMH * 0.7; const headH = backMH * 0.3; 
+                    backPivot.position.set(seat.position.x, seatH, -depth/2 + backThick); 
+                    const backLower = createBox(width, backLowerH, backThick); backLower.position.y = backLowerH/2; backLower.position.z = -backThick/2; backPivot.add(backLower); 
+                    const headPivot = new THREE.Group(); headPivot.name = "head_pivot_anim"; headPivot.position.y = backLowerH; headPivot.position.z = -backThick/2; 
+                    const headrest = createBox(width, headH, backThick); headrest.position.y = headH/2; headPivot.add(headrest); backPivot.add(headPivot); group.add(backPivot); 
+                    if(def.type === 'corner') { const sBack = createBox(backThick, backMH, depth-backThick); sBack.position.set(-width/2+12.5, seatH + backMH/2, (depth-25)/2-12.5); group.add(sBack); } 
+                } 
+                if(def.hasArm) { const arm = createBox(CONFIG.armWidth, backH-15, depth); arm.position.set(def.hasArm==='left' ? -width/2 : width/2, (backH-15)/2, 0); group.add(arm); } 
+                const legGeo = new THREE.CylinderGeometry(2, 1.5, 6, 8); const positions = [{x:-width/2+5, z:-depth/2+5}, {x:width/2-5, z:-depth/2+5}, {x:-width/2+5, z:depth/2-5}, {x:width/2-5, z:depth/2-5}]; 
+                positions.forEach(p => { if(def.hasArm === 'left') p.x += CONFIG.armWidth/2; if(def.hasArm === 'right') p.x -= CONFIG.armWidth/2; const l = new THREE.Mesh(legGeo, currentLegMaterial); l.name = "leg_procedural"; l.position.set(p.x, 3, p.z); group.add(l); }); 
+                if (softShadowTexture) { const sW = (width + (def.hasArm ? CONFIG.armWidth : 0)) * 1.2; const sD = depth * 1.2; const sM = new THREE.Mesh(new THREE.PlaneGeometry(sW, sD), new THREE.MeshBasicMaterial({ map: softShadowTexture, transparent: true, opacity: 0.6, depthWrite: false, color: 0x000000 })); sM.rotation.x = -Math.PI/2; sM.position.y = 0.5; sM.name = 'shadow_plane'; group.add(sM); } 
+            } 
             group.userData = { id: Date.now(), def: def, width: totalWidth, depth: depth, hasRelax: false, relaxFactor: 0 }; 
             return group;
         }
-
+        
         function addModule(id, silent=false) {
             if(id === 'seat_2_macro_l') { addModule('seat_arm_l', true); addModule('seat_no_arm', true); showFeedback("2 Lug. Esq.", "success"); return; }
             if(id === 'seat_2_macro_r') { addModule('seat_no_arm', true); addModule('seat_arm_r', true); showFeedback("2 Lug. Dir.", "success"); return; }
@@ -447,7 +498,6 @@
         function removeModule(idx) { if(idx < 0 || idx >= addedModules.length) return; scene.remove(addedModules[idx].mesh); addedModules.splice(idx, 1); repositionModules(); showFeedback("Removido", "success"); if(hoverMenu) hoverMenu.classList.remove('visible'); }
         function repositionModules() { let cornerIdx = -1; for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIdx = i; break; } let cornerPos = { x:0, z:0, depth: 0 }; addedModules.forEach((mod, i) => { const mesh = mod.mesh; if(cornerIdx === -1 || i <= cornerIdx) { mod.isCornerLine = false; mesh.rotation.y = 0; if(i === 0) mesh.position.x = 0; else { const prev = addedModules[i-1]; mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2); } mesh.position.z = ((mod.depth - CONFIG.standardDepth) / 2) + parseFloat(CONFIG.dynamic.alignManualOffset); if(mod.data.type === 'corner') cornerPos = { x: mesh.position.x, z: mesh.position.z, depth: mod.depth }; } else { mod.isCornerLine = true; mesh.rotation.y = -Math.PI / 2; if(i === cornerIdx + 1) mesh.position.z = cornerPos.z + (cornerPos.depth/2) + (mod.width/2) + parseFloat(CONFIG.dynamic.alignGapOffset); else { const prev = addedModules[i-1]; mesh.position.z = prev.mesh.position.z + (prev.width/2) + (mod.width/2); } mesh.position.x = cornerPos.x + (cornerPos.depth - mod.depth)/2 - parseFloat(CONFIG.dynamic.alignManualOffset); } }); let total = 0; addedModules.forEach(m => { if(!m.isCornerLine) total += m.width; }); const el = document.getElementById('total-width-display'); if(el) el.textContent = Math.round(total) + " cm"; if(showDimensions) updateDimensionLabels(); }
         function renderModuleButtons() { const palette = document.getElementById('module-list'); if (!palette) return; palette.innerHTML = ''; MODULES_DEF.forEach(mod => { const btn = document.createElement('button'); btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16"; btn.onclick = () => addModule(mod.id); btn.innerHTML = `<i class="fas ${mod.icon} text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i><span class="text-[9px] font-bold text-gray-600 leading-tight text-center">${mod.name}</span>`; palette.appendChild(btn); }); }
-        
         function onMouseClick(e) { if(e.target.closest('#module-hover-menu')) return; if(hoverMenu) hoverMenu.classList.remove('visible'); hoveredModuleIndex = -1; }
         function onMouseMove(e) { const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((e.clientX - rect.left)/rect.width)*2 -1; mouse.y = -((e.clientY - rect.top)/rect.height)*2 +1; raycaster.setFromCamera(mouse, camera); const ints = raycaster.intersectObjects(addedModules.map(m=>m.mesh), true); if(ints.length > 0) { let obj = ints[0].object; while(obj.parent && obj.parent.type !== 'Scene') obj = obj.parent; const idx = addedModules.findIndex(m => m.mesh === obj); if(idx !== -1 && idx !== hoveredModuleIndex) { hoveredModuleIndex = idx; updateHoverMenuPosition(idx, e.clientX, e.clientY); } } else { if(hoverMenu && !e.target.closest('#module-hover-menu')) { /* Optional */ } } }
         function updateHoverMenuPosition(idx, cx, cy) { const mod = addedModules[idx]; const pos = mod.mesh.position.clone(); pos.y += 60; pos.project(camera); const x = (pos.x * .5 + .5) * renderer.domElement.clientWidth; const y = (pos.y * -.5 + .5) * renderer.domElement.clientHeight; if(hoverMenu) { hoverMenu.style.left = x + 'px'; hoverMenu.style.top = y + 'px'; hoverMenu.classList.add('visible'); const canRelax = (mod.data.type !== 'chaise' && mod.data.type !== 'corner'); if(canRelax) { relaxBtn.style.display = 'flex'; if(mod.hasRelax) relaxBtn.classList.add('active'); else relaxBtn.classList.remove('active'); relaxBtn.onclick = () => { mod.hasRelax = !mod.hasRelax; if(mod.hasRelax) relaxBtn.classList.add('active'); else relaxBtn.classList.remove('active'); }; } else { relaxBtn.style.display = 'none'; } removeBtn.onclick = () => removeModule(idx); } }
