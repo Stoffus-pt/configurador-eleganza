@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V118 (Robust)</title>
+    <title>Configurador 3D Eleganza - V118 (Final + Sala)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,6 +20,8 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
     <!-- QRCode.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- html2canvas para screenshots -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     
     <!-- GOOGLE MODEL VIEWER -->
     <script type="module" src="https://unpkg.com/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>
@@ -37,7 +39,11 @@
 
     <style>
         body { margin: 0; overflow: hidden; background-color: #f3f4f6; font-family: 'Inter', sans-serif; }
-        #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 0; }
+        
+        /* CAMADAS DE VISUALIZAÇÃO */
+        /* ATUALIZAÇÃO: background-position: center bottom garante que o chão da sala não é cortado */
+        #room-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background-size: cover; background-position: center bottom; display: none; transition: background-image 0.5s ease-in-out; }
+        #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
         /* LOADING SCREEN */
         #app-loader { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
@@ -108,6 +114,9 @@
         
         /* WARNING BANNER */
         #asset-warning { display: none; position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background: #fff7ed; border: 1px solid #fed7aa; color: #c2410c; padding: 8px 16px; border-radius: 20px; font-size: 11px; z-index: 40; box-shadow: 0 4px 6px rgba(0,0,0,0.05); align-items: center; gap: 8px; }
+        
+        /* ROOM MODE CONTROLS */
+        #room-controls { display: none; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 20; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); gap: 10px; align-items: center; }
     </style>
 </head>
 <body>
@@ -124,15 +133,19 @@
         <span>Algumas texturas não carregaram. A usar modo de segurança.</span>
     </div>
 
-    <div id="critical-error">
-        <h2 class="text-red-500 text-xl font-bold mb-2">Erro de Execução</h2>
-        <p id="error-details" class="text-sm"></p>
-        <button onclick="location.reload()" class="mt-4 bg-white text-black px-4 py-2 rounded">Recarregar Página</button>
-    </div>
+    <!-- BACKGROUND DA SALA -->
+    <div id="room-background"></div>
 
     <div id="canvas-container"></div>
     <div id="feedback-message" class="bg-gray-800 shadow-lg"></div>
     
+    <!-- CONTROLOS DA SALA (APARECEM QUANDO UMA FOTO É CARREGADA) -->
+    <div id="room-controls">
+        <button onclick="document.getElementById('room-upload').click()" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition"><i class="fas fa-sync mr-1"></i> Trocar Foto</button>
+        <button id="btn-analyze-room" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:shadow-lg transition flex items-center"><i class="fas fa-magic mr-2"></i> <i class="fas fa-circle-notch ai-loader mr-2 hidden"></i> Opiniao IA</button>
+        <button onclick="exitRoomMode()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition"><i class="fas fa-times"></i> Sair</button>
+    </div>
+
     <!-- AR MODAL -->
     <div id="ar-modal" class="custom-modal" style="display:none;">
         <div class="modal-content">
@@ -160,8 +173,35 @@
                 <h3 class="text-lg font-bold text-gray-800 flex items-center"><span class="text-2xl mr-2">✨</span> Assistente Inteligente</h3>
                 <button id="close-ai-btn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
             </div>
-            <div class="mb-6"><h4 class="font-bold text-sm text-gray-700 mb-2">Criador Mágico (Text-to-Sofa)</h4><div class="flex gap-2"><input type="text" id="ai-prompt-input" placeholder="Ex: Sofá em L grande..." class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-stoffus-primary"><button id="ai-generate-btn" class="bg-stoffus-primary text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-600 transition flex items-center"><i class="fas fa-magic mr-1"></i> <i class="fas fa-circle-notch ai-loader mr-1 text-[10px]"></i> Criar</button></div></div>
-            <div class="border-t border-gray-200 pt-4"><h4 class="font-bold text-sm text-gray-700 mb-2">Redator Comercial</h4><div id="ai-description-output" class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 italic min-h-[80px] mb-2">A descrição do seu sofá aparecerá aqui...</div><button id="ai-describe-btn" class="w-full bg-gray-800 text-white py-2 rounded-lg text-xs font-bold hover:bg-gray-700 transition flex items-center justify-center"><i class="fas fa-pen-fancy mr-2"></i> <i class="fas fa-circle-notch ai-loader mr-2 text-[10px]"></i> Gerar Descrição</button></div>
+            
+            <!-- RESULTADO DA ANALISE DA SALA -->
+            <div id="ai-room-analysis" class="hidden mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <h4 class="font-bold text-xs text-indigo-800 mb-2"><i class="fas fa-eye mr-1"></i> Análise do Decorador Virtual</h4>
+                <p id="room-analysis-text" class="text-xs text-gray-700 italic">A analisar a sua sala...</p>
+            </div>
+
+            <div class="mb-6">
+                <h4 class="font-bold text-sm text-gray-700 mb-2">Criador Mágico (Text-to-Sofa)</h4>
+                <div class="flex gap-2">
+                    <input type="text" id="ai-prompt-input" placeholder="Ex: Sofá em L grande com chaise..." class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-stoffus-primary">
+                    <button id="ai-generate-btn" class="bg-stoffus-primary text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-600 transition flex items-center">
+                        <i class="fas fa-magic mr-1"></i> 
+                        <i class="fas fa-circle-notch ai-loader mr-1 text-[10px]"></i> Criar
+                    </button>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 pt-4">
+                <h4 class="font-bold text-sm text-gray-700 mb-2">Redator Comercial</h4>
+                <div id="ai-description-output" class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 italic min-h-[80px] mb-2">A descrição do seu sofá aparecerá aqui...</div>
+                <button id="ai-describe-btn" class="w-full bg-gray-800 text-white py-2 rounded-lg text-xs font-bold hover:bg-gray-700 transition flex items-center justify-center">
+                    <i class="fas fa-pen-fancy mr-2"></i> 
+                    <i class="fas fa-circle-notch ai-loader mr-2 text-[10px]"></i> Gerar Descrição
+                </button>
+            </div>
+            
+            <div id="ai-key-warning" class="mt-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-[10px] text-yellow-800 hidden">
+                <i class="fas fa-key mr-1"></i> <b>Nota:</b> Necessária API Key do Google Gemini no código para funcionar.
+            </div>
         </div>
     </div>
 
@@ -186,6 +226,9 @@
              </div>
         </div>
         <div class="flex items-center space-x-2 sm:space-x-4">
+            <input type="file" id="room-upload" accept="image/*" class="hidden">
+            <button onclick="document.getElementById('room-upload').click()" class="bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-md border-0 ring-2 ring-emerald-100"><i class="fas fa-camera mr-2"></i> <span class="hidden md:inline">Minha Sala</span></button>
+            
             <button id="btn-ai-open" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-sm border-0"><i class="fas fa-sparkles mr-2"></i> <span class="hidden md:inline">Assistente</span></button>
             <button id="btn-ar-open" class="bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center shadow-sm text-stoffus-primary border-stoffus-primary"><i class="fas fa-cube mr-2"></i> <span class="hidden md:inline">AR / Exportar</span></button>
             <button id="toggle-dims-btn" class="bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center shadow-sm"><i class="fas fa-ruler-combined mr-2"></i> <span class="hidden md:inline">Medidas</span></button>
@@ -241,7 +284,11 @@
     <script>
         // --- 0. CONFIGURAÇÃO DE AMBIENTE (GITHUB VS LOCAL) ---
         const GITHUB_CONFIG = {
+            // Coloca aqui o URL do teu repositório para testes no Chat
             repoUrl: 'https://stoffus-pt.github.io/configurador-eleganza/',
+            
+            // Se 'true', tenta carregar do repoUrl mesmo estando no Chat
+            // Se 'false', no Chat usa apenas caixas processuais (segurança)
             forceOnlineInDev: true
         };
 
@@ -251,20 +298,33 @@
             const text = document.getElementById('env-text');
 
             if (hostname.includes('github.io')) {
+                // MODO GITHUB PAGES
                 if(indicator) { indicator.className = "w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"; }
                 if(text) text.textContent = "GITHUB / PROD";
                 return { type: 'PROD', basePath: './', useOnline: true };
             } else {
+                // MODO CHAT / LOCALHOST
                 const useRemote = GITHUB_CONFIG.forceOnlineInDev && GITHUB_CONFIG.repoUrl.startsWith('http');
+                
                 if(indicator) { indicator.className = useRemote ? "w-2.5 h-2.5 rounded-full bg-blue-500" : "w-2.5 h-2.5 rounded-full bg-orange-400"; }
                 if(text) text.textContent = useRemote ? "CHAT (REMOTE ASSETS)" : "CHAT / LOCAL (MOCK)";
-                return { type: 'DEV', basePath: useRemote ? GITHUB_CONFIG.repoUrl : '', useOnline: useRemote };
+                
+                return { 
+                    type: 'DEV', 
+                    basePath: useRemote ? GITHUB_CONFIG.repoUrl : '', 
+                    useOnline: useRemote 
+                };
             }
         }
 
         // --- 1. GLOBAIS ABSOLUTAS ---
         let hoverMenu = null, relaxBtn = null, removeBtn = null; 
-        const CURRENT_ENV = detectEnvironment(); 
+        const CURRENT_ENV = detectEnvironment(); // Executa deteção imediata
+        
+        // ==========================================
+        //  API KEY DO GEMINI (IMPORTANTE)
+        // ==========================================
+        const apiKey = "AIzaSyAmFdVwuIneu-luVuGIL25uv4_K8chjBMw"; 
 
         // --- 2. HELPER FUNCTIONS ---
         function uiSet(id, prop, val) { const el = document.getElementById(id); if(el) el.style[prop] = val; }
@@ -273,6 +333,7 @@
         function safeAddEventListener(id, event, callback) { const el = document.getElementById(id); if(el) el.addEventListener(event, callback); }
 
         // --- 3. CONFIG & DATA ---
+        // Agora usamos a flag do ambiente detetado em vez de hardcoded
         const USAR_ASSETS_ONLINE = CURRENT_ENV.useOnline; 
 
         const CONFIG = { globalSize: 'M', moduleHeight: 45, backHeight: 80, standardDepth: 100, armWidth: 20, colors: { fabric: 0x9ca3af, highlight: 0xe84c26 }, dynamic: { chaiseDepth: 165, cornerSize: 113, alignManualOffset: 0, alignGapOffset: 0, rapport: 40, backPivotY: 81, backPivotZ: 2 } };
@@ -282,6 +343,7 @@
         let FABRIC_LIBRARY = [], IMAGES = {}, addedModules = [], modelLibrary = { arm: null, seat: null, corner: null, chaise: null, meridien: null };
         let scene, camera, renderer, controls, loader, raycaster, mouse;
         let currentFabricMaterial = null;
+        let selectedFabricName = "";
         const LEG_MATERIALS = { chrome: new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8, roughness: 0.2 }), black: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.0, roughness: 0.9 }), moka: new THREE.MeshStandardMaterial({ color: 0x5D4037, metalness: 0.1, roughness: 0.6 }), wood: new THREE.MeshStandardMaterial({ color: 0x8b5a2b, metalness: 0.0, roughness: 0.8 }) };
         let currentLegMaterial = LEG_MATERIALS.black;
         let showDimensions = false, dimensionLinesGroup = null, softShadowTexture = null;
@@ -291,7 +353,9 @@
 
         // --- 4. LOGICA UI E MATERIAIS ---
         function initFabricData() {
-            FABRIC_LIBRARY.push({ id: 'linen_grey', name: 'Linho Padrão', color: '#a0a0a0', type: 'linen', map: 'front', collection: 'Padrão' });
+            // REMOVIDO: Opção "Linho Padrão" eliminada conforme pedido
+            // FABRIC_LIBRARY.push({ id: 'linen_grey', name: 'Linho Padrão', color: '#a0a0a0', type: 'linen', map: 'front', collection: 'Padrão' });
+            
             COLLECTIONS_DATA.forEach(col => {
                 const key = col.name.toLowerCase().replace(/\s/g, '');
                 // INICIALIZAÇÃO SEGURA: Define placeholders vazios (sem imagens) por defeito
@@ -744,9 +808,293 @@
             uiSet('ar-modal', 'display', 'flex'); uiSet('ar-loading', 'display', 'block'); uiSet('ar-success', 'display', 'none'); uiSet('ar-fallback', 'display', 'none');
             exporter.parse(sceneClone, function (result) { if (result instanceof ArrayBuffer) { const blob = new Blob([result], { type: 'application/octet-stream' }); const url = URL.createObjectURL(blob); const dlBtn = document.getElementById('download-glb-btn'); if(dlBtn) dlBtn.onclick = () => { const link = document.createElement('a'); link.href = url; link.download = 'sofa-eleganza.glb'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }; const viewer = document.getElementById('sofa-viewer'); const loader = document.getElementById('mv-loader'); if(viewer) { viewer.src = url; viewer.addEventListener('load', () => { if(loader) loader.style.display = 'none'; }); } uploadToHost(blob); } }, { binary: true });
         }
-        async function callGemini(prompt) { return new Promise(resolve => setTimeout(() => resolve(prompt.includes("JSON") ? JSON.stringify(["seat_arm_l", "seat_no_arm", "seat_arm_r"]) : "Descrição simulada do sofá Eleganza."), 1000)); }
-        async function generateDescription() { const btn = document.getElementById('ai-describe-btn'); const out = document.getElementById('ai-description-output'); const loader = btn.querySelector('.ai-loader'); if(!addedModules.length) { showFeedback("Adicione módulos!", "error"); return; } loader.classList.add('active'); btn.disabled = true; const text = await callGemini("desc"); out.textContent = text; loader.classList.remove('active'); btn.disabled = false; }
-        async function magicBuild() { const btn = document.getElementById('ai-generate-btn'); const loader = btn.querySelector('.ai-loader'); loader.classList.add('active'); btn.disabled = true; const text = await callGemini("JSON"); const ids = JSON.parse(text); addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; ids.forEach(id => addModule(id, true)); repositionModules(); loader.classList.remove('active'); btn.disabled = false; showFeedback("Sofá gerado!", "success"); uiSet('ai-modal', 'display', 'none'); }
+
+        // ==========================================
+        //  FUNÇÃO DE CHAMADA REAL À API GEMINI
+        // ==========================================
+        async function callGemini(type, userText = "", imageData = null) {
+            if (!apiKey) {
+                document.getElementById('ai-key-warning').classList.remove('hidden');
+                return type === "JSON" ? JSON.stringify(["seat_arm_l", "seat_no_arm", "seat_arm_r"]) : "Modo de demonstração: Configure a API Key para usar a inteligência real.";
+            }
+
+            let systemInstruction = "";
+            let userMessage = "";
+            let model = "gemini-2.5-flash-preview-09-2025"; 
+
+            const parts = [];
+
+            if (type === "JSON") {
+               systemInstruction = `És um especialista em sofás modulares. Deves responder APENAS com um Array JSON de IDs (ex: ["seat_arm_l"]). Módulos: seat_no_arm, seat_arm_l, seat_arm_r, corner, chaise_l, chaise_r, meridien_l, meridien_r.`;
+               userMessage = `O utilizador quer: "${userText}". Gera a lista JSON.`;
+               parts.push({ text: userMessage });
+            } 
+            else if (type === "DESC") {
+               const modulesList = addedModules.map(m => m.data.name).join(", ");
+               const fabricName = selectedFabricName || "Tecido Selecionado";
+               systemInstruction = "És um copywriter de luxo. Escreve uma descrição curta e sofisticada para o sofá.";
+               userMessage = `Sofá: ${modulesList}. Tecido: ${fabricName}. Em Português.`;
+               parts.push({ text: userMessage });
+            }
+            else if (type === "VISION") {
+               // Modo Análise: Apenas dá feedback
+               systemInstruction = "És um decorador de interiores profissional e de bom gosto. Analisa a imagem que mostra um sofá virtual numa sala real. Dá um conselho curto (max 2 frases) sobre como o estilo ou cor do sofá combina com o ambiente.";
+               userMessage = "Analisa este sofá na minha sala.";
+               if (imageData) {
+                   parts.push({ text: userMessage });
+                   parts.push({ inline_data: { mime_type: "image/png", data: imageData.split(',')[1] } });
+               }
+            }
+            else if (type === "RECOMMEND_FABRIC") {
+                // NOVO MODO: Recomendação Automática
+                // Gera a lista de tecidos disponíveis para a IA escolher
+                const availableFabrics = COLLECTIONS_DATA.map(c => c.name).join(", ");
+                
+                systemInstruction = `És um decorador de interiores de elite. Analisa a foto da sala do cliente.
+                Com base nas cores, luz e estilo da sala, escolhe UM e APENAS UM tecido da seguinte lista que fique perfeito nesse ambiente:
+                [${availableFabrics}]
+                
+                A tua resposta deve ser APENAS o nome do tecido escolhido, sem pontuação extra. Exemplo: "Karma" ou "Bella".`;
+                
+                userMessage = "Qual é o melhor tecido para esta sala?";
+                
+                if (imageData) {
+                   parts.push({ text: userMessage });
+                   parts.push({ inline_data: { mime_type: "image/png", data: imageData.split(',')[1] } });
+               }
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            
+            const maxRetries = 5;
+            let attempt = 0;
+            let delay = 1000;
+
+            while (attempt <= maxRetries) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: parts }],
+                            systemInstruction: { parts: [{ text: systemInstruction }] }
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        if (response.status === 503 || response.status === 429 || response.status >= 500) { throw new Error(`Erro temporário API: ${response.status}`); }
+                        throw new Error(`Erro fatal API: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    let text = data.candidates[0].content.parts[0].text;
+                    if (type === "JSON") text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+                    return text.trim();
+
+                } catch (e) {
+                    attempt++;
+                    console.warn(`Tentativa ${attempt} falhou: ${e.message}`);
+                    if (attempt > maxRetries) return "O assistente está temporariamente indisponível.";
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2; 
+                }
+            }
+        }
+
+        async function generateDescription() { 
+            const btn = document.getElementById('ai-describe-btn'); 
+            const out = document.getElementById('ai-description-output'); 
+            const loader = btn.querySelector('.ai-loader'); 
+            if(!addedModules.length) { showFeedback("Adicione módulos!", "error"); return; } 
+            loader.classList.add('active'); btn.disabled = true; 
+            const text = await callGemini("DESC"); 
+            out.textContent = text; 
+            loader.classList.remove('active'); btn.disabled = false; 
+        }
+
+        async function magicBuild() { 
+            const btn = document.getElementById('ai-generate-btn'); 
+            const input = document.getElementById('ai-prompt-input');
+            const loader = btn.querySelector('.ai-loader'); 
+            if(!input.value) { showFeedback("Escreva algo primeiro!", "error"); return; }
+            loader.classList.add('active'); btn.disabled = true; 
+            const text = await callGemini("JSON", input.value); 
+            try {
+                const ids = JSON.parse(text); 
+                addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; 
+                ids.forEach(id => addModule(id, true)); repositionModules(); 
+                showFeedback("Sofá gerado com IA!", "success"); uiSet('ai-modal', 'display', 'none'); 
+            } catch(e) { showFeedback("Erro ao interpretar resposta da IA.", "error"); }
+            loader.classList.remove('active'); btn.disabled = false; 
+        }
+        
+        // --- NOVA FUNÇÃO: AUTO-DECORADOR ---
+        async function autoStyleWithAI(roomImageData) {
+            showFeedback("A IA está a olhar para a sua sala...", "success");
+            
+            // Pergunta ao Gemini qual o melhor tecido
+            const bestFabricName = await callGemini("RECOMMEND_FABRIC", "", roomImageData);
+            
+            console.log("IA Sugeriu:", bestFabricName);
+            
+            // Encontra o ID correspondente na biblioteca
+            // A IA devolve "Karma", "Artis", etc. Precisamos de encontrar um ID que contenha esse nome (ex: "karma_B4043")
+            // Como fallback, pegamos o primeiro item da biblioteca cujo tipo seja igual ao nome sugerido (lowercase)
+            
+            const targetType = bestFabricName.toLowerCase();
+            const fabricMatch = FABRIC_LIBRARY.find(f => f.type.includes(targetType) || f.collection.toLowerCase().includes(targetType));
+            
+            if (fabricMatch) {
+                setFabricFromLibrary(fabricMatch.id);
+                showFeedback(`IA aplicou: ${fabricMatch.collection}`, "success");
+            } else {
+                console.warn("IA sugeriu tecido desconhecido:", bestFabricName);
+                showFeedback(`IA sugeriu ${bestFabricName}, mas não encontrei.`, "error");
+            }
+        }
+
+        // --- ROOM VISUALIZER LOGIC ---
+        let originalBackground = null;
+
+        function enterRoomMode(imgUrl) {
+            const bgDiv = document.getElementById('room-background');
+            const controls = document.getElementById('room-controls');
+            const scene = window.scene; // Acesso global à cena
+            
+            // Configurar fundo
+            bgDiv.style.backgroundImage = `url(${imgUrl})`;
+            bgDiv.style.display = 'block';
+            controls.style.display = 'flex';
+            
+            // Tornar fundo Three.js transparente
+            renderer.setClearColor(0x000000, 0); 
+            originalBackground = scene.background;
+            scene.background = null;
+            scene.fog = null; // Remover nevoeiro para ver a foto clara
+
+            // Encontrar e modificar o chão para ser transparente (ShadowMaterial)
+            const ground = scene.getObjectByName('env_ground');
+            if(ground) {
+                ground.userData.oldMaterial = ground.material;
+                ground.material = new THREE.ShadowMaterial({ opacity: 0.4 });
+            }
+
+            // Esconder a grelha
+            const grid = scene.getObjectByName('env_grid');
+            if(grid) grid.visible = false;
+            
+            // Ajustar câmara para "olhar de frente" por defeito
+            camera.position.set(0, 100, 400);
+            camera.lookAt(0, 50, 0);
+            
+            // DISPARAR O AUTO-DECORADOR (IA)
+            // Precisamos da imagem em base64. O imgUrl já é base64 se veio do FileReader.
+            if (imgUrl.startsWith('data:image')) {
+                autoStyleWithAI(imgUrl);
+            }
+        }
+
+        function exitRoomMode() {
+            const bgDiv = document.getElementById('room-background');
+            const controls = document.getElementById('room-controls');
+            const analysisDiv = document.getElementById('ai-room-analysis');
+            const scene = window.scene;
+            
+            bgDiv.style.display = 'none';
+            controls.style.display = 'none';
+            if(analysisDiv) analysisDiv.classList.add('hidden');
+            
+            // Restaurar ambiente 3D
+            renderer.setClearColor(0xf3f4f6, 1);
+            scene.background = new THREE.Color(0xf3f4f6);
+            scene.fog = new THREE.Fog(0xf3f4f6, 800, 2500);
+
+            // Restaurar chão opaco
+            const ground = scene.getObjectByName('env_ground');
+            if(ground && ground.userData.oldMaterial) {
+                ground.material = ground.userData.oldMaterial;
+            }
+
+            // Restaurar grelha
+            const grid = scene.getObjectByName('env_grid');
+            if(grid) grid.visible = true;
+        }
+        
+        // Atribuir ao window para acesso global do botão HTML
+        window.exitRoomMode = exitRoomMode;
+
+        // Função para Capturar e Analisar (Botão "Opinião IA")
+        async function analyzeRoomWithAI() {
+            const btn = document.getElementById('btn-analyze-room');
+            const loader = btn.querySelector('.ai-loader');
+            const analysisBox = document.getElementById('ai-room-analysis');
+            const analysisText = document.getElementById('room-analysis-text');
+            
+            loader.classList.remove('hidden');
+            loader.classList.add('active');
+            
+            // 1. Capturar ecrã (Canvas 3D + Fundo)
+            try {
+                const canvas3D = renderer.domElement;
+                const bgImageStyle = document.getElementById('room-background').style.backgroundImage;
+                const imgUrl = bgImageStyle.slice(5, -2); // remove url("...")
+                
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas3D.width;
+                tempCanvas.height = canvas3D.height;
+                const ctx = tempCanvas.getContext('2d');
+                
+                // Carregar imagem de fundo
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = imgUrl;
+                
+                await new Promise(r => img.onload = r);
+                
+                // Desenhar fundo (cover style simulado)
+                ctx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+                
+                // Desenhar sofá
+                ctx.drawImage(canvas3D, 0, 0);
+                
+                const base64Image = tempCanvas.toDataURL('image/png');
+                
+                // 2. Abrir Modal IA
+                uiSet('ai-modal', 'display', 'flex');
+                analysisBox.classList.remove('hidden');
+                analysisText.textContent = "A analisar a harmonia da sala...";
+                
+                // 3. Enviar para Gemini (Modo VISION)
+                const advice = await callGemini("VISION", "", base64Image);
+                analysisText.textContent = advice;
+                
+            } catch (e) {
+                console.error(e);
+                alert("Erro ao capturar imagem da sala.");
+            }
+            
+            loader.classList.remove('active');
+            loader.classList.add('hidden');
+        }
+        
+        // Listener para o botão de análise
+        document.addEventListener('DOMContentLoaded', () => {
+             const btnAnalyze = document.getElementById('btn-analyze-room');
+             if(btnAnalyze) btnAnalyze.addEventListener('click', analyzeRoomWithAI);
+             
+             // Room Upload
+             const fileInput = document.getElementById('room-upload');
+             fileInput.addEventListener('change', (e) => {
+                 if(e.target.files && e.target.files[0]) {
+                     const reader = new FileReader();
+                     reader.onload = function(evt) {
+                         enterRoomMode(evt.target.result);
+                     };
+                     reader.readAsDataURL(e.target.files[0]);
+                 }
+             });
+        });
+
 
         // --- 8. ASSETS MANAGER (MODIFICADO PARA DETEÇÃO DE AMBIENTE) ---
         const manager = new THREE.LoadingManager();
@@ -891,9 +1239,17 @@
         // --- 9. INIT (LAST) ---
         function init3D() {
             const container = document.getElementById('canvas-container');
-            scene = new THREE.Scene(); scene.background = new THREE.Color(0xf3f4f6); scene.fog = new THREE.Fog(0xf3f4f6, 800, 2500);
+            
+            // Fix: Assign to global variable 'scene' directly
+            scene = new THREE.Scene(); 
+            window.scene = scene; // Keep sync for Room Mode access
+
+            scene.background = new THREE.Color(0xf3f4f6); scene.fog = new THREE.Fog(0xf3f4f6, 800, 2500);
             camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 5000); camera.position.set(0, 450, 750);
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Renderer com alpha para transparência na sala
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); 
+            renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.outputEncoding = THREE.sRGBEncoding;
             container.appendChild(renderer.domElement);
             
@@ -903,8 +1259,13 @@
             const fill = new THREE.DirectionalLight(0xffffff, 0.2); fill.position.set(-100, 100, -200); scene.add(fill);
             
             const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }));
+            ground.name = "env_ground"; // Nome para encontrar depois
             ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; ground.position.y = -0.1; scene.add(ground);
-            scene.add(new THREE.GridHelper(3000, 60, 0xdddddd, 0xeeeeee));
+            
+            // Grid helper - Nome para esconder no modo sala
+            const grid = new THREE.GridHelper(3000, 60, 0xdddddd, 0xeeeeee);
+            grid.name = "env_grid";
+            scene.add(grid);
             
             dimensionLinesGroup = new THREE.Group(); scene.add(dimensionLinesGroup);
             controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.maxPolarAngle = Math.PI / 2 - 0.05;
@@ -938,7 +1299,8 @@
             requestAnimationFrame(animate); 
             updateAnimations(); 
             controls.update(); 
-            renderer.render(scene, camera); 
+            // Use global 'scene' variable consistently
+            if (scene) renderer.render(scene, camera); 
         }
 
         // --- 10. DOM CONTENT LOADED (GATILHO) ---
