@@ -756,17 +756,29 @@
         let failedAssetsCount = 0;
 
         // --- NOVO: MEGA LOADER (Recursivo e Agressivo) ---
-        // Tenta: Original -> Maiúsculas -> Minúsculas -> .png -> .jpeg -> Variantes de caminho
+        // Tenta: Original -> Minúsculas -> Com Espaços -> Sem Separador -> Extensões
         function loadTextureMega(loader, basePath, collectionName, suffix, callback) {
             
+            // Garantir que basePath termina com /
+            if (!basePath.endsWith('/')) basePath += '/';
+
             // Lista de candidatos mais agressiva
             const candidates = [
+                // Padrão (Underscore)
                 `${collectionName}_${suffix}.jpg`,
                 `${collectionName.toLowerCase()}_${suffix}.jpg`,
-                `${collectionName.toUpperCase()}_${suffix}.jpg`,
+                
+                // Espaços (Muitas vezes o ficheiro é "Karma 1.jpg")
+                `${collectionName} ${suffix}.jpg`,
+                `${collectionName.toLowerCase()} ${suffix}.jpg`,
+                
+                // Sem separador
+                `${collectionName}${suffix}.jpg`,
+                `${collectionName.toLowerCase()}${suffix}.jpg`,
+
+                // PNG
                 `${collectionName}_${suffix}.png`,
-                `${collectionName.toLowerCase()}_${suffix}.png`,
-                `textures/${collectionName}_${suffix}.jpg` // Tenta subpasta explícita se falhar na raiz relativa
+                `${collectionName} ${suffix}.png`
             ];
 
             let attemptIndex = 0;
@@ -779,21 +791,25 @@
                         const warn = document.getElementById('asset-warning');
                         if(warn) warn.style.display = 'flex';
                     }
+                    console.warn(`[MEGA LOADER] Falha definitiva para ${collectionName} após ${candidates.length} tentativas.`);
                     callback(null, false);
                     return;
                 }
 
                 const filename = candidates[attemptIndex];
-                // Removemos 'assets/textures/' duplicado se já estiver na base ou no candidato
                 const url = `${basePath}assets/textures/${filename}`;
                 
+                // LOG DE DIAGNÓSTICO: Descomenta para ver o link exato na consola
+                if (attemptIndex === 0) console.log(`[TENTATIVA 1] ${url}`);
+
                 loader.load(url, 
                     (tex) => {
-                        console.log(`[MEGA LOADER] Sucesso com: ${filename}`);
+                        console.log(`%c[SUCESSO] ${filename} carregado!`, 'color: green; font-weight: bold;');
                         callback(tex, true);
                     },
                     undefined,
                     (err) => {
+                        // Se falhar a primeira tentativa, não enche a consola, apenas tenta a próxima
                         attemptIndex++;
                         tryNext();
                     }
@@ -819,7 +835,9 @@
             texLoader.setCrossOrigin('anonymous');
             gltfLoader.setCrossOrigin('anonymous');
             
-            const BASE = CURRENT_ENV.basePath;
+            let BASE = CURRENT_ENV.basePath;
+            // Limpeza de segurança para evitar urls mal formados
+            if (BASE && !BASE.endsWith('/')) BASE += '/';
 
             ['arm', 'seat', 'corner', 'chaise', 'meridien'].forEach(name => { 
                 const pathGLB = `${BASE}assets/models/${name}.glb`;
