@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V118 (Smart Env)</title>
+    <title>Configurador 3D Eleganza - V118 (Robust)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -91,6 +91,7 @@
         .btn-active { background-color: #e84c26 !important; color: white !important; }
         .status-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; background: #e5e7eb; color: #9ca3af; font-weight: bold; display: inline-block; margin-right: 2px; }
         .status-badge.ok { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .status-badge.err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
         .status-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; border-bottom: 1px solid #f3f4f6; }
         #collection-status-list { max-height: 150px; overflow-y: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb; }
         #relax-toggle-btn { position: absolute; display: none; }
@@ -104,6 +105,9 @@
 
         /* ERRO CRÍTICO VISUAL */
         #critical-error { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; z-index: 10000; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; font-family: monospace; }
+        
+        /* WARNING BANNER */
+        #asset-warning { display: none; position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background: #fff7ed; border: 1px solid #fed7aa; color: #c2410c; padding: 8px 16px; border-radius: 20px; font-size: 11px; z-index: 40; box-shadow: 0 4px 6px rgba(0,0,0,0.05); align-items: center; gap: 8px; }
     </style>
 </head>
 <body>
@@ -113,6 +117,11 @@
         <h1 class="text-xl font-bold text-gray-800 mb-2">A carregar estúdio...</h1>
         <div class="loader-bar"><div class="loader-progress" id="loading-bar"></div></div>
         <p class="text-xs text-gray-500 mt-2" id="loading-text">A inicializar...</p>
+    </div>
+
+    <div id="asset-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Algumas texturas não carregaram. A usar modo de segurança.</span>
     </div>
 
     <div id="critical-error">
@@ -232,11 +241,7 @@
     <script>
         // --- 0. CONFIGURAÇÃO DE AMBIENTE (GITHUB VS LOCAL) ---
         const GITHUB_CONFIG = {
-            // Coloca aqui o URL do teu repositório para testes no Chat
             repoUrl: 'https://stoffus-pt.github.io/configurador-eleganza/',
-            
-            // Se 'true', tenta carregar do repoUrl mesmo estando no Chat
-            // Se 'false', no Chat usa apenas caixas processuais (segurança)
             forceOnlineInDev: true
         };
 
@@ -246,28 +251,20 @@
             const text = document.getElementById('env-text');
 
             if (hostname.includes('github.io')) {
-                // MODO GITHUB PAGES
                 if(indicator) { indicator.className = "w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"; }
                 if(text) text.textContent = "GITHUB / PROD";
                 return { type: 'PROD', basePath: './', useOnline: true };
             } else {
-                // MODO CHAT / LOCALHOST
                 const useRemote = GITHUB_CONFIG.forceOnlineInDev && GITHUB_CONFIG.repoUrl.startsWith('http');
-                
                 if(indicator) { indicator.className = useRemote ? "w-2.5 h-2.5 rounded-full bg-blue-500" : "w-2.5 h-2.5 rounded-full bg-orange-400"; }
                 if(text) text.textContent = useRemote ? "CHAT (REMOTE ASSETS)" : "CHAT / LOCAL (MOCK)";
-                
-                return { 
-                    type: 'DEV', 
-                    basePath: useRemote ? GITHUB_CONFIG.repoUrl : '', 
-                    useOnline: useRemote 
-                };
+                return { type: 'DEV', basePath: useRemote ? GITHUB_CONFIG.repoUrl : '', useOnline: useRemote };
             }
         }
 
         // --- 1. GLOBAIS ABSOLUTAS ---
         let hoverMenu = null, relaxBtn = null, removeBtn = null; 
-        const CURRENT_ENV = detectEnvironment(); // Executa deteção imediata
+        const CURRENT_ENV = detectEnvironment(); 
 
         // --- 2. HELPER FUNCTIONS ---
         function uiSet(id, prop, val) { const el = document.getElementById(id); if(el) el.style[prop] = val; }
@@ -276,7 +273,6 @@
         function safeAddEventListener(id, event, callback) { const el = document.getElementById(id); if(el) el.addEventListener(event, callback); }
 
         // --- 3. CONFIG & DATA ---
-        // Agora usamos a flag do ambiente detetado em vez de hardcoded
         const USAR_ASSETS_ONLINE = CURRENT_ENV.useOnline; 
 
         const CONFIG = { globalSize: 'M', moduleHeight: 45, backHeight: 80, standardDepth: 100, armWidth: 20, colors: { fabric: 0x9ca3af, highlight: 0xe84c26 }, dynamic: { chaiseDepth: 165, cornerSize: 113, alignManualOffset: 0, alignGapOffset: 0, rapport: 40, backPivotY: 81, backPivotZ: 2 } };
@@ -298,7 +294,10 @@
             FABRIC_LIBRARY.push({ id: 'linen_grey', name: 'Linho Padrão', color: '#a0a0a0', type: 'linen', map: 'front', collection: 'Padrão' });
             COLLECTIONS_DATA.forEach(col => {
                 const key = col.name.toLowerCase().replace(/\s/g, '');
-                IMAGES[key] = { front: null, back: null }; 
+                // INICIALIZAÇÃO SEGURA: Define placeholders vazios (sem imagens) por defeito
+                // Se as imagens carregarem depois, isto é atualizado.
+                IMAGES[key] = { front: null, back: null, loaded: false }; 
+                
                 FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start}`, name: `${col.name} ${col.prefix}${col.start}`, color: '#dcdcdc', type: key, map: 'front', collection: col.name });
                 for (let i = 1; i <= 6; i++) { FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start + i}`, name: `${col.name} ${col.prefix}${col.start + i}`, color: '#b0b0b0', type: key, map: `back_${i}`, collection: col.name }); }
             });
@@ -386,19 +385,25 @@
             pendingFabricId = null; 
             const store = IMAGES[fab.type]; 
             selectedFabricName = fab.name;
-            if(store) { 
+            
+            // CORREÇÃO: Fallback Robusto
+            // Usa as imagens APENAS se elas existirem e tiverem carregado (loaded=true ou imagem válida)
+            if(store && (store.front || store.back)) { 
                 const coords = TEXTURE_LAYOUTS[fab.map]; 
                 const sourceImg = (coords.src === 'front') ? store.front : store.back; 
+                
                 if(sourceImg) { 
                     currentFabricMaterial = cropTextureFromImage(sourceImg, coords, fab.type); 
                     updateAllModulesMaterial(); 
                     showFeedback(fab.name, "success"); 
                 } else { 
-                    pendingFabricId = id; 
-                    const collectionName = COLLECTIONS_DATA.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type)?.name || fab.type; 
-                    showFeedback(`Falta: ${collectionName} ${coords.src==='front'?'1':'2'}`, "error"); 
+                    // FALLBACK: Imagem específica falhou (ex: back), usar processual
+                    currentFabricMaterial = createProceduralFabricTexture(fab.type, fab.color); 
+                    updateAllModulesMaterial(); 
+                    showFeedback(`${fab.name} (Cor Base)`, "success"); 
                 } 
             } else { 
+                // FALLBACK GLOBAL: Nenhuma imagem carregada para esta coleção
                 currentFabricMaterial = createProceduralFabricTexture(fab.type, fab.color); 
                 updateAllModulesMaterial(); 
                 showFeedback(fab.name, "success"); 
@@ -413,7 +418,13 @@
                 const store = IMAGES[fab.type]; 
                 const coords = TEXTURE_LAYOUTS[fab.map]; 
                 let src = null; 
-                if(store && coords) src = (coords.src === 'front') ? store.front : store.back; 
+                
+                // Só tenta mostrar a imagem se ela tiver carregado com sucesso
+                if(store && coords) {
+                    const imgObj = (coords.src === 'front') ? store.front : store.back;
+                    if(imgObj) src = imgObj;
+                }
+                
                 if(src) { 
                     const bgX = (coords.x / (1 - coords.w)) * 100 || 0; 
                     const bgY = (coords.y / (1 - coords.h)) * 100 || 0; 
@@ -742,6 +753,56 @@
         manager.onStart = function (url) { uiSet('app-loader', 'display', 'flex'); };
         manager.onLoad = function () { uiSet('app-loader', 'display', 'none'); refresh(); };
         
+        let failedAssetsCount = 0;
+
+        // --- NOVO: MEGA LOADER (Recursivo e Agressivo) ---
+        // Tenta: Original -> Maiúsculas -> Minúsculas -> .png -> .jpeg -> Variantes de caminho
+        function loadTextureMega(loader, basePath, collectionName, suffix, callback) {
+            
+            // Lista de candidatos mais agressiva
+            const candidates = [
+                `${collectionName}_${suffix}.jpg`,
+                `${collectionName.toLowerCase()}_${suffix}.jpg`,
+                `${collectionName.toUpperCase()}_${suffix}.jpg`,
+                `${collectionName}_${suffix}.png`,
+                `${collectionName.toLowerCase()}_${suffix}.png`,
+                `textures/${collectionName}_${suffix}.jpg` // Tenta subpasta explícita se falhar na raiz relativa
+            ];
+
+            let attemptIndex = 0;
+
+            function tryNext() {
+                if (attemptIndex >= candidates.length) {
+                    // Falhou tudo: Silenciar erro e reportar falha
+                    failedAssetsCount++;
+                    if(failedAssetsCount > 5) {
+                        const warn = document.getElementById('asset-warning');
+                        if(warn) warn.style.display = 'flex';
+                    }
+                    callback(null, false);
+                    return;
+                }
+
+                const filename = candidates[attemptIndex];
+                // Removemos 'assets/textures/' duplicado se já estiver na base ou no candidato
+                const url = `${basePath}assets/textures/${filename}`;
+                
+                loader.load(url, 
+                    (tex) => {
+                        console.log(`[MEGA LOADER] Sucesso com: ${filename}`);
+                        callback(tex, true);
+                    },
+                    undefined,
+                    (err) => {
+                        attemptIndex++;
+                        tryNext();
+                    }
+                );
+            }
+
+            tryNext();
+        }
+
         function preloadAssets() { 
             // Verificação de ambiente
             if (!USAR_ASSETS_ONLINE) {
@@ -755,26 +816,46 @@
             const gltfLoader = new THREE.GLTFLoader(manager); 
             const texLoader = new THREE.TextureLoader(manager); 
             
-            // Define o caminho base consoante o ambiente
+            texLoader.setCrossOrigin('anonymous');
+            gltfLoader.setCrossOrigin('anonymous');
+            
             const BASE = CURRENT_ENV.basePath;
 
             ['arm', 'seat', 'corner', 'chaise', 'meridien'].forEach(name => { 
-                // Tenta GLB, fallback GLTF
                 const pathGLB = `${BASE}assets/models/${name}.glb`;
                 const pathGLTF = `${BASE}assets/models/${name}.gltf`;
 
                 gltfLoader.load(pathGLB, (gltf) => { processModel(gltf.scene, name); }, undefined, () => {
-                     console.warn(`GLB falhou para ${name}, a tentar GLTF...`);
                      gltfLoader.load(pathGLTF, (gltf) => { processModel(gltf.scene, name); }, undefined, (err)=>{
-                         console.error(`Falha total ao carregar ${name} do GitHub/Local.`, err);
+                         // Silencioso se falhar modelos (usa caixas)
                      });
                 }); 
             }); 
             
             COLLECTIONS_DATA.forEach(col => { 
                 const key = col.name.toLowerCase().replace(/\s/g, ''); 
-                texLoader.load(`${BASE}assets/textures/${col.name}_1.jpg`, (tex) => { if(!IMAGES[key]) IMAGES[key]={}; IMAGES[key].front = tex.image; }, undefined, ()=>{}); 
-                texLoader.load(`${BASE}assets/textures/${col.name}_2.jpg`, (tex) => { if(!IMAGES[key]) IMAGES[key]={}; IMAGES[key].back = tex.image; }, undefined, ()=>{}); 
+                
+                loadTextureMega(texLoader, BASE, col.name, '1', (tex, success) => {
+                    if(success) {
+                        if(!IMAGES[key]) IMAGES[key]={}; 
+                        IMAGES[key].front = tex.image;
+                        IMAGES[key].loaded = true;
+                        const badge = document.getElementById(`status-${key}-1`); 
+                        if(badge) badge.className="status-badge ok";
+                    } else {
+                        const badge = document.getElementById(`status-${key}-1`); 
+                        if(badge) badge.className="status-badge err";
+                    }
+                });
+
+                loadTextureMega(texLoader, BASE, col.name, '2', (tex, success) => {
+                    if(success) {
+                        if(!IMAGES[key]) IMAGES[key]={}; 
+                        IMAGES[key].back = tex.image;
+                        const badge = document.getElementById(`status-${key}-2`); 
+                        if(badge) badge.className="status-badge ok";
+                    }
+                });
             }); 
         }
 
