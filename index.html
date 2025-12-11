@@ -231,7 +231,7 @@
              <div class="border-t pt-4">
                 <label class="text-xs font-bold text-gray-500">Copywriter</label>
                 <div id="ai-description-output" class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 italic min-h-[60px] mt-1 mb-2">Descrição...</div>
-                <button onclick="generateDescription()" class="w-full bg-gray-800 text-white py-2 rounded font-bold text-sm flex items-center justify-center">
+                <button id="ai-describe-btn" onclick="generateDescription()" class="w-full bg-gray-800 text-white py-2 rounded font-bold text-sm flex items-center justify-center">
                     <i class="fas fa-pen-fancy mr-2"></i> Gerar Descrição <i class="fas fa-circle-notch ai-loader ml-2 hidden"></i>
                 </button>
             </div>
@@ -284,8 +284,9 @@
         // ======================== 1. DADOS E CONFIGURAÇÃO (RENAME TO AVOID CONFLICT) ========================
         const DB_MODELS = {
             'athena': { name: 'Athena', type: 'relax', folder: 'athena', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
-            'bartini': { name: 'Bartini', type: 'relax', folder: 'Bartini', sizes: { S: 60, M: 70, L: 80, XL: 90 }, armWidth: 22, depth: 108, chaiseDepth: 170, cornerSize: 115, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
+            'bartini': { name: 'Bartini', type: 'relax', folder: 'Bartini', sizes: { S: 60, M: 70, L: 80, XL: 90 }, armWidth: 22, depth: 108, chaiseDepth: 170, cornerSize: 115, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r', 'meiple'] },
             'brittany': { name: 'Brittany', type: 'relax', folder: 'brittany', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 18, depth: 102, chaiseDepth: 160, cornerSize: 110, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
+            'dayma': { name: 'Dayma', type: 'relax', folder: 'dayma', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r'] }
         };
 
@@ -297,7 +298,9 @@
             { id: 'chaise_l', name: 'Chaise Esq.', icon: 'fa-l', type: 'chaise', fileKey: 'chaise', hasArm: 'left' },
             { id: 'chaise_r', name: 'Chaise Dir.', icon: 'fa-l', type: 'chaise', fileKey: 'chaise', hasArm: 'right' },
             { id: 'meridien_l', name: 'Meridien Esq.', icon: 'fa-layer-group', type: 'meridien', fileKey: 'meridien', hasArm: 'left' },
-            { id: 'meridien_r', name: 'Meridien Dir.', icon: 'fa-layer-group', type: 'meridien', fileKey: 'meridien', hasArm: 'right' }
+            { id: 'meridien_r', name: 'Meridien Dir.', icon: 'fa-layer-group', type: 'meridien', fileKey: 'meridien', hasArm: 'right' },
+            // UPDATED: Meiple uses its own fileKey now
+            { id: 'meiple', name: 'Meiple', icon: 'fa-chair', type: 'standalone', fileKey: 'meiple', hasArm: true } 
         ];
 
         const DB_COLLECTIONS = [ 
@@ -308,7 +311,7 @@
         const LEG_MATERIALS = { chrome: new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8, roughness: 0.2 }), black: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.0, roughness: 0.9 }), moka: new THREE.MeshStandardMaterial({ color: 0x5D4037, metalness: 0.1, roughness: 0.6 }), wood: new THREE.MeshStandardMaterial({ color: 0x8b5a2b, metalness: 0.0, roughness: 0.8 }) };
 
         let CURRENT_MODEL_ID = 'athena', CURRENT_SIZE_KEY = 'M', GITHUB_REPO_URL = 'https://stoffus-pt.github.io/configurador-eleganza/', USE_ONLINE_ASSETS = true; 
-        const apiKey = "AIzaSyAmFdVwuIneu-luVuGIL25uv4_K8chjBMw"; 
+        const apiKey = ""; 
         let scene, camera, renderer, controls, manager, raycaster, mouse;
         let addedModules = [], modelLibrary = {}, FABRIC_LIBRARY = [], IMAGES = {};
         let currentFabricMaterial = null, currentLegMaterial = LEG_MATERIALS.black;
@@ -632,7 +635,8 @@
             
             const cacheBuster = `?v=${Date.now()}`;
             
-            ['seat', 'arm', 'corner', 'chaise', 'meridien'].forEach(part => {
+            // Added 'meiple' to load list
+            ['seat', 'arm', 'corner', 'chaise', 'meridien', 'meiple'].forEach(part => {
                 const folderName = modelData.folder;
                 
                 const path1 = `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`;
@@ -675,6 +679,9 @@
             if (def.type === 'corner') depth = modelData.cornerSize;
             let totalWidth = width + (def.hasArm ? modelData.armWidth : 0);
             
+            // REMOVED Manual construction logic for Meiple
+            // It now flows to the standard loading logic below using fileKey: 'meiple'
+
             const asset = modelLibrary[def.fileKey];
             if (asset) {
                 const mesh = asset.clone();
@@ -855,19 +862,107 @@
         window.exitRoomMode = exitRoomMode;
 
         async function callGemini(type, userText = "", imageData = null) {
-            if (!apiKey) return "Configure API Key";
-            let prompt = type === "JSON" ? `Gera JSON de módulos para: ${userText}` : `Analisa esta sala e sugere tecido.`;
+            // Removida verificação manual da API Key
+            
+            let prompt = "";
+            let sysInstruct = "";
+
+            if (type === "JSON") {
+                const validIds = DB_MODULES.map(m => m.id).join(', ');
+                prompt = `Gera apenas um array JSON (sem markdown, sem texto extra) contendo uma lista de IDs de módulos para montar um sofá baseado nisto: "${userText}".
+                IDs válidos: ${validIds}.
+                Exemplo de resposta: ["seat_arm_l", "seat_no_arm", "seat_arm_r"]`;
+            } else if (type === "DESC") {
+                const config = addedModules.map(m => m.data.name).join(', ');
+                prompt = `Escreve uma descrição comercial, elegante e apelativa (em Português de Portugal) para um sofá com esta configuração: ${config}. O modelo é ${DB_MODELS[CURRENT_MODEL_ID].name}. Destaca o conforto e o design.`;
+            } else if (type === "RECOMMEND") {
+                // Create a simplified list of fabrics for the AI to choose from
+                // To save tokens, maybe just send the Collection Names and a few generic color codes or just names?
+                // Actually, let's try sending a mapped list.
+                const fabricOptions = FABRIC_LIBRARY.map(f => `${f.id}: ${f.name} (${f.color})`).join('\n');
+                
+                prompt = `Analisa esta imagem da sala. Atua como um decorador de interiores.
+                Tenho estes tecidos disponíveis:
+                ${fabricOptions}
+                
+                Escolhe O MELHOR tecido desta lista que combine com a sala.
+                Responde APENAS com um objeto JSON neste formato:
+                {
+                    "reasoning": "Texto curto (PT-PT) a explicar a escolha (max 2 frases).",
+                    "fabricId": "O ID exato do tecido escolhido da lista acima"
+                }`;
+            }
+
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        ...(imageData ? [{ inline_data: { mime_type: "image/png", data: imageData.split(',')[1] } }] : [])
+                    ]
+                }]
+            };
+
+            // Add JSON schema enforcement if type is JSON or RECOMMEND
+            if (type === "JSON" || type === "RECOMMEND") {
+                payload.generationConfig = { response_mime_type: "application/json" };
+            }
+
             try {
-                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...(imageData ? [{ inline_data: { mime_type: "image/png", data: imageData.split(',')[1] } }] : [])] }] }) });
-                const data = await response.json(); return data.candidates[0].content.parts[0].text;
-            } catch (e) { return "Erro IA"; }
+                const response = await fetch(url, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(payload) 
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error("Gemini Error:", data.error);
+                    throw new Error(data.error.message);
+                }
+                
+                return data.candidates[0].content.parts[0].text;
+            } catch (e) { 
+                console.error(e);
+                return null; 
+            }
         }
+
         async function autoStyleWithAI(img) {
-            showFeedback("A analisar sala...", "success");
+            const analysisDiv = document.getElementById('ai-room-analysis');
+            const analysisText = document.getElementById('room-analysis-text');
+            const loader = document.querySelector('#btn-analyze-room .ai-loader');
+            
+            if(loader) loader.classList.remove('hidden');
+            showFeedback("A analisar a sala...", "success");
+            
             const text = await callGemini("RECOMMEND", "", img);
-            console.log("IA:", text);
+            
+            if(loader) loader.classList.add('hidden');
+            
+            if (text) {
+                try {
+                    const result = JSON.parse(text);
+                    analysisDiv.classList.remove('hidden');
+                    analysisText.innerText = result.reasoning;
+                    
+                    if (result.fabricId) {
+                        setFabricFromLibrary(result.fabricId);
+                        showFeedback(`Tecido aplicado: ${result.fabricId}`, "success");
+                    }
+                    uiSet('ai-modal', 'display', 'flex');
+                } catch (e) {
+                    // Fallback for plain text if JSON fails (legacy/fallback)
+                    analysisDiv.classList.remove('hidden');
+                    analysisText.innerText = text;
+                    uiSet('ai-modal', 'display', 'flex');
+                }
+            } else {
+                showFeedback("Falha na análise IA", "error");
+            }
         }
+
         async function magicBuild() {
              const val = document.getElementById('ai-prompt').value;
              if(!val) return;
@@ -885,10 +980,10 @@
             const btn = document.getElementById('ai-describe-btn');
             const out = document.getElementById('ai-description-output');
             if(!addedModules.length) { showFeedback("Adicione módulos!", "error"); return; }
-            btn.disabled = true;
+            if(btn) btn.disabled = true;
             const text = await callGemini("DESC");
-            out.textContent = text;
-            btn.disabled = false;
+            out.textContent = text || "Não foi possível gerar a descrição.";
+            if(btn) btn.disabled = false;
         }
 
         function uploadToHost(blob) {
