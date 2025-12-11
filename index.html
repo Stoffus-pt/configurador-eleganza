@@ -415,7 +415,7 @@
             ctx.drawImage(sourceImg, sourceImg.width * crop.x, sourceImg.height * crop.y, sourceImg.width * crop.w, sourceImg.height * crop.h, 0, 0, 512, 512);
             const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding;
             tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-            applyTextureRepeat(tex, 40); 
+            applyTextureRepeat(tex, 35); 
             let params = { map: tex, color: 0xffffff, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.02 };
             return new THREE.MeshStandardMaterial(params);
         }
@@ -423,7 +423,7 @@
         function createProceduralFabricTexture(type, colorHex) {
             const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size);
             if(type === 'linen' || type === 'boucle') { ctx.globalAlpha = 0.1; for(let i=0; i<size*100; i++) { ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#000000'; ctx.fillRect(Math.random()*size, Math.random()*size, 1, 1); } }
-            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; applyTextureRepeat(tex, 40);
+            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; applyTextureRepeat(tex, 35);
             return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.01 });
         }
 
@@ -771,29 +771,66 @@
             if (scene) renderer.render(scene, camera);
         }
 
-        function onMouseMove(e) {
+        // --- NEW: Helper function to handle interaction logic ---
+        function interactWithScene(x, y) {
             const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1; mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            mouse.x = ((x - rect.left) / rect.width) * 2 - 1; 
+            mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+            
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(scene.children, true);
             const hoverMenu = document.getElementById('module-hover-menu');
+            
             if (intersects.length > 0) {
-                let obj = intersects[0].object; while(obj.parent && obj.parent.type !== 'Scene') obj = obj.parent;
+                let obj = intersects[0].object; 
+                while(obj.parent && obj.parent.type !== 'Scene') obj = obj.parent;
                 const idx = addedModules.findIndex(m => m.mesh === obj);
+                
                 if (idx !== -1) {
                     const mod = addedModules[idx];
-                    const vector = new THREE.Vector3(); mod.mesh.getWorldPosition(vector); vector.y += 60; vector.project(camera);
-                    const x = (vector.x * .5 + .5) * renderer.domElement.clientWidth; const y = (vector.y * -.5 + .5) * renderer.domElement.clientHeight;
-                    hoverMenu.style.left = `${x}px`; hoverMenu.style.top = `${y}px`; hoverMenu.classList.add('visible');
+                    const vector = new THREE.Vector3(); 
+                    mod.mesh.getWorldPosition(vector); 
+                    vector.y += 60; 
+                    vector.project(camera);
+                    
+                    const screenX = (vector.x * .5 + .5) * renderer.domElement.clientWidth; 
+                    const screenY = (vector.y * -.5 + .5) * renderer.domElement.clientHeight;
+                    
+                    hoverMenu.style.left = `${screenX}px`; 
+                    hoverMenu.style.top = `${screenY}px`; 
+                    hoverMenu.classList.add('visible');
+                    
                     const btnRelax = document.getElementById('btn-relax');
                     const btnRemove = document.getElementById('btn-remove');
+                    
                     if (DB_MODELS[CURRENT_MODEL_ID].type === 'fixed') btnRelax.style.display = 'none';
-                    else { btnRelax.style.display = 'flex'; document.getElementById('relax-text').innerText = DB_MODELS[CURRENT_MODEL_ID].type === 'slide' ? 'Deslizar' : 'Relax'; btnRelax.onclick = () => { mod.hasRelax = !mod.hasRelax; }; }
-                    btnRemove.onclick = () => { scene.remove(mod.mesh); addedModules.splice(idx, 1); repositionModules(); hoverMenu.classList.remove('visible'); };
-                    return;
+                    else { 
+                        btnRelax.style.display = 'flex'; 
+                        document.getElementById('relax-text').innerText = DB_MODELS[CURRENT_MODEL_ID].type === 'slide' ? 'Deslizar' : 'Relax'; 
+                        btnRelax.onclick = () => { mod.hasRelax = !mod.hasRelax; }; 
+                    }
+                    
+                    btnRemove.onclick = () => { 
+                        scene.remove(mod.mesh); 
+                        addedModules.splice(idx, 1); 
+                        repositionModules(); 
+                        hoverMenu.classList.remove('visible'); 
+                    };
+                    return true; // Found and handled
                 }
             }
             hoverMenu.classList.remove('visible');
+            return false; // Nothing found
+        }
+
+        // --- UPDATED: Mouse move handler using shared logic ---
+        function onMouseMove(e) {
+            interactWithScene(e.clientX, e.clientY);
+        }
+
+        // --- UPDATED: Click/Tap handler for mobile support ---
+        function onMouseClick(e) {
+            interactWithScene(e.clientX, e.clientY);
         }
 
         function updateDimensionLabels() {
@@ -1017,4 +1054,5 @@
 
     </script>
 </body>
+</html></body>
 </html>
