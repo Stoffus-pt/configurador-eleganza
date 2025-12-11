@@ -315,6 +315,7 @@
         let showDimensions = false, dimensionLinesGroup = null;
         let activeFabricId = null; 
         let failedAssetsCount = 0;
+        let pendingConfiguration = null; // Variável para persistência de configuração
 
         function detectEnvironment() {
             const h = window.location.hostname;
@@ -351,7 +352,30 @@
 
             manager = new THREE.LoadingManager();
             manager.onStart = () => document.getElementById('app-loader').style.display = 'flex';
-            manager.onLoad = () => { document.getElementById('app-loader').style.display = 'none'; renderModuleButtons(); if (addedModules.length === 0) addDefaultConfiguration(); };
+            
+            manager.onLoad = () => { 
+                document.getElementById('app-loader').style.display = 'none'; 
+                renderModuleButtons(); 
+                
+                // Lógica de Persistência: Restaurar configuração ao mudar de modelo
+                if (pendingConfiguration && pendingConfiguration.length > 0) {
+                    pendingConfiguration.forEach(conf => {
+                         // Verificar se o modulo é válido para o novo modelo
+                         const modelData = DB_MODELS[CURRENT_MODEL_ID];
+                         // Se o modelo tem lista restrita de módulos, verifica se o módulo existe
+                         const isValid = !modelData.modules || modelData.modules.includes(conf.id);
+                         
+                         if(isValid) {
+                             addModule(conf.id, true, conf.hasRelax);
+                         }
+                    });
+                    pendingConfiguration = null; // Limpar após restaurar
+                    repositionModules();
+                } 
+                else if (addedModules.length === 0) {
+                    addDefaultConfiguration(); 
+                }
+            };
 
             initModelSelector(); initSizeSelector(); initFabricSystem(); initUIListeners();
             loadModelAssets(CURRENT_MODEL_ID);
@@ -569,12 +593,30 @@
             });
             updateSizePreview();
         }
+        
+        // UPDATE: Agora guarda a configuração antes de mudar
         window.changeModel = function(modelId) {
-            if (!DB_MODELS[modelId]) return; CURRENT_MODEL_ID = modelId; const modelData = DB_MODELS[modelId];
+            if (!DB_MODELS[modelId]) return;
+            
+            // 1. Guardar a configuração atual
+            pendingConfiguration = addedModules.map(m => ({
+                id: m.data.id,
+                hasRelax: m.hasRelax
+            }));
+
+            CURRENT_MODEL_ID = modelId; 
+            const modelData = DB_MODELS[modelId];
             document.getElementById('model-type-badge').innerText = modelData.type;
-            addedModules.forEach(m => scene.remove(m.mesh)); addedModules = [];
-            loadModelAssets(modelId); updateSizePreview();
+            
+            // 2. Limpar a cena
+            addedModules.forEach(m => scene.remove(m.mesh)); 
+            addedModules = [];
+            
+            // 3. Carregar o novo modelo (o manager.onLoad vai tratar de restaurar a config)
+            loadModelAssets(modelId); 
+            updateSizePreview();
         };
+
         window.changeSize = function(sizeKey) {
             CURRENT_SIZE_KEY = sizeKey; initSizeSelector();
             const currentModules = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax }));
