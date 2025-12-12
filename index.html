@@ -287,6 +287,8 @@
             'bartini': { name: 'Bartini', type: 'relax', folder: 'Bartini', sizes: { S: 60, M: 70, L: 80, XL: 90 }, armWidth: 22, depth: 108, chaiseDepth: 170, cornerSize: 115, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r', 'meiple'] },
             'brittany': { name: 'Brittany', type: 'relax', folder: 'brittany', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 18, depth: 102, chaiseDepth: 160, cornerSize: 110, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'dayma': { name: 'Dayma', type: 'relax', folder: 'dayma', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
+            // UPDATED: Added Enzo model
+            'enzo': { name: 'Enzo', type: 'relax', folder: 'enzo', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r'] }
         };
 
@@ -299,7 +301,6 @@
             { id: 'chaise_r', name: 'Chaise Dir.', icon: 'fa-l', type: 'chaise', fileKey: 'chaise', hasArm: 'right' },
             { id: 'meridien_l', name: 'Meridien Esq.', icon: 'fa-layer-group', type: 'meridien', fileKey: 'meridien', hasArm: 'left' },
             { id: 'meridien_r', name: 'Meridien Dir.', icon: 'fa-layer-group', type: 'meridien', fileKey: 'meridien', hasArm: 'right' },
-            // UPDATED: Meiple uses its own fileKey now
             { id: 'meiple', name: 'Meiple', icon: 'fa-chair', type: 'standalone', fileKey: 'meiple', hasArm: true } 
         ];
 
@@ -686,8 +687,30 @@
             if (asset) {
                 const mesh = asset.clone();
                 if (!def.fixed) { const baseRefSize = 72; const scaleFactor = modelData.sizes[CURRENT_SIZE_KEY] / baseRefSize; mesh.scale.x *= scaleFactor; }
-                let flip = def.hasArm === 'right'; if (def.type === 'meridien') flip = def.hasArm === 'left';
-                if (flip) { mesh.scale.x *= -1; mesh.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); }
+                
+                // Logic for flipping/mirroring modules
+                let flip = def.hasArm === 'right'; 
+                
+                // Special case for meridien (always inverted relative to arm seat usually?)
+                if (def.type === 'meridien') {
+                    flip = def.hasArm === 'left';
+                }
+
+                // Special handling for Chaise based on model
+                if (def.type === 'chaise') {
+                    if (CURRENT_MODEL_ID === 'athena') {
+                        // Athena chaise behaves like standard arm seat (flip if right)
+                        flip = def.hasArm === 'right';
+                    } else {
+                        // Brittany, Bartini, Dayma (and likely Enzo) seem to have inverted Chaise assets
+                        flip = def.hasArm === 'left';
+                    }
+                }
+
+                if (flip) { 
+                    mesh.scale.x *= -1; 
+                    mesh.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); 
+                }
                 
                 const box = new THREE.Box3().setFromObject(mesh); const size = new THREE.Vector3(); box.getSize(size);
                 totalWidth = size.x; depth = size.z;
@@ -723,6 +746,9 @@
             let cornerPos = { x:0, z:0, depth: 0 }; const modelData = DB_MODELS[CURRENT_MODEL_ID];
             // Removed duplicate totalW declaration here
 
+            // Specific adjustment for Dayma to reduce gap
+            const gapCorrection = (CURRENT_MODEL_ID === 'dayma') ? -2 : 0;
+
             addedModules.forEach((mod, i) => {
                 const mesh = mod.mesh;
                 if(cornerIdx === -1 || i <= cornerIdx) {
@@ -730,7 +756,8 @@
                     if(i === 0) mesh.position.x = 0; 
                     else { 
                         const prev = addedModules[i-1]; 
-                        mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2); 
+                        // Apply gap correction here
+                        mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2) + gapCorrection; 
                     }
                     mesh.position.z = ((mod.depth - modelData.depth) / 2);
                     if(mod.data.type === 'corner') cornerPos = { x: mesh.position.x, z: mesh.position.z, depth: mod.depth };
@@ -738,17 +765,31 @@
                 else {
                     mod.isCornerLine = true; mesh.rotation.y = -Math.PI / 2; 
                     if(i === cornerIdx + 1) {
-                        mesh.position.z = cornerPos.z + (cornerPos.depth/2) + (mod.width/2);
+                        // Apply gap correction here too
+                        mesh.position.z = cornerPos.z + (cornerPos.depth/2) + (mod.width/2) + gapCorrection;
                     } else {
                         const prev = addedModules[i-1];
-                        mesh.position.z = prev.mesh.position.z + (prev.width/2) + (mod.width/2);
+                        // Apply gap correction here too
+                        mesh.position.z = prev.mesh.position.z + (prev.width/2) + (mod.width/2) + gapCorrection;
                     }
                     mesh.position.x = cornerPos.x + (cornerPos.depth/2) - (mod.depth/2);
                 }
             });
             let totalW = 0;
             addedModules.forEach(m => { if(!m.isCornerLine) totalW += m.width; });
-            document.getElementById('total-width-display').innerText = Math.round(totalW) + " cm";
+            // Adjust total width calculation considering overlaps if necessary, but roughly keep it sum of widths for sales
+            // document.getElementById('total-width-display').innerText = Math.round(totalW) + " cm";
+             // Actually, true width is end position - start position. Let's calculate real dimension
+             if (addedModules.length > 0) {
+                 const first = addedModules[0];
+                 let lastInLine1 = addedModules.length - 1;
+                 if (cornerIdx !== -1) lastInLine1 = cornerIdx;
+                 
+                 const startX = first.mesh.position.x - first.width/2;
+                 const endX = addedModules[lastInLine1].mesh.position.x + addedModules[lastInLine1].width/2;
+                 totalW = endX - startX;
+             }
+             document.getElementById('total-width-display').innerText = Math.round(totalW) + " cm";
         }
 
         function animate() {
@@ -1054,5 +1095,4 @@
 
     </script>
 </body>
-</html></body>
 </html>
