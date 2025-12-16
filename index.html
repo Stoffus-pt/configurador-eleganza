@@ -169,20 +169,22 @@
         </div>
         <div class="flex items-center gap-2">
             <input type="file" id="room-upload" accept="image/*" class="hidden">
-            <button onclick="document.getElementById('room-upload').click()" class="bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-md border-0 ring-2 ring-emerald-100"><i class="fas fa-camera mr-2"></i> <span class="hidden md:inline">Minha Sala</span></button>
             
-             <button onclick="uiSet('ai-modal','display','flex')" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:shadow-md transition"><i class="fas fa-sparkles mr-2"></i> Assistente</button>
-             <button id="btn-ar-open" class="bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-sm text-stoffus-primary border-stoffus-primary"><i class="fas fa-cube mr-2"></i> <span class="hidden md:inline">AR</span></button>
-             <button id="reset-btn" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition"><i class="fas fa-trash-alt"></i></button>
-             <button id="toggle-editor-btn" class="bg-gray-800 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-md"><i class="fas fa-layer-group mr-2"></i> Acabamentos</button>
-             <button id="toggle-dims-btn" class="bg-white border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-bold shadow-sm"><i class="fas fa-ruler-combined"></i></button>
+             <button id="btn-ar-open" class="bg-[#e84c26] text-white hover:bg-[#cf401e] px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-md transform hover:scale-105"><i class="fas fa-cube mr-2"></i> <span>Visualizar AR</span></button>
+             <button id="toggle-editor-btn" class="bg-gray-800 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-md"><i class="fas fa-layer-group mr-2"></i> <span class="hidden sm:inline">Acabamentos</span></button>
+             <button id="toggle-dims-btn" class="bg-white border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-bold shadow-sm" title="Mostrar Medidas"><i class="fas fa-ruler-combined"></i></button>
+             
+             <!-- Separador -->
+             <div class="h-6 w-px bg-gray-300 mx-1"></div>
+             
+             <!-- Botão Limpar Destacado -->
+             <button id="reset-btn" class="bg-white border-2 border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center shadow-sm group"><i class="fas fa-trash-alt mr-2 group-hover:rotate-12 transition-transform"></i> <span>Limpar Tudo</span></button>
         </div>
     </div>
 
     <!-- CONTROLOS DA SALA -->
     <div id="room-controls">
         <button onclick="document.getElementById('room-upload').click()" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition"><i class="fas fa-sync mr-1"></i> Trocar Foto</button>
-        <button id="btn-analyze-room" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:shadow-lg transition flex items-center"><i class="fas fa-magic mr-2"></i> <i class="fas fa-circle-notch ai-loader mr-2 hidden"></i> Opiniao IA</button>
         <button onclick="exitRoomMode()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition"><i class="fas fa-times"></i> Sair</button>
     </div>
 
@@ -1084,6 +1086,24 @@
             const mesh = createModuleMesh(moduleId); scene.add(mesh);
             const data = mesh.userData; data.hasRelax = startRelax; data.relaxFactor = startRelax ? 1 : 0;
             addedModules.push({ mesh: mesh, data: data.def, ...data });
+            
+            // CORREÇÃO: Aplicar materiais ativos ao novo módulo imediatamente
+            mesh.traverse((node) => { 
+                if (node.isMesh) { 
+                    const lowerName = node.name.toLowerCase(); 
+                    const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw));
+                    
+                    // Se já houver um tecido selecionado, aplica-o ao novo módulo
+                    if (!isLeg && node.name !== 'shadow_plane' && currentFabricMaterial) {
+                        node.material = currentFabricMaterial;
+                    }
+                    // Garante que os pés combinam com o resto (o default é preto se nada for escolhido)
+                    if (isLeg && currentLegMaterial) {
+                        node.material = currentLegMaterial;
+                    }
+                } 
+            });
+
             repositionModules(); if(!silent) showFeedback("Módulo Adicionado", "success");
         }
 
@@ -1137,6 +1157,9 @@
                  totalW = endX - startX;
              }
              document.getElementById('total-width-display').innerText = Math.round(totalW) + " cm";
+
+             // CORREÇÃO: Atualizar as etiquetas de dimensão sempre que os módulos são reposicionados
+             updateDimensionLabels();
         }
 
         function animate() {
