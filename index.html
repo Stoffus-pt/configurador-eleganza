@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V4.3 (Clean & Fixed)</title>
+    <title>Configurador 3D Eleganza - V4.25 (Absolute URLs)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -73,7 +73,8 @@
         
         .fabric-item { 
             aspect-ratio: 1; border-radius: 12px; cursor: pointer; position: relative; overflow: hidden; 
-            border: 2px solid #e5e7eb; background-color: #d1d5db; background-size: cover; background-position: center; 
+            border: 2px solid #e5e7eb; background-color: #d1d5db; 
+            background-repeat: no-repeat; /* Importante para thumbnails recortados */
             transition: all 0.2s ease; 
         }
         .fabric-item:hover { transform: scale(1.05); border-color: #9ca3af; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -94,6 +95,20 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
         }
 
+        /* Spinner para carregamento de texturas */
+        .loading-spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid #e84c26;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%; left: 50%;
+            margin-top: -10px; margin-left: -10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         #module-hover-menu { position: absolute; pointer-events: auto; z-index: 50; transform: translate(-50%, -100%); opacity: 0; transition: opacity 0.2s, transform 0.2s; display: flex; gap: 8px; padding-bottom: 10px; }
         #module-hover-menu.visible { opacity: 1; transform: translate(-50%, -120%); }
         .hover-btn { background: white; color: #4b5563; border: 1px solid #e5e7eb; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; display: flex; align-items: center; gap: 6px; }
@@ -112,6 +127,17 @@
         .cat-btn { padding: 6px 12px; background: #f3f4f6; border-radius: 8px; cursor: pointer; transition: all 0.2s; white-space: nowrap; border: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; color: #4b5563; }
         .cat-btn:hover { background: #e5e7eb; }
         .cat-btn.active { background: #e84c26; color: white; border-color: #e84c26; box-shadow: 0 2px 4px rgba(232, 76, 38, 0.2); }
+
+        /* Estilo do Slider */
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #e84c26; cursor: pointer; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; cursor: pointer; background: #e5e7eb; border-radius: 2px;
+        }
     </style>
 </head>
 <body>
@@ -179,6 +205,16 @@
             
             <!-- Grelha -->
             <div id="fabric-library-container" class="fabric-grid overflow-y-auto pr-1 flex-1 border-t border-gray-100 pt-2"></div>
+
+            <!-- CONTROLO DE RAPPORT (NOVO) -->
+            <div class="mt-4 border-t border-gray-200 pt-2">
+                <div class="flex justify-between items-center mb-1">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Rapport (Escala)</label>
+                    <span id="rapport-display" class="text-xs font-mono text-stoffus-primary bg-orange-50 px-1 rounded">35 cm</span>
+                </div>
+                <input type="range" id="rapport-slider" min="10" max="100" value="35" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-stoffus-primary">
+            </div>
+
         </div>
         
         <!-- Pés (Fixo no fundo) -->
@@ -288,7 +324,10 @@
             'brittany': { name: 'Brittany', type: 'relax', folder: 'brittany', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 18, depth: 102, chaiseDepth: 160, cornerSize: 110, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'dayma': { name: 'Dayma', type: 'relax', folder: 'dayma', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'enzo': { name: 'Enzo', type: 'relax', folder: 'enzo', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
-            'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r'] }
+            'fiori': { name: 'Fiori', type: 'relax', folder: 'fiori', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
+            'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r'] },
+            'kindia': { name: 'Kindia', type: 'relax', folder: 'kindia', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 0, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'chaise_l', 'chaise_r'] },
+            'sting': { name: 'Sting', type: 'relax', folder: 'sting', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] }
         };
 
         const DB_MODULES = [
@@ -304,7 +343,7 @@
         ];
 
         const DB_COLLECTIONS = [ 
-            { name: 'Karma', prefix: 'B', start: 4043, end: 4049 }, { name: 'Artis', prefix: 'D', start: 4001, end: 4007 }, { name: 'Barbados', prefix: 'F', start: 4001, end: 4007 }, { name: 'Bella', prefix: 'B', start: 1057, end: 1063 }, { name: 'Carmen', prefix: 'B', start: 1127, end: 1133 }, { name: 'Falcon', prefix: 'B', start: 4092, end: 4098 }, { name: 'Fumiko', prefix: 'D', start: 1001, end: 1007 }, { name: 'Funky', prefix: 'B', start: 4106, end: 4112 }, { name: 'Garby', prefix: 'B', start: 4078, end: 4084 }, { name: 'Grift', prefix: 'B', start: 4008, end: 4014 }, { name: 'Jade', prefix: 'B', start: 1145, end: 1151 }, { name: 'Kamala', prefix: 'B', start: 4071, end: 4077 }, { name: 'Kamala2', prefix: 'B', start: 1138, end: 1144 }, { name: 'Madoka', prefix: 'D', start: 4008, end: 4014 }, { name: 'Matchy', prefix: 'B', start: 4085, end: 4091 }, { name: 'Mirage', prefix: 'B', start: 4099, end: 4105 }, { name: 'Pisa', prefix: 'B', start: 1113, end: 1119 }, { name: 'Prisma', prefix: 'B', start: 4022, end: 4028 }, { name: 'Ramses', prefix: 'B', start: 1015, end: 1021 }, { name: 'River', prefix: 'E', start: 1001, end: 1007 }, { name: 'Rissani', prefix: 'B', start: 4057, end: 4063 }, { name: 'Siza', prefix: 'P', start: 1001, end: 1007 }, { name: 'Soft', prefix: 'B', start: 4015, end: 4021 }, { name: 'Stancy', prefix: 'B', start: 4029, end: 4035 }, { name: 'Talia', prefix: 'B', start: 1043, end: 1049 }, { name: 'Touareg', prefix: 'B', start: 1106, end: 1112 }, { name: 'Ventury', prefix: 'B', start: 4050, end: 4056 }, { name: 'Zemy', prefix: 'B', start: 4001, end: 4007 } 
+            { name: 'Karma', prefix: 'B', start: 4043, end: 4049 }, { name: 'Artis', prefix: 'D', start: 4001, end: 4007 }, { name: 'Barbados', prefix: 'F', start: 4001, end: 4007 }, { name: 'Bella', prefix: 'B', start: 1057, end: 1063 }, { name: 'Carmen', prefix: 'B', start: 1127, end: 1133 }, { name: 'Falcon', prefix: 'B', start: 4092, end: 4098 }, { name: 'Fumiko', prefix: 'D', start: 1001, end: 1007 }, { name: 'Funky', prefix: 'B', start: 4106, end: 4112 }, { name: 'Garby', prefix: 'B', start: 4078, end: 4084 }, { name: 'Grift', prefix: 'B', start: 4008, end: 4014 }, { name: 'Jade', prefix: 'B', start: 1145, end: 1151 }, { name: 'Kamala', prefix: 'B', start: 4071, end: 4077 }, { name: 'Kamala2', prefix: 'B', start: 1138, end: 1144 }, { name: 'Madoka', prefix: 'D', start: 4008, end: 4014 }, { name: 'Matchy', prefix: 'B', start: 4085, end: 4091 }, { name: 'Mirage', prefix: 'B', start: 4099, end: 4105 }, { name: 'Pisa', prefix: 'B', start: 1113, end: 1119 }, { name: 'Prisma', prefix: 'B', start: 4022, end: 4028 }, { name: 'Ramses', prefix: 'B', start: 1015, end: 1021 }, { name: 'River', prefix: 'E', start: 1001, end: 1007 }, { name: 'Rissani', prefix: 'B', start: 4057, end: 4063 }, { name: 'Siza', prefix: 'P', start: 1001, end: 1007 }, { name: 'Soft', prefix: 'B', start: 4015, end: 4021 }, { name: 'Stancy', prefix: 'B', start: 4029, end: 4035 }, { name: 'Talia', prefix: 'B', start: 1043, end: 1049 }, { name: 'Touareg', prefix: 'B', start: 1106, end: 1112 }, { name: 'Venturi', prefix: 'B', start: 4050, end: 4056 }, { name: 'Zemy', prefix: 'B', start: 4001, end: 4007 } 
         ];
 
         const TEXTURE_LAYOUTS = { 'front': { src: 'front', x: 0.0, y: 0.0, w: 1.0, h: 1.0 }, 'back_1': { src: 'back', x: 0.0, y: 0.0, w: 0.5, h: 0.333 }, 'back_2': { src: 'back', x: 0.5, y: 0.0, w: 0.5, h: 0.333 }, 'back_3': { src: 'back', x: 0.0, y: 0.333, w: 0.5, h: 0.333 }, 'back_4': { src: 'back', x: 0.5, y: 0.333, w: 0.5, h: 0.333 }, 'back_5': { src: 'back', x: 0.0, y: 0.666, w: 0.5, h: 0.333 }, 'back_6': { src: 'back', x: 0.5, y: 0.666, w: 0.5, h: 0.333 } };
@@ -319,6 +358,8 @@
         let activeFabricId = null; 
         let failedAssetsCount = 0;
         let pendingConfiguration = null; // Variável para persistência de configuração
+        let currentRapport = 35; // Global variable for rapport
+        let loadedCollectionsQueue = []; // LRU Cache key tracker
 
         function detectEnvironment() {
             const h = window.location.hostname;
@@ -331,19 +372,75 @@
         function init() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene(); window.scene = scene;
-            scene.background = new THREE.Color(0xf3f4f6); scene.fog = new THREE.Fog(0xf3f4f6, 800, 2500);
+            
+            // Fundo Branco
+            const bgColor = 0xffffff; 
+            scene.background = new THREE.Color(bgColor); 
+            scene.fog = new THREE.Fog(bgColor, 800, 2500);
+            
             camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 1, 5000); camera.position.set(0, 450, 750);
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
             renderer.setSize(window.innerWidth, window.innerHeight); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.outputEncoding = THREE.sRGBEncoding;
             container.appendChild(renderer.domElement);
 
             const amb = new THREE.AmbientLight(0xffffff, 0.6); scene.add(amb);
-            const dir = new THREE.DirectionalLight(0xffffff, 0.8); dir.position.set(100, 400, 100); dir.castShadow = true; 
-            dir.shadow.mapSize.width = 2048; dir.shadow.mapSize.height = 2048; scene.add(dir);
+            
+            const dir = new THREE.DirectionalLight(0xffffff, 0.8); 
+            dir.position.set(50, 200, 100); 
+            dir.castShadow = true; 
+            dir.shadow.mapSize.width = 2048; 
+            dir.shadow.mapSize.height = 2048; 
+            dir.shadow.bias = -0.0005; 
+            dir.shadow.normalBias = 0.05; 
+            scene.add(dir);
 
-            const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }));
-            ground.name = "env_ground"; ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; ground.position.y = -0.1; scene.add(ground);
-            const grid = new THREE.GridHelper(3000, 60, 0xdddddd, 0xeeeeee); grid.name = "env_grid"; scene.add(grid);
+            // === CHÃO COMPOSTO (Imagem Real + Sombras) ===
+            const textureLoader = new THREE.TextureLoader();
+            const floorUrl = 'https://stoffus-pt.github.io/configurador-eleganza/assets/textures/floor.jpg';
+            
+            // 1. Textura da Madeira
+            const floorTexture = textureLoader.load(floorUrl, (tex) => {
+                tex.wrapS = THREE.RepeatWrapping;
+                tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(6, 6);
+                tex.anisotropy = 16;
+                tex.encoding = THREE.sRGBEncoding;
+                console.log("Chão carregado.");
+            });
+
+            // 2. Chão Visual (MeshBasicMaterial - Ignora luzes, mostra cor real)
+            const groundGeo = new THREE.PlaneGeometry(4000, 4000);
+            const groundVisual = new THREE.Mesh(
+                groundGeo, 
+                new THREE.MeshBasicMaterial({ 
+                    map: floorTexture,
+                    color: 0xffffff // Branco no BasicMaterial significa "sem cor extra", apenas a textura
+                })
+            );
+            groundVisual.name = "env_ground_visual"; 
+            groundVisual.rotation.x = -Math.PI / 2; 
+            groundVisual.position.y = -0.2; // Ligeiramente abaixo para não piscar
+            scene.add(groundVisual);
+
+            // 3. Camada de Sombra (ShadowMaterial - Invisível mas recebe sombras)
+            const groundShadow = new THREE.Mesh(
+                groundGeo,
+                new THREE.ShadowMaterial({ 
+                    opacity: 0.3, // Sombra suave
+                    color: 0x000000 
+                })
+            );
+            groundShadow.name = "env_ground_shadow"; 
+            groundShadow.rotation.x = -Math.PI / 2; 
+            groundShadow.position.y = -0.1; // Logo acima da imagem
+            groundShadow.receiveShadow = true;
+            scene.add(groundShadow);
+            
+            // Grid muito subtil
+            const grid = new THREE.GridHelper(3000, 60, 0x000000, 0x000000); 
+            grid.material.opacity = 0.1; 
+            grid.material.transparent = true;
+            grid.name = "env_grid"; scene.add(grid);
             
             dimensionLinesGroup = new THREE.Group(); scene.add(dimensionLinesGroup);
             controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
@@ -353,7 +450,6 @@
             renderer.domElement.addEventListener('mousemove', onMouseMove);
             renderer.domElement.addEventListener('click', onMouseClick);
             
-            // --- NEW: Touch Listeners for Mobile ---
             renderer.domElement.addEventListener('touchstart', onTouchStart, {passive: false});
             renderer.domElement.addEventListener('touchend', onTouchEnd, {passive: false});
 
@@ -364,19 +460,13 @@
                 document.getElementById('app-loader').style.display = 'none'; 
                 renderModuleButtons(); 
                 
-                // Lógica de Persistência: Restaurar configuração ao mudar de modelo
                 if (pendingConfiguration && pendingConfiguration.length > 0) {
                     pendingConfiguration.forEach(conf => {
-                         // Verificar se o modulo é válido para o novo modelo
                          const modelData = DB_MODELS[CURRENT_MODEL_ID];
-                         // Se o modelo tem lista restrita de módulos, verifica se o módulo existe
                          const isValid = !modelData.modules || modelData.modules.includes(conf.id);
-                         
-                         if(isValid) {
-                             addModule(conf.id, true, conf.hasRelax);
-                         }
+                         if(isValid) addModule(conf.id, true, conf.hasRelax);
                     });
-                    pendingConfiguration = null; // Limpar após restaurar
+                    pendingConfiguration = null; 
                     repositionModules();
                 } 
                 else if (addedModules.length === 0) {
@@ -404,8 +494,6 @@
             if (e.changedTouches.length === 1) {
                 const dx = e.changedTouches[0].clientX - touchStartX;
                 const dy = e.changedTouches[0].clientY - touchStartY;
-                
-                // If movement is less than 10 pixels, treat as a TAP/CLICK
                 if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
                     interactWithScene(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
                 }
@@ -418,119 +506,269 @@
             addModule('seat_arm_r', true);
         }
 
-        // ======================== TECIDOS ========================
-        function initFabricData() {
-            DB_COLLECTIONS.forEach(col => {
-                const key = col.name.toLowerCase().replace(/\s/g, '');
-                IMAGES[key] = { front: null, back: null, loaded: false }; 
-                FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start}`, name: `${col.name} ${col.prefix}${col.start}`, color: '#dcdcdc', type: key, map: 'front', collection: col.name });
-                for (let i = 1; i <= 6; i++) { FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start + i}`, name: `${col.name} ${col.prefix}${col.start + i}`, color: '#b0b0b0', type: key, map: `back_${i}`, collection: col.name }); }
-            });
-        }
+        // ======================== TECIDOS (OPTIMIZED) ========================
         
-        function applyTextureRepeat(texture, rapportCm) {
-            if(!texture) return; 
-            const referenceSizeCm = 90; const repeatFactor = referenceSizeCm / rapportCm;
-            texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; 
-            texture.repeat.set(repeatFactor, repeatFactor); texture.needsUpdate = true;
-        }
-
-        function cropTextureFromImage(sourceImg, crop, type) {
-            if(!sourceImg) return null; 
-            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-            canvas.width = 512; canvas.height = 512; 
-            ctx.drawImage(sourceImg, sourceImg.width * crop.x, sourceImg.height * crop.y, sourceImg.width * crop.w, sourceImg.height * crop.h, 0, 0, 512, 512);
-            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding;
-            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-            applyTextureRepeat(tex, 35); 
-            let params = { map: tex, color: 0xffffff, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.02 };
-            return new THREE.MeshStandardMaterial(params);
-        }
-
-        function createProceduralFabricTexture(type, colorHex) {
-            const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size);
-            if(type === 'linen' || type === 'boucle') { ctx.globalAlpha = 0.1; for(let i=0; i<size*100; i++) { ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#000000'; ctx.fillRect(Math.random()*size, Math.random()*size, 1, 1); } }
-            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; applyTextureRepeat(tex, 35);
-            return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.01 });
-        }
-
-        function setFabricFromLibrary(id) {
-            const fab = FABRIC_LIBRARY.find(f => f.id === id); if(!fab) return; 
-            activeFabricId = id; 
-            const currentCatBtn = document.querySelector('.cat-btn.active');
-            if(currentCatBtn) {
-                 const catName = currentCatBtn.textContent;
-                 let catKey = 'all';
-                 if(catName !== 'Todos') {
-                     const col = DB_COLLECTIONS.find(c => c.name === catName);
-                     if(col) catKey = col.name.toLowerCase().replace(/\s/g, '');
-                 }
-                 renderFabricLibrary(catKey);
+        // --- Memory Management ---
+        function manageTextureCache(newCollectionKey) {
+            const idx = loadedCollectionsQueue.indexOf(newCollectionKey);
+            if(idx !== -1) {
+                loadedCollectionsQueue.splice(idx, 1);
+                loadedCollectionsQueue.push(newCollectionKey);
+                return;
             }
-            const store = IMAGES[fab.type]; 
-            if(store && (store.front || store.back)) { 
-                const coords = TEXTURE_LAYOUTS[fab.map]; 
-                const sourceImg = (coords.src === 'front') ? store.front : store.back; 
-                if(sourceImg) { 
-                    currentFabricMaterial = cropTextureFromImage(sourceImg, coords, fab.type); 
-                    updateAllModulesMaterial(); 
-                    showFeedback(fab.name, "success"); 
-                } else { 
-                    currentFabricMaterial = createProceduralFabricTexture(fab.type, fab.color); 
-                    updateAllModulesMaterial(); 
-                    showFeedback(`${fab.name} (Cor Base)`, "success"); 
-                } 
-            } else { 
-                currentFabricMaterial = createProceduralFabricTexture(fab.type, fab.color); 
-                updateAllModulesMaterial(); 
-                showFeedback(fab.name, "success"); 
+            loadedCollectionsQueue.push(newCollectionKey);
+            if(loadedCollectionsQueue.length > 3) {
+                const toRemove = loadedCollectionsQueue.shift();
+                unloadCollection(toRemove);
             }
         }
-        
-        function updateAllModulesMaterial() { 
-            addedModules.forEach(mod => { 
-                if(!mod.mesh) return;
-                mod.mesh.traverse((node) => { 
-                    if (node.isMesh) { 
-                        const lowerName = node.name.toLowerCase(); 
-                        const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw));
-                        if (!isLeg && node.name !== 'shadow_plane') node.material = currentFabricMaterial;
-                        if (isLeg) node.material = currentLegMaterial;
-                    } 
-                });
-            }); 
+
+        function unloadCollection(key) {
+            if(IMAGES[key]) {
+                IMAGES[key].front = null;
+                IMAGES[key].back = null;
+                IMAGES[key].loaded = false;
+            }
         }
 
+        // --- OPTIMIZED: Render with Compressed Textures ---
         function renderFabricLibrary(category) {
             const container = document.getElementById('fabric-library-container'); 
             if(!container) return; 
             container.innerHTML = '';
             const filtered = category === 'all' ? FABRIC_LIBRARY : FABRIC_LIBRARY.filter(f => f.type === category);
+            
+            // Caminho URL Absoluto para Thumbnails
+            const thumbBase = 'https://stoffus-pt.github.io/configurador-eleganza/assets/compressedtextures/';
+
             filtered.forEach(fab => { 
                 const el = document.createElement('div'); 
-                el.className = `fabric-item ${fab.id === activeFabricId ? 'active' : ''}`; // Add active class
+                el.className = `fabric-item ${fab.id === activeFabricId ? 'active' : ''}`;
                 
-                const store = IMAGES[fab.type]; 
-                const coords = TEXTURE_LAYOUTS[fab.map]; 
-                let src = null; 
-                if(store && coords) {
-                    const imgObj = (coords.src === 'front') ? store.front : store.back;
-                    if(imgObj) src = imgObj;
+                // 1. Placeholder instantâneo
+                const placeholderUrl = getFabricThumbnailDataUrl(fab.type, fab.color);
+                el.style.backgroundImage = `url(${placeholderUrl})`;
+                el.style.backgroundSize = 'cover';
+
+                // 2. Determinar qual imagem carregar (1 ou 2) e como recortar
+                const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type);
+                const colName = col ? col.name : fab.collection;
+                
+                const mapType = fab.map; 
+                const coords = TEXTURE_LAYOUTS[mapType];
+                
+                let targetSuffix = '1'; // Por defeito imagem 1
+                if (coords && coords.src === 'back') {
+                    targetSuffix = '2'; // Se for back, precisamos da imagem 2 (cores)
                 }
-                if(src) { 
-                    const bgX = (coords.x / (1 - coords.w)) * 100 || 0; 
-                    const bgY = (coords.y / (1 - coords.h)) * 100 || 0; 
-                    const sizeX = (1 / coords.w) * 100; const sizeY = (1 / coords.h) * 100; 
-                    el.style.backgroundImage = `url(${src.src})`; el.style.backgroundSize = `${sizeX}% ${sizeY}%`; el.style.backgroundPosition = `${bgX}% ${bgY}%`; 
-                } else { el.style.backgroundColor = fab.color; } 
+
+                // Lista de candidatos para a imagem alvo (1 ou 2)
+                const candidates = [
+                    `${thumbBase}${colName} ${targetSuffix}.jpg`,           // Ex: Karma 2.jpg
+                    `${thumbBase}${colName.toLowerCase()} ${targetSuffix}.jpg`, // Ex: karma 2.jpg
+                    `${thumbBase}${colName}_${targetSuffix}.jpg`,           // Ex: Karma_2.jpg
+                    `${thumbBase}${colName.toLowerCase()}_${targetSuffix}.jpg` // Ex: karma_2.jpg
+                ];
+
+                const tryLoad = (index) => {
+                    if (index >= candidates.length) {
+                        // Se falhou carregar a imagem 2, tenta a imagem 1 como ultimo recurso (melhor que nada)
+                        if (targetSuffix === '2') {
+                            // console.warn(`Falha imagem 2 para ${colName}, a tentar imagem 1...`);
+                            targetSuffix = '1';
+                            // Reinicia a busca mas para a imagem 1
+                            // Nota: Isto é uma simplificação para não criar loop infinito, 
+                            // na prática tenta carregar a 1 se a 2 falhar.
+                             const fallbackUrl = `${thumbBase}${colName} 1.jpg`;
+                             const imgFallback = new Image();
+                             imgFallback.onload = () => {
+                                 if(coords) applyThumbnailCrop(el, imgFallback.src, coords);
+                                 else el.style.backgroundImage = `url('${imgFallback.src}')`;
+                             };
+                             imgFallback.src = fallbackUrl;
+                        }
+                        return; 
+                    }
+                    
+                    const img = new Image();
+                    img.onload = () => {
+                        // SUCESSO: Imagem carregada
+                        if (coords) {
+                            applyThumbnailCrop(el, img.src, coords);
+                        } else {
+                            el.style.backgroundImage = `url('${img.src}')`;
+                            el.style.backgroundSize = 'cover';
+                        }
+                    };
+                    
+                    img.onerror = () => {
+                        // FALHOU: Tenta o próximo candidato
+                        tryLoad(index + 1); 
+                    };
+                    
+                    img.src = candidates[index];
+                };
+                
+                // Iniciar carregamento
+                tryLoad(0);
+
                 el.innerHTML = `<div class="fabric-name">${fab.name}</div>`; 
                 el.onclick = () => setFabricFromLibrary(fab.id); 
+                
                 container.appendChild(el); 
+            });
+        }
+        
+        function applyThumbnailCrop(element, imageSrc, coords) {
+             const sizeX = (1 / coords.w) * 100;
+             const sizeY = (1 / coords.h) * 100;
+             
+             const posX = coords.w === 1 ? 0 : (coords.x / (1 - coords.w)) * 100;
+             const posY = coords.h === 1 ? 0 : (coords.y / (1 - coords.h)) * 100;
+             
+             element.style.backgroundImage = `url('${imageSrc}')`;
+             element.style.backgroundSize = `${sizeX}% ${sizeY}%`;
+             element.style.backgroundPosition = `${posX}% ${posY}%`;
+        }
+        
+        // --- NEW: Procedural Thumbnail Generator (INSTANT) ---
+        function getFabricThumbnailDataUrl(type, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 128, 128);
+            ctx.fillStyle = "rgba(0,0,0,0.05)";
+            for(let i=0; i<128; i+=4) { ctx.fillRect(i, 0, 1, 128); ctx.fillRect(0, i, 128, 1); }
+            for(let i=0; i<400; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+                ctx.fillRect(Math.random()*128, Math.random()*128, 2, 2);
+            }
+            const grad = ctx.createRadialGradient(64, 64, 50, 64, 64, 90);
+            grad.addColorStop(0, "rgba(0,0,0,0)");
+            grad.addColorStop(1, "rgba(0,0,0,0.3)");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0,0,128,128);
+            return canvas.toDataURL('image/jpeg', 0.8);
+        }
+
+        function setFabricFromLibrary(id) {
+            const fab = FABRIC_LIBRARY.find(f => f.id === id); if(!fab) return; 
+            activeFabricId = id; 
+            
+            const items = document.querySelectorAll('.fabric-item');
+            items.forEach(el => {
+                if(el.textContent.includes(fab.name)) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+
+            const tempMat = createProceduralFabricTexture(fab.type, fab.color);
+            currentFabricMaterial = tempMat;
+            updateAllModulesMaterial();
+
+            const store = IMAGES[fab.type];
+            if (store && store.loaded) {
+                 manageTextureCache(fab.type);
+                 applyHighResTexture(fab, store);
+            } else {
+                 showFeedback("A carregar textura...", "info");
+                 loadCollectionImages(fab.type, (newStore) => {
+                     if(newStore && newStore.loaded) {
+                         applyHighResTexture(fab, newStore);
+                     }
+                 });
+            }
+        }
+
+        function applyHighResTexture(fab, store) {
+            const coords = TEXTURE_LAYOUTS[fab.map]; 
+            const sourceImg = (coords.src === 'front') ? store.front : store.back; 
+            
+            if(sourceImg) { 
+                currentFabricMaterial = cropTextureFromImage(sourceImg, coords, fab.type); 
+                updateAllModulesMaterial(); 
+                showFeedback(fab.name, "success"); 
+            }
+        }
+
+        function loadCollectionImages(collectionKey, callback) {
+            manageTextureCache(collectionKey); 
+
+            if(IMAGES[collectionKey] && IMAGES[collectionKey].loaded) {
+                callback(IMAGES[collectionKey]);
+                return;
+            }
+
+            const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === collectionKey);
+            if(!col) return;
+
+            const texLoader = new THREE.TextureLoader(); 
+            texLoader.setCrossOrigin('anonymous');
+            
+            // ALTERAÇÃO: Caminho URL Absoluto para texturas do sofá
+            let BASE = 'https://stoffus-pt.github.io/configurador-eleganza/assets/textures/'; 
+            
+            let loadedCount = 0;
+            const target = 2; 
+            
+            if(!IMAGES[collectionKey]) IMAGES[collectionKey] = { front: null, back: null, loaded: false };
+
+            const tryLoadVariant = (suffix, targetSlot) => {
+                const candidates = [ 
+                    `${col.name} ${suffix}.jpg`,
+                    `${col.name.toLowerCase()} ${suffix}.jpg`,
+                    `${col.name}_${suffix}.jpg`,
+                    `${col.name.toLowerCase()}_${suffix}.jpg`
+                ];
+                
+                let attempt = 0;
+                const tryNext = () => {
+                    if (attempt >= candidates.length) {
+                        checkDone();
+                        return;
+                    }
+                    const url = `${BASE}${candidates[attempt]}`; // Use BASE URL
+                    texLoader.load(url, 
+                        (tex) => { 
+                            if(targetSlot === 'front') IMAGES[collectionKey].front = tex.image;
+                            else IMAGES[collectionKey].back = tex.image;
+                            checkDone();
+                        },
+                        undefined,
+                        () => { attempt++; tryNext(); }
+                    );
+                };
+                tryNext();
+            };
+
+            const checkDone = () => {
+                loadedCount++;
+                if(loadedCount >= target) {
+                    IMAGES[collectionKey].loaded = true;
+                    callback(IMAGES[collectionKey]);
+                }
+            };
+
+            tryLoadVariant('1', 'front');
+            tryLoadVariant('2', 'back');
+        }
+
+        // UPDATED: Initialize fabric data but DO NOT preload everything
+        function initFabricData() {
+            DB_COLLECTIONS.forEach(col => {
+                const key = col.name.toLowerCase().replace(/\s/g, '');
+                IMAGES[key] = { front: null, back: null, loaded: false }; 
+                
+                FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start}`, name: `${col.name} ${col.prefix}${col.start}`, color: '#dcdcdc', type: key, map: 'front', collection: col.name });
+                for (let i = 1; i <= 6; i++) { 
+                    FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start + i}`, name: `${col.name} ${col.prefix}${col.start + i}`, color: '#b0b0b0', type: key, map: `back_${i}`, collection: col.name }); 
+                }
             });
         }
 
         function initFabricSystem() {
-             initFabricData(); preloadTextures();
+             initFabricData(); 
+             
              const catContainer = document.getElementById('fabric-categories');
              let btnAll = document.createElement('button'); btnAll.className = 'cat-btn active'; btnAll.textContent = 'Todos';
              btnAll.onclick = () => { 
@@ -551,9 +789,60 @@
              });
              renderFabricLibrary('all');
         }
+        
+        function applyTextureRepeat(texture, rapportCm) {
+            if(!texture) return; 
+            const referenceSizeCm = 90; const repeatFactor = referenceSizeCm / rapportCm;
+            texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; 
+            texture.repeat.set(repeatFactor, repeatFactor); texture.needsUpdate = true;
+        }
+
+        function cropTextureFromImage(sourceImg, crop, type) {
+            if(!sourceImg) return null; 
+            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+            canvas.width = 512; canvas.height = 512; 
+            ctx.drawImage(sourceImg, sourceImg.width * crop.x, sourceImg.height * crop.y, sourceImg.width * crop.w, sourceImg.height * crop.h, 0, 0, 512, 512);
+            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding;
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+            // UPDATED: Use currentRapport variable
+            applyTextureRepeat(tex, currentRapport); 
+            let params = { map: tex, color: 0xffffff, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.02 };
+            return new THREE.MeshStandardMaterial(params);
+        }
+
+        function createProceduralFabricTexture(type, colorHex) {
+            const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size);
+            if(type === 'linen' || type === 'boucle') { ctx.globalAlpha = 0.1; for(let i=0; i<size*100; i++) { ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#000000'; ctx.fillRect(Math.random()*size, Math.random()*size, 1, 1); } }
+            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; 
+            // UPDATED: Use currentRapport variable
+            applyTextureRepeat(tex, currentRapport);
+            return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.01 });
+        }
+        
+        function updateAllModulesMaterial() { 
+            addedModules.forEach(mod => { 
+                if(!mod.mesh) return;
+                mod.mesh.traverse((node) => { 
+                    if (node.isMesh) { 
+                        const lowerName = node.name.toLowerCase(); 
+                        const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw));
+                        if (!isLeg && node.name !== 'shadow_plane') node.material = currentFabricMaterial;
+                        if (isLeg) node.material = currentLegMaterial;
+                    } 
+                });
+            }); 
+        }
+
+        function updateFabricRapport() {
+            if(currentFabricMaterial && currentFabricMaterial.map) {
+                applyTextureRepeat(currentFabricMaterial.map, currentRapport);
+                if(currentFabricMaterial.bumpMap) applyTextureRepeat(currentFabricMaterial.bumpMap, currentRapport);
+            }
+        }
 
         function loadTextureMega(loader, basePath, collectionName, suffix, callback) {
-            if (!basePath.endsWith('/')) basePath += '/';
+            // O parâmetro basePath é ignorado aqui para usar o caminho local fixo
+            
             const candidates = [ 
                 `${collectionName}_${suffix}.jpg`, 
                 `${collectionName.toLowerCase()}_${suffix}.jpg`, 
@@ -564,7 +853,10 @@
             let attemptIndex = 0;
             function tryNext() {
                 if (attemptIndex >= candidates.length) { callback(null, false); return; }
-                const url = `${basePath}assets/textures/${candidates[attemptIndex]}`;
+                
+                // ALTERAÇÃO: Caminho relativo exato para texturas
+                const url = `assets/textures/${candidates[attemptIndex]}`;
+                
                 loader.load(url, 
                     (tex) => { callback(tex, true); },
                     undefined,
@@ -574,17 +866,7 @@
             tryNext();
         }
 
-        function preloadTextures() { 
-            if (!USE_ONLINE_ASSETS) return;
-            const texLoader = new THREE.TextureLoader(manager); texLoader.setCrossOrigin('anonymous');
-            let BASE = GITHUB_REPO_URL; if (BASE && !BASE.endsWith('/')) BASE += '/';
-            
-            DB_COLLECTIONS.forEach(col => { 
-                const key = col.name.toLowerCase().replace(/\s/g, ''); 
-                loadTextureMega(texLoader, BASE, col.name, '1', (tex, success) => { if(success) { if(!IMAGES[key]) IMAGES[key]={}; IMAGES[key].front = tex.image; IMAGES[key].loaded = true; } });
-                loadTextureMega(texLoader, BASE, col.name, '2', (tex, success) => { if(success) { if(!IMAGES[key]) IMAGES[key]={}; IMAGES[key].back = tex.image; } });
-            }); 
-        }
+        // REMOVED preloadTextures entirely to fix initial load speed
 
         // ======================== LOGICA 3D GERAL ========================
         function renderModuleButtons() {
@@ -610,6 +892,16 @@
             
             const dimsBtn = document.getElementById('toggle-dims-btn');
             if(dimsBtn) dimsBtn.addEventListener('click', () => { showDimensions = !showDimensions; updateDimensionLabels(); });
+
+            // Slider Listener
+            const rapportSlider = document.getElementById('rapport-slider');
+            if(rapportSlider) {
+                rapportSlider.addEventListener('input', (e) => {
+                    currentRapport = parseInt(e.target.value);
+                    document.getElementById('rapport-display').innerText = currentRapport + " cm";
+                    updateFabricRapport();
+                });
+            }
         }
         function initModelSelector() {
             const select = document.getElementById('model-select');
@@ -693,7 +985,21 @@
         function processLoadedModel(sceneObj, partKey) {
              const box = new THREE.Box3().setFromObject(sceneObj); const size = new THREE.Vector3(); box.getSize(size);
              if (size.x < 20) { sceneObj.scale.set(100, 100, 100); sceneObj.updateMatrixWorld(true); }
-             sceneObj.traverse(n => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } });
+             
+             // UPDATED: Hide Shadow Planes to avoid z-fighting and double shadows
+             sceneObj.traverse(n => { 
+                if (n.isMesh) { 
+                    if(n.name === 'shadow_plane') {
+                        n.visible = false;
+                        n.castShadow = false;
+                        n.receiveShadow = false;
+                    } else {
+                        n.castShadow = true; 
+                        n.receiveShadow = true; 
+                    }
+                } 
+             });
+             
              modelLibrary[partKey] = sceneObj;
         }
 
@@ -733,6 +1039,11 @@
                     }
                 }
 
+                // NEW: Invert arm modules for Kindia
+                if (CURRENT_MODEL_ID === 'kindia' && def.id.includes('seat_arm')) {
+                    flip = !flip;
+                }
+
                 if (flip) { 
                     mesh.scale.x *= -1; 
                     mesh.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); 
@@ -747,10 +1058,20 @@
                 const isChaise = def.type === 'chaise';
                 const isMeridien = def.type === 'meridien';
                 const isBartini = CURRENT_MODEL_ID === 'bartini';
+                const isFiori = CURRENT_MODEL_ID === 'fiori';
+                const isKindia = CURRENT_MODEL_ID === 'kindia';
+                const isSting = CURRENT_MODEL_ID === 'sting'; // NOVO
 
-                if (!isArmModule && !isChaise && !isMeridien && !isBartini) {
+                // Adicionado isSting à condição para não elevar
+                if (!isArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting) {
                     mesh.position.y += 12;
                 }
+                
+                // Specific adjustment for Kindia seat_no_arm (+4cm)
+                if (isKindia && def.id === 'seat_no_arm') {
+                    mesh.position.y += 4;
+                }
+
                 group.add(mesh);
             } else {
                 const box = new THREE.Mesh(new THREE.BoxGeometry(totalWidth, 45, depth), new THREE.MeshStandardMaterial({color:0x999999})); box.position.y = 34.5; group.add(box);
@@ -947,8 +1268,15 @@
             const controls = document.getElementById('room-controls');
             bgDiv.style.backgroundImage = `url(${imgUrl})`; bgDiv.style.display = 'block'; controls.style.display = 'flex';
             renderer.setClearColor(0x000000, 0); scene.background = null; scene.fog = null;
-            const ground = scene.getObjectByName('env_ground');
-            if(ground) { ground.userData.oldMaterial = ground.material; ground.material = new THREE.ShadowMaterial({ opacity: 0.4 }); }
+            
+            // Esconder chão visual ao entrar em AR/Sala
+            const gVis = scene.getObjectByName('env_ground_visual');
+            if(gVis) gVis.visible = false;
+            
+            // Ajustar sombras para o modo sala
+            const gShadow = scene.getObjectByName('env_ground_shadow');
+            if(gShadow) gShadow.material.opacity = 0.5;
+
             const grid = scene.getObjectByName('env_grid'); if(grid) grid.visible = false;
             camera.position.set(0, 100, 400); camera.lookAt(0, 50, 0);
             showFeedback("Modo Sala Ativo! Ajuste o sofá.", "success");
@@ -958,9 +1286,19 @@
             document.getElementById('room-background').style.display = 'none';
             document.getElementById('room-controls').style.display = 'none';
             document.getElementById('ai-room-analysis').classList.add('hidden');
-            renderer.setClearColor(0xf3f4f6, 1); scene.background = new THREE.Color(0xf3f4f6); scene.fog = new THREE.Fog(0xf3f4f6, 800, 2500);
-            const ground = scene.getObjectByName('env_ground');
-            if(ground && ground.userData.oldMaterial) ground.material = ground.userData.oldMaterial;
+            
+            const bgColor = 0xffffff;
+            renderer.setClearColor(bgColor, 1); 
+            scene.background = new THREE.Color(bgColor); 
+            scene.fog = new THREE.Fog(bgColor, 800, 2500);
+            
+            // Restaurar chão visual
+            const gVis = scene.getObjectByName('env_ground_visual');
+            if(gVis) gVis.visible = true;
+
+            const gShadow = scene.getObjectByName('env_ground_shadow');
+            if(gShadow) gShadow.material.opacity = 0.3;
+            
             const grid = scene.getObjectByName('env_grid'); if(grid) grid.visible = true;
         }
         window.exitRoomMode = exitRoomMode;
