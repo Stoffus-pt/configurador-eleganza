@@ -327,7 +327,10 @@
             'dayma': { name: 'Dayma', type: 'relax', folder: 'dayma', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'enzo': { name: 'Enzo', type: 'relax', folder: 'enzo', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'fiori': { name: 'Fiori', type: 'relax', folder: 'fiori', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
-            'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r'] },
+            // ATUALIZAÇÃO: Adicionado tamanho XXL (110cm) exclusivamente no Infinity
+            'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, 
+                modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] 
+            },
             'kindia': { name: 'Kindia', type: 'relax', folder: 'kindia', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 0, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'chaise_l', 'chaise_r'] },
             'sting': { name: 'Sting', type: 'relax', folder: 'sting', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] }
         };
@@ -336,6 +339,12 @@
             { id: 'seat_no_arm', name: 'Centro', icon: 'fa-couch', type: 'seat', fileKey: 'seat', hasArm: false },
             { id: 'seat_arm_l', name: 'Braço Esq.', icon: 'fa-cube', type: 'seat', fileKey: 'arm', hasArm: 'left' },
             { id: 'seat_arm_r', name: 'Braço Dir.', icon: 'fa-cube', type: 'seat', fileKey: 'arm', hasArm: 'right' },
+            
+            // NOVOS MÓDULOS (Duplos para Infinity)
+            { id: '2seats_2arms', name: '2 Lug. 2 Braços', icon: 'fa-couch', type: 'seat', fileKey: '2arm2seats', hasArm: 'both' },
+            { id: '2seats_arm_l', name: '2 Lug. Braço Esq.', icon: 'fa-couch', type: 'seat', fileKey: 'arm2seats', hasArm: 'left' },
+            { id: '2seats_arm_r', name: '2 Lug. Braço Dir.', icon: 'fa-couch', type: 'seat', fileKey: 'arm2seats', hasArm: 'right' },
+
             { id: 'corner', name: 'Canto', icon: 'fa-border-all', type: 'corner', fileKey: 'corner', hasArm: false, fixed: true },
             { id: 'chaise_l', name: 'Chaise Esq.', icon: 'fa-l', type: 'chaise', fileKey: 'chaise', hasArm: 'left' },
             { id: 'chaise_r', name: 'Chaise Dir.', icon: 'fa-l', type: 'chaise', fileKey: 'chaise', hasArm: 'right' },
@@ -911,9 +920,17 @@
         }
         function initSizeSelector() {
             const container = document.getElementById('size-selector-container'); container.innerHTML = '';
-            ['S', 'M', 'L', 'XL'].forEach(size => {
-                const btn = document.createElement('button'); btn.className = `flex-1 py-1.5 text-xs font-bold rounded-md transition ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`;
-                btn.innerText = size; btn.onclick = () => changeSize(size); container.appendChild(btn);
+            
+            // ATUALIZAÇÃO: Gerar botões dinamicamente baseado nos tamanhos do modelo atual
+            // Isto permite que o 'XXL' apareça apenas no Infinity e não nos outros
+            const modelSizes = DB_MODELS[CURRENT_MODEL_ID].sizes;
+            
+            Object.keys(modelSizes).forEach(size => {
+                const btn = document.createElement('button'); 
+                btn.className = `flex-1 py-1.5 text-xs font-bold rounded-md transition ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`;
+                btn.innerText = size; 
+                btn.onclick = () => changeSize(size); 
+                container.appendChild(btn);
             });
             updateSizePreview();
         }
@@ -932,6 +949,15 @@
             const modelData = DB_MODELS[modelId];
             document.getElementById('model-type-badge').innerText = modelData.type;
             
+            // CORREÇÃO CRÍTICA: Validar e atualizar seletor de tamanhos
+            // Se mudarmos do Infinity (XXL) para o Athena (max XL), temos de resetar o tamanho
+            if (!modelData.sizes[CURRENT_SIZE_KEY]) {
+                CURRENT_SIZE_KEY = 'M'; // Reset seguro
+            }
+            
+            // Força o redesenho dos botões S/M/L/XL/XXL
+            initSizeSelector();
+
             // 2. Limpar a cena
             addedModules.forEach(m => scene.remove(m.mesh)); 
             addedModules = [];
@@ -942,6 +968,24 @@
         };
 
         window.changeSize = function(sizeKey) {
+            // NOVA LÓGICA DE VALIDAÇÃO XXL
+            // Impede a seleção visual do botão XXL se o módulo obrigatório não estiver presente
+            if (CURRENT_MODEL_ID === 'infinity' && sizeKey === 'XXL') {
+                const hasValidModule = addedModules.some(m => m.data.id === '2seats_2arms');
+                
+                if (!hasValidModule) {
+                    showFeedback("Tamanho XXL exclusivo para o módulo '2 Lug. 2 Braços'. Adicione-o primeiro.", "error");
+                    // Força o redesenho dos botões para garantir que o XXL não fica visualmente selecionado
+                    initSizeSelector(); 
+                    return; // Interrompe a função aqui, não mudando o tamanho
+                }
+            }
+
+            // NOVA NOTIFICAÇÃO (Mantemos como reforço positivo se passar a validação acima)
+            if (CURRENT_MODEL_ID === 'infinity' && sizeKey === 'XXL') {
+                showFeedback("Tamanho XXL aplicado ao módulo '2 Lug. 2 Braços'.", "success");
+            }
+
             CURRENT_SIZE_KEY = sizeKey; initSizeSelector();
             const currentModules = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax }));
             addedModules.forEach(m => scene.remove(m.mesh)); addedModules = [];
@@ -956,8 +1000,11 @@
             
             const cacheBuster = `?v=${Date.now()}`;
             
-            // Added 'meiple' to load list
-            ['seat', 'arm', 'corner', 'chaise', 'meridien', 'meiple'].forEach(part => {
+            // ATUALIZAÇÃO: Lista expandida com os módulos novos indicados pelo utilizador
+            // Mantemos 'seat', 'corner', 'meridien' para compatibilidade com outros modelos
+            const partsToLoad = ['seat', 'arm', 'corner', 'chaise', 'meridien', 'meiple', '2arm2seats', 'arm2seats'];
+
+            partsToLoad.forEach(part => {
                 const folderName = modelData.folder;
                 
                 const path1 = `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`;
@@ -1007,7 +1054,20 @@
 
         function createModuleMesh(moduleId) {
             const def = DB_MODULES.find(m => m.id === moduleId); const modelData = DB_MODELS[CURRENT_MODEL_ID]; const group = new THREE.Group();
-            let width = def.fixed ? modelData.cornerSize : modelData.sizes[CURRENT_SIZE_KEY];
+            
+            // LÓGICA DE EXCEÇÃO PARA O TAMANHO XXL NO INFINITY
+            // Se o tamanho atual for XXL, mas o módulo não for "2seats_2arms", forçamos o tamanho XL.
+            // Isso cumpre a regra "apenas na opção de 2 lugares com 2 braços".
+            let effectiveSizeKey = CURRENT_SIZE_KEY;
+            if (CURRENT_MODEL_ID === 'infinity' && CURRENT_SIZE_KEY === 'XXL' && def.id !== '2seats_2arms') {
+                effectiveSizeKey = 'XL';
+            }
+
+            let width = def.fixed ? modelData.cornerSize : modelData.sizes[effectiveSizeKey];
+            
+            // Ajuste para módulos duplos (fallback para caixa cinzenta se o modelo 3D falhar)
+            if (def.id.startsWith('2seats')) width *= 2;
+
             let depth = modelData.depth;
             if (def.type === 'chaise') depth = modelData.chaiseDepth;
             if (def.type === 'meridien') depth = modelData.chaiseDepth; // Add depth specifically for meridien
@@ -1020,7 +1080,14 @@
             const asset = modelLibrary[def.fileKey];
             if (asset) {
                 const mesh = asset.clone();
-                if (!def.fixed) { const baseRefSize = 72; const scaleFactor = modelData.sizes[CURRENT_SIZE_KEY] / baseRefSize; mesh.scale.x *= scaleFactor; }
+                // Ajuste de escala para módulos que não são fixos
+                if (!def.fixed) { 
+                    const baseRefSize = 72; 
+                    
+                    // Calcular fator de escala usando o tamanho efetivo (com a regra de exceção aplicada)
+                    const scaleFactor = modelData.sizes[effectiveSizeKey] / baseRefSize; 
+                    mesh.scale.x *= scaleFactor; 
+                }
                 
                 // Logic for flipping/mirroring modules
                 let flip = def.hasArm === 'right'; 
@@ -1057,15 +1124,17 @@
                 mesh.position.sub(center); mesh.position.y += (box.max.y - box.min.y) / 2;
                 
                 const isArmModule = def.id.includes('seat_arm');
+                const isDoubleArmModule = def.id.includes('2seats_arm'); // Novo check para os duplos
                 const isChaise = def.type === 'chaise';
                 const isMeridien = def.type === 'meridien';
                 const isBartini = CURRENT_MODEL_ID === 'bartini';
                 const isFiori = CURRENT_MODEL_ID === 'fiori';
                 const isKindia = CURRENT_MODEL_ID === 'kindia';
-                const isSting = CURRENT_MODEL_ID === 'sting'; // NOVO
+                const isSting = CURRENT_MODEL_ID === 'sting'; 
+                const isInfinity = CURRENT_MODEL_ID === 'infinity'; // Novo
 
-                // Adicionado isSting à condição para não elevar
-                if (!isArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting) {
+                // Adicionado isSting e isInfinity à condição para não elevar
+                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity) {
                     mesh.position.y += 12;
                 }
                 
@@ -1083,6 +1152,15 @@
         }
 
         window.addModule = function(moduleId, silent = false, startRelax = false) {
+            // CORREÇÃO CRÍTICA: Bloquear adição de módulos inválidos para o modelo atual
+            // Isto impede que o 'seat_no_arm' (Centro) seja carregado no Infinity
+            const modelData = DB_MODELS[CURRENT_MODEL_ID];
+            if (modelData.modules && !modelData.modules.includes(moduleId)) {
+                // Se não for silencioso, avisa (útil para debug), mas na migração automática deve apenas ignorar
+                if (!silent) console.warn(`Módulo ${moduleId} ignorado: inválido para ${modelData.name}`);
+                return;
+            }
+
             const mesh = createModuleMesh(moduleId); scene.add(mesh);
             const data = mesh.userData; data.hasRelax = startRelax; data.relaxFactor = startRelax ? 1 : 0;
             addedModules.push({ mesh: mesh, data: data.def, ...data });
@@ -1167,19 +1245,86 @@
             const modelType = DB_MODELS[CURRENT_MODEL_ID].type;
             addedModules.forEach(mod => {
                 const target = mod.hasRelax ? 1 : 0; mod.relaxFactor += (target - mod.relaxFactor) * 0.08;
-                if (mod.relaxFactor < 0.01 && target === 0) return;
+                
+                // Otimização: parar processamento se já estiver na posição final
+                if (Math.abs(target - mod.relaxFactor) < 0.001 && (target === 0 || target === 1)) {
+                     // mod.relaxFactor = target; 
+                }
+
                 if (modelType === 'relax') {
                     const foot = mod.mesh.getObjectByName('footrest_anim') || mod.mesh.getObjectByName('recliner');
                     const back = mod.mesh.getObjectByName('back_anim') || mod.mesh.getObjectByName('backrest');
                     if (foot) { foot.rotation.x = -Math.PI / 2.5 * mod.relaxFactor; foot.position.y = mod.relaxFactor * 30 + 12; foot.position.z = mod.relaxFactor * 40; }
                     if (back) back.rotation.x = -0.2 * mod.relaxFactor;
                 } else if (modelType === 'slide') {
-                    let slider = mod.mesh.getObjectByName('slider_part');
-                    if (!slider) mod.mesh.traverse(n => { if (n.isMesh && n.name.includes('seat') && !slider) slider = n; });
-                    if (slider) slider.position.z = mod.relaxFactor * 40; 
+                    // APLICAÇÃO DA ANIMAÇÃO (Lógica separada da procura)
+                    // Prioridade 1: Mover o Grupo encontrado
+                    if (mod.sliderGroup) {
+                        // Move 40cm no eixo Z (ajuste o 40 se quiser mais/menos deslizamento)
+                        mod.sliderGroup.position.z = mod.sliderGroup.userData.origZ + (mod.relaxFactor * 40);
+                    } 
+                    // Prioridade 2: Mover peças soltas
+                    else if (mod.sliderParts && mod.sliderParts.length > 0) {
+                        mod.sliderParts.forEach(part => {
+                             part.position.z = part.userData.origZ + (mod.relaxFactor * 40);
+                        });
+                    }
                 }
             });
             if (scene) renderer.render(scene, camera);
+        }
+
+        // --- FUNÇÃO DE PROCURA DE PEÇAS (DEBUG REFORÇADO) ---
+        function findSlideParts(mod) {
+            if (mod.sliderGroup || (mod.sliderParts && mod.sliderParts.length > 0)) return true;
+
+            console.log("--- A PROCURAR 'ASSENTO' NO MÓDULO: " + mod.data.name + " ---");
+            
+            // 1. Tentar encontrar qualquer nó (Grupo ou Mesh) que tenha "assento" ou "seat" no nome
+            // Normaliza o nome removendo espaços e acentos para comparação fácil
+            let foundNode = null;
+            
+            mod.mesh.traverse(node => {
+                if (foundNode) return; // Se já encontrou, para
+                
+                // Ignora a raiz do módulo para não mover o sofá todo
+                if (node === mod.mesh) return;
+
+                const cleanName = node.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remove acentos
+                console.log("Check Node:", node.name, "->", cleanName, "| Type:", node.type);
+
+                if (cleanName.includes('assento') || cleanName.includes('seat') || cleanName.includes('slid')) {
+                    foundNode = node;
+                    console.log(">>> ENCONTRADO ALVO:", node.name);
+                }
+            });
+
+            if (foundNode) {
+                mod.sliderGroup = foundNode;
+                if (mod.sliderGroup.userData.origZ === undefined) mod.sliderGroup.userData.origZ = mod.sliderGroup.position.z;
+                return true;
+            }
+
+            // 2. Fallback: Procura meshes soltas se não houver grupo claro
+            const parts = [];
+            mod.mesh.traverse(node => {
+               if (node.isMesh) {
+                   const n = node.name.toLowerCase();
+                   if (n.includes('almofada') || n.includes('cushion')) {
+                       parts.push(node);
+                   }
+               }
+            });
+            
+            if (parts.length > 0) {
+                mod.sliderParts = parts;
+                mod.sliderParts.forEach(p => { if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; });
+                console.log(">>> ENCONTRADAS " + parts.length + " PEÇAS SOLTAS");
+                return true;
+            }
+
+            console.warn(">>> FALHA: Nenhuma peça 'assento' encontrada.");
+            return false;
         }
 
         // --- NEW: Helper function to handle interaction logic ---
@@ -1217,8 +1362,27 @@
                     if (DB_MODELS[CURRENT_MODEL_ID].type === 'fixed') btnRelax.style.display = 'none';
                     else { 
                         btnRelax.style.display = 'flex'; 
-                        document.getElementById('relax-text').innerText = DB_MODELS[CURRENT_MODEL_ID].type === 'slide' ? 'Deslizar' : 'Relax'; 
-                        btnRelax.onclick = () => { mod.hasRelax = !mod.hasRelax; }; 
+                        const isSlide = DB_MODELS[CURRENT_MODEL_ID].type === 'slide';
+                        document.getElementById('relax-text').innerText = isSlide ? 'Deslizar' : 'Relax'; 
+                        
+                        // Atualização: Feedback visual ao clicar com verificação de peças
+                        btnRelax.onclick = () => { 
+                            if (isSlide) {
+                                // Tenta encontrar as peças AGORA e dá feedback se falhar
+                                const found = findSlideParts(mod);
+                                if (!found) {
+                                    showFeedback("ERRO: Peça 'assento' não encontrada no 3D.", "error");
+                                    return;
+                                }
+                            }
+                            
+                            mod.hasRelax = !mod.hasRelax; 
+                            if (isSlide) showFeedback(mod.hasRelax ? "A deslizar..." : "A recolher...", "success");
+                        }; 
+                        
+                        // Muda a cor do botão se estiver ativo
+                        if (mod.hasRelax) btnRelax.classList.add('active');
+                        else btnRelax.classList.remove('active');
                     }
                     
                     btnRemove.onclick = () => { 
@@ -1230,6 +1394,8 @@
                     return true; // Found and handled
                 }
             }
+            // Pequeno delay para evitar flickering se o rato passar rápido
+            // Mas mantemos simples: se não intersecta nada, esconde
             hoverMenu.classList.remove('visible');
             return false; // Nothing found
         }
