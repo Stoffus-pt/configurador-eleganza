@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V4.25 (Absolute URLs)</title>
+    <title>Configurador 3D Eleganza - V4.28 (Recenter Camera)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,6 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -180,6 +181,11 @@
              <!-- Botão Limpar Destacado -->
              <button id="reset-btn" class="bg-white border-2 border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center shadow-sm group"><i class="fas fa-trash-alt mr-2 group-hover:rotate-12 transition-transform"></i> <span>Limpar Tudo</span></button>
         </div>
+    </div>
+
+    <!-- BOTÃO RECENTRAR (NOVO) -->
+    <div id="btn-recenter" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg cursor-pointer hidden z-50 flex items-center gap-2 hover:bg-gray-700 transition-all border border-gray-600">
+        <i class="fas fa-compress-arrows-alt"></i> <span class="text-xs font-bold">Recentrar Câmara</span>
     </div>
 
     <!-- CONTROLOS DA SALA -->
@@ -487,7 +493,55 @@
 
             initModelSelector(); initSizeSelector(); initFabricSystem(); initUIListeners();
             loadModelAssets(CURRENT_MODEL_ID);
+            
+            // NOVA LIGAGÃO PARA O BOTÃO RECENTRAR
+            document.getElementById('btn-recenter').addEventListener('click', resetCamera);
+            
             animate();
+        }
+
+        // --- NEW: Reset Camera Function with Smooth Zoom Transition ---
+        function resetCamera() {
+            const duration = 1500; // 1.5 segundos para ser suave e cinematográfico
+            const startPos = camera.position.clone();
+            const startTarget = controls.target.clone();
+            
+            // Posição Final Desejada (Frente e Cima)
+            const endPos = new THREE.Vector3(0, 450, 750);
+            const endTarget = new THREE.Vector3(0, 0, 0);
+            
+            const startTime = performance.now();
+
+            // Desativar controlos temporariamente para evitar conflitos durante o voo
+            controls.enabled = false;
+
+            function animateScroll(currentTime) {
+                const elapsed = currentTime - startTime;
+                let progress = Math.min(elapsed / duration, 1);
+                
+                // Easing Function: Ease Out Cubic (rápido no início, suave no fim)
+                // Fórmula: 1 - (1 - x)^3
+                const ease = 1 - Math.pow(1 - progress, 3);
+
+                // Interpolar posição e alvo
+                camera.position.lerpVectors(startPos, endPos, ease);
+                controls.target.lerpVectors(startTarget, endTarget, ease);
+                
+                controls.update();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateScroll);
+                } else {
+                    // Animação concluída
+                    controls.enabled = true; // Devolve o controlo ao utilizador
+                    showFeedback("Câmara recentrada", "success");
+                    
+                    // Esconder botão após recentrar
+                    document.getElementById('btn-recenter').classList.add('hidden');
+                }
+            }
+            
+            requestAnimationFrame(animateScroll);
         }
 
         // --- NEW: Touch Event Handlers ---
@@ -996,7 +1050,16 @@
         // UPDATED: Strict Model Loader
         function loadModelAssets(modelId) {
             const modelData = DB_MODELS[modelId]; modelLibrary = {}; 
-            const loader = new THREE.GLTFLoader(manager); loader.setCrossOrigin('anonymous');
+            const loader = new THREE.GLTFLoader(manager); 
+            
+            // CONFIGURAÇÃO DRACO (ADICIONADA)
+            const dracoLoader = new THREE.DRACOLoader();
+            // Aponta para a biblioteca de descodificadores na cloud (WASM/JS)
+            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+            dracoLoader.setDecoderConfig({ type: 'js' }); // Fallback seguro
+            loader.setDRACOLoader(dracoLoader);
+            
+            loader.setCrossOrigin('anonymous');
             
             const cacheBuster = `?v=${Date.now()}`;
             
@@ -1006,28 +1069,51 @@
 
             partsToLoad.forEach(part => {
                 const folderName = modelData.folder;
-                
-                const path1 = `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`;
-                const folderCap = folderName.charAt(0).toUpperCase() + folderName.slice(1).toLowerCase();
-                const path2 = `${GITHUB_REPO_URL}assets/models/${folderCap}/${part}.glb${cacheBuster}`;
-                const pathLower = `${GITHUB_REPO_URL}assets/models/${folderName.toLowerCase()}/${part}.glb${cacheBuster}`; // New path
                 const partCap = part.charAt(0).toUpperCase() + part.slice(1);
-                const path3 = `${GITHUB_REPO_URL}assets/models/${folderCap}/${partCap}.glb${cacheBuster}`;
-                const path4 = `${GITHUB_REPO_URL}assets/models/bartini/${part}.glb${cacheBuster}`;
-                const allowRoot = modelId === 'athena';
+                const folderCap = folderName.charAt(0).toUpperCase() + folderName.slice(1).toLowerCase();
+                const folderLower = folderName.toLowerCase();
+                
+                // COMBINAÇÕES DE CAMINHOS (Tentativa exaustiva para encontrar o ficheiro)
+                const paths = [
+                    // 1. Pasta Original / Ficheiro Original (Ex: Infinity/arm.glb)
+                    `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`,
+                    // 2. Pasta Minúscula / Ficheiro Original (Ex: infinity/arm.glb)
+                    `${GITHUB_REPO_URL}assets/models/${folderLower}/${part}.glb${cacheBuster}`,
+                    // 3. Pasta Original / Ficheiro Capitalizado (Ex: Infinity/Arm.glb)
+                    `${GITHUB_REPO_URL}assets/models/${folderName}/${partCap}.glb${cacheBuster}`,
+                    // 4. Pasta Minúscula / Ficheiro Capitalizado (Ex: infinity/Arm.glb) - ESTE FALTAVA
+                    `${GITHUB_REPO_URL}assets/models/${folderLower}/${partCap}.glb${cacheBuster}`,
+                    // 5. Pasta Capitalizada / Ficheiro Original (Ex: Infinity/arm.glb - redundante mas seguro)
+                    `${GITHUB_REPO_URL}assets/models/${folderCap}/${part}.glb${cacheBuster}`,
+                    // 6. Fallback Bartini (apenas se falhar tudo no Infinity)
+                    `${GITHUB_REPO_URL}assets/models/bartini/${part}.glb${cacheBuster}`
+                ];
 
-                // Chain: path1 -> pathLower -> path2 -> path3 -> path4
-                loader.load(path1, (gltf) => processLoadedModel(gltf.scene, part), undefined, (err) => {
-                    loader.load(pathLower, (gltf) => processLoadedModel(gltf.scene, part), undefined, (errLower) => {
-                        loader.load(path2, (gltf) => processLoadedModel(gltf.scene, part), undefined, (err2) => {
-                             loader.load(path3, (gltf) => processLoadedModel(gltf.scene, part), undefined, (err3) => {
-                                 loader.load(path4, (gltf) => processLoadedModel(gltf.scene, part), undefined, (err4) => {
-                                    if (allowRoot) loader.load(`${GITHUB_REPO_URL}assets/models/${part}.glb`, (gltf3) => processLoadedModel(gltf3.scene, part), undefined, (err5) => {});
-                                 });
-                             });
-                        });
-                    });
-                });
+                // Função recursiva para tentar carregar a lista de caminhos
+                const tryLoadPath = (index) => {
+                    if (index >= paths.length) {
+                        // Se esgotou todas as tentativas, tenta a raiz (para o Athena) ou desiste
+                        if (modelId === 'athena') {
+                             loader.load(`${GITHUB_REPO_URL}assets/models/${part}.glb`, (gltf) => processLoadedModel(gltf.scene, part), undefined, () => {});
+                        }
+                        return;
+                    }
+
+                    loader.load(paths[index], 
+                        (gltf) => {
+                            // Sucesso! Processa o modelo
+                            processLoadedModel(gltf.scene, part);
+                        }, 
+                        undefined, 
+                        (err) => {
+                            // Falha! Tenta o próximo caminho da lista
+                            tryLoadPath(index + 1);
+                        }
+                    );
+                };
+
+                // Inicia a cadeia de tentativas
+                tryLoadPath(0);
             });
         }
         
@@ -1242,6 +1328,23 @@
 
         function animate() {
             requestAnimationFrame(animate); controls.update();
+            
+            // --- NEW: Check Camera Bounds Logic ---
+            const btnRecenter = document.getElementById('btn-recenter');
+            if (btnRecenter) {
+                // Distância do ponto de foco ao centro (0,0,0)
+                const distTarget = controls.target.length(); 
+                // Distância da câmara ao ponto de foco (Zoom)
+                const distCam = camera.position.distanceTo(controls.target); 
+                
+                // Mostrar se estiver muito longe do centro OU muito zoom out
+                if (distTarget > 300 || distCam > 2000) {
+                    if(btnRecenter.classList.contains('hidden')) btnRecenter.classList.remove('hidden');
+                } else {
+                    if(!btnRecenter.classList.contains('hidden')) btnRecenter.classList.add('hidden');
+                }
+            }
+
             const modelType = DB_MODELS[CURRENT_MODEL_ID].type;
             addedModules.forEach(mod => {
                 const target = mod.hasRelax ? 1 : 0; mod.relaxFactor += (target - mod.relaxFactor) * 0.08;
@@ -1257,16 +1360,28 @@
                     if (foot) { foot.rotation.x = -Math.PI / 2.5 * mod.relaxFactor; foot.position.y = mod.relaxFactor * 30 + 12; foot.position.z = mod.relaxFactor * 40; }
                     if (back) back.rotation.x = -0.2 * mod.relaxFactor;
                 } else if (modelType === 'slide') {
-                    // APLICAÇÃO DA ANIMAÇÃO (Lógica separada da procura)
+                    // APLICAÇÃO DA ANIMAÇÃO (CORREÇÃO DE ESCALA MUNDIAL)
+                    
+                    // 1. Detetar a escala interna do modelo (geralmente 100 se veio de metros)
+                    // O 'mesh' principal está normalmente no children[0] do grupo do módulo
+                    let internalScale = 1;
+                    if (mod.mesh.children.length > 0) {
+                        internalScale = mod.mesh.children[0].scale.z;
+                    }
+                    
+                    // 2. Calcular a distância local necessária para obter 50cm visuais
+                    // Se a escala for 100, movemos 0.5 (0.5 * 100 = 50)
+                    // Se a escala for 1, movemos 50
+                    const slideDistance = 50 / internalScale;
+
                     // Prioridade 1: Mover o Grupo encontrado
                     if (mod.sliderGroup) {
-                        // Move 40cm no eixo Z (ajuste o 40 se quiser mais/menos deslizamento)
-                        mod.sliderGroup.position.z = mod.sliderGroup.userData.origZ + (mod.relaxFactor * 40);
+                        mod.sliderGroup.position.z = mod.sliderGroup.userData.origZ + (mod.relaxFactor * slideDistance);
                     } 
                     // Prioridade 2: Mover peças soltas
                     else if (mod.sliderParts && mod.sliderParts.length > 0) {
                         mod.sliderParts.forEach(part => {
-                             part.position.z = part.userData.origZ + (mod.relaxFactor * 40);
+                             part.position.z = part.userData.origZ + (mod.relaxFactor * slideDistance);
                         });
                     }
                 }
