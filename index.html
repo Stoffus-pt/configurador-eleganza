@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V4.28 (Recenter Camera)</title>
+    <title>Configurador 3D Eleganza - V4.29 (Mobile Optimized)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -377,6 +377,16 @@
         let pendingConfiguration = null; // Variável para persistência de configuração
         let currentRapport = 35; // Global variable for rapport
         let loadedCollectionsQueue = []; // LRU Cache key tracker
+        
+        // VARIAVEIS ANIMAÇÃO LOOP
+        let loopInterval = null;
+        let isLoopRunning = false;
+        let loopStateOpen = false;
+
+        // VARIAVEIS DE OTIMIZAÇÃO (INFINITE SCROLL)
+        let activeCategoryList = []; // Lista completa filtrada
+        let renderedCount = 0; // Quantos já desenhámos
+        const BATCH_SIZE = 24; // Quantos carregamos de cada vez (poupa memória)
 
         function detectEnvironment() {
             const h = window.location.hostname;
@@ -400,6 +410,12 @@
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
             renderer.setSize(window.innerWidth, window.innerHeight); 
             
+            // OTIMIZAÇÃO MOBILE: Reduzir resolução de sombras e pixel ratio se for mobile
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+            
+            // Limita a densidade de pixeis para poupar GPU (max 2x em desktop, 1.5x em mobile)
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
+
             // --- CONFIGURAÇÃO DE SOMBRAS AVANÇADA ---
             renderer.shadowMap.enabled = true; 
             renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Sombras suaves mas realistas
@@ -424,9 +440,10 @@
             dir.castShadow = true; 
             
             // OTIMIZAÇÃO DE SOMBRAS PARA REALISMO (Ambient Occlusion Fake)
-            // Aumentamos a resolução para 4K para contornos perfeitos
-            dir.shadow.mapSize.width = 4096; 
-            dir.shadow.mapSize.height = 4096; 
+            // Mobile: 2K (rápido) | Desktop: 4K (bonito)
+            const shadowRes = isMobile ? 2048 : 4096;
+            dir.shadow.mapSize.width = shadowRes; 
+            dir.shadow.mapSize.height = shadowRes; 
             
             // "Apertamos" a câmara da sombra para focar apenas no sofá (±200cm), aumentando a densidade
             const d = 250;
@@ -630,16 +647,36 @@
         }
 
         // --- OPTIMIZED: Render with Compressed Textures ---
+        // ATUALIZAÇÃO: Implementação de Infinite Scroll para evitar crashes em mobile
         function renderFabricLibrary(category) {
             const container = document.getElementById('fabric-library-container'); 
             if(!container) return; 
-            container.innerHTML = '';
-            const filtered = category === 'all' ? FABRIC_LIBRARY : FABRIC_LIBRARY.filter(f => f.type === category);
             
-            // Caminho URL Absoluto para Thumbnails
+            // 1. Limpar e Resetar
+            container.innerHTML = '';
+            container.scrollTop = 0;
+            renderedCount = 0;
+
+            // 2. Definir a lista ativa baseada na categoria
+            activeCategoryList = category === 'all' ? FABRIC_LIBRARY : FABRIC_LIBRARY.filter(f => f.type === category);
+            
+            // 3. Carregar o primeiro lote
+            loadMoreFabrics();
+        }
+
+        // Função que carrega o próximo lote de tecidos (chamada no inicio e no scroll)
+        function loadMoreFabrics() {
+            const container = document.getElementById('fabric-library-container');
+            if(!container) return;
+
+            // Se já carregámos tudo, parar
+            if (renderedCount >= activeCategoryList.length) return;
+
+            // Cortar a fatia seguinte da lista
+            const batch = activeCategoryList.slice(renderedCount, renderedCount + BATCH_SIZE);
             const thumbBase = 'https://stoffus-pt.github.io/configurador-eleganza/assets/compressedtextures/';
 
-            filtered.forEach(fab => { 
+            batch.forEach(fab => { 
                 const el = document.createElement('div'); 
                 el.className = `fabric-item ${fab.id === activeFabricId ? 'active' : ''}`;
                 
@@ -655,28 +692,21 @@
                 const mapType = fab.map; 
                 const coords = TEXTURE_LAYOUTS[mapType];
                 
-                let targetSuffix = '1'; // Por defeito imagem 1
+                let targetSuffix = '1'; 
                 if (coords && coords.src === 'back') {
-                    targetSuffix = '2'; // Se for back, precisamos da imagem 2 (cores)
+                    targetSuffix = '2'; 
                 }
 
-                // Lista de candidatos para a imagem alvo (1 ou 2)
                 const candidates = [
-                    `${thumbBase}${colName} ${targetSuffix}.jpg`,           // Ex: Karma 2.jpg
-                    `${thumbBase}${colName.toLowerCase()} ${targetSuffix}.jpg`, // Ex: karma 2.jpg
-                    `${thumbBase}${colName}_${targetSuffix}.jpg`,           // Ex: Karma_2.jpg
-                    `${thumbBase}${colName.toLowerCase()}_${targetSuffix}.jpg` // Ex: karma_2.jpg
+                    `${thumbBase}${colName} ${targetSuffix}.jpg`,           
+                    `${thumbBase}${colName.toLowerCase()} ${targetSuffix}.jpg`, 
+                    `${thumbBase}${colName}_${targetSuffix}.jpg`,           
+                    `${thumbBase}${colName.toLowerCase()}_${targetSuffix}.jpg` 
                 ];
 
                 const tryLoad = (index) => {
                     if (index >= candidates.length) {
-                        // Se falhou carregar a imagem 2, tenta a imagem 1 como ultimo recurso (melhor que nada)
                         if (targetSuffix === '2') {
-                            // console.warn(`Falha imagem 2 para ${colName}, a tentar imagem 1...`);
-                            targetSuffix = '1';
-                            // Reinicia a busca mas para a imagem 1
-                            // Nota: Isto é uma simplificação para não criar loop infinito, 
-                            // na prática tenta carregar a 1 se a 2 falhar.
                              const fallbackUrl = `${thumbBase}${colName} 1.jpg`;
                              const imgFallback = new Image();
                              imgFallback.onload = () => {
@@ -690,7 +720,6 @@
                     
                     const img = new Image();
                     img.onload = () => {
-                        // SUCESSO: Imagem carregada
                         if (coords) {
                             applyThumbnailCrop(el, img.src, coords);
                         } else {
@@ -698,16 +727,10 @@
                             el.style.backgroundSize = 'cover';
                         }
                     };
-                    
-                    img.onerror = () => {
-                        // FALHOU: Tenta o próximo candidato
-                        tryLoad(index + 1); 
-                    };
-                    
+                    img.onerror = () => { tryLoad(index + 1); };
                     img.src = candidates[index];
                 };
                 
-                // Iniciar carregamento
                 tryLoad(0);
 
                 el.innerHTML = `<div class="fabric-name">${fab.name}</div>`; 
@@ -715,6 +738,9 @@
                 
                 container.appendChild(el); 
             });
+
+            // Atualizar o contador
+            renderedCount += batch.length;
         }
         
         function applyThumbnailCrop(element, imageSrc, coords) {
@@ -885,7 +911,20 @@
                  };
                  catContainer.appendChild(btn);
              });
+             
+             // Setup inicial
              renderFabricLibrary('all');
+
+             // EVENT LISTENER PARA INFINITE SCROLL
+             const scrollContainer = document.getElementById('fabric-library-container');
+             if (scrollContainer) {
+                 scrollContainer.addEventListener('scroll', () => {
+                     // Verifica se estamos perto do fundo (100px de margem)
+                     if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 100) {
+                         loadMoreFabrics();
+                     }
+                 });
+             }
         }
         
         function applyTextureRepeat(texture, rapportCm) {
