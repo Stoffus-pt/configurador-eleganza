@@ -1360,81 +1360,98 @@
                     if (foot) { foot.rotation.x = -Math.PI / 2.5 * mod.relaxFactor; foot.position.y = mod.relaxFactor * 30 + 12; foot.position.z = mod.relaxFactor * 40; }
                     if (back) back.rotation.x = -0.2 * mod.relaxFactor;
                 } else if (modelType === 'slide') {
-                    // APLICAÇÃO DA ANIMAÇÃO (CORREÇÃO DE ESCALA MUNDIAL)
+                    // APLICAÇÃO DA ANIMAÇÃO (MULTI-PEÇAS + CORREÇÃO DE ESCALA)
                     
-                    // 1. Detetar a escala interna do modelo (geralmente 100 se veio de metros)
-                    // O 'mesh' principal está normalmente no children[0] do grupo do módulo
                     let internalScale = 1;
                     if (mod.mesh.children.length > 0) {
                         internalScale = mod.mesh.children[0].scale.z;
                     }
                     
-                    // 2. Calcular a distância local necessária para obter 50cm visuais
-                    // Se a escala for 100, movemos 0.5 (0.5 * 100 = 50)
-                    // Se a escala for 1, movemos 50
                     const slideDistance = 50 / internalScale;
 
-                    // Prioridade 1: Mover o Grupo encontrado
-                    if (mod.sliderGroup) {
-                        mod.sliderGroup.position.z = mod.sliderGroup.userData.origZ + (mod.relaxFactor * slideDistance);
-                    } 
-                    // Prioridade 2: Mover peças soltas
-                    else if (mod.sliderParts && mod.sliderParts.length > 0) {
+                    // Itera sobre TODAS as peças encontradas na lista sliderParts
+                    if (mod.sliderParts && mod.sliderParts.length > 0) {
                         mod.sliderParts.forEach(part => {
+                             // Garante que temos a posição original
+                             if (part.userData.origZ === undefined) part.userData.origZ = part.position.z;
+                             
+                             // Aplica o movimento
                              part.position.z = part.userData.origZ + (mod.relaxFactor * slideDistance);
                         });
+                    }
+                    // Fallback legado para sliderGroup único (caso exista em cache antiga)
+                    else if (mod.sliderGroup) {
+                         mod.sliderGroup.position.z = mod.sliderGroup.userData.origZ + (mod.relaxFactor * slideDistance);
                     }
                 }
             });
             if (scene) renderer.render(scene, camera);
         }
 
-        // --- FUNÇÃO DE PROCURA DE PEÇAS (DEBUG REFORÇADO) ---
+        // --- FUNÇÃO DE PROCURA DE PEÇAS (MULTI-ASSENTO) ---
         function findSlideParts(mod) {
-            if (mod.sliderGroup || (mod.sliderParts && mod.sliderParts.length > 0)) return true;
+            // Se já temos a lista populada, não fazemos nada
+            if (mod.sliderParts && mod.sliderParts.length > 0) return true;
 
-            console.log("--- A PROCURAR 'ASSENTO' NO MÓDULO: " + mod.data.name + " ---");
+            console.log("--- A PROCURAR TODOS OS 'ASSENTOS' NO MÓDULO: " + mod.data.name + " ---");
             
-            // 1. Tentar encontrar qualquer nó (Grupo ou Mesh) que tenha "assento" ou "seat" no nome
-            // Normaliza o nome removendo espaços e acentos para comparação fácil
-            let foundNode = null;
+            const foundNodes = [];
             
             mod.mesh.traverse(node => {
-                if (foundNode) return; // Se já encontrou, para
-                
                 // Ignora a raiz do módulo para não mover o sofá todo
                 if (node === mod.mesh) return;
 
-                const cleanName = node.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remove acentos
-                console.log("Check Node:", node.name, "->", cleanName, "| Type:", node.type);
+                const cleanName = node.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
 
+                // Critério de busca: nome contém "assento", "seat" ou "slid"
                 if (cleanName.includes('assento') || cleanName.includes('seat') || cleanName.includes('slid')) {
-                    foundNode = node;
-                    console.log(">>> ENCONTRADO ALVO:", node.name);
+                    
+                    // PROTEÇÃO DE HIERARQUIA: 
+                    // Verifica se algum PAI deste nó já foi adicionado à lista.
+                    // Se encontrarmos o GRUPO "Assento", não queremos adicionar também a MESH "Espuma" que está lá dentro,
+                    // senão a espuma move-se 2 vezes (uma vez pelo pai, outra vez por ela própria).
+                    let parentAlreadyFound = false;
+                    let curr = node.parent;
+                    while(curr && curr !== mod.mesh) {
+                        if (foundNodes.includes(curr)) {
+                            parentAlreadyFound = true;
+                            break;
+                        }
+                        curr = curr.parent;
+                    }
+
+                    if (!parentAlreadyFound) {
+                        foundNodes.push(node);
+                        console.log(">>> ALVO IDENTIFICADO:", node.name);
+                    }
                 }
             });
 
-            if (foundNode) {
-                mod.sliderGroup = foundNode;
-                if (mod.sliderGroup.userData.origZ === undefined) mod.sliderGroup.userData.origZ = mod.sliderGroup.position.z;
+            // Se encontrou peças (uma ou várias)
+            if (foundNodes.length > 0) {
+                mod.sliderParts = foundNodes;
+                // Inicializa a posição original para todas
+                mod.sliderParts.forEach(p => { 
+                    if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; 
+                });
                 return true;
             }
 
-            // 2. Fallback: Procura meshes soltas se não houver grupo claro
-            const parts = [];
+            // Fallback: Procura meshes soltas (almofada/cushion) se não encontrou grupos "assento"
+            const fallbackParts = [];
             mod.mesh.traverse(node => {
                if (node.isMesh) {
                    const n = node.name.toLowerCase();
                    if (n.includes('almofada') || n.includes('cushion')) {
-                       parts.push(node);
+                       fallbackParts.push(node);
                    }
                }
             });
             
-            if (parts.length > 0) {
-                mod.sliderParts = parts;
+            if (fallbackParts.length > 0) {
+                mod.sliderParts = fallbackParts;
                 mod.sliderParts.forEach(p => { if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; });
-                console.log(">>> ENCONTRADAS " + parts.length + " PEÇAS SOLTAS");
+                console.log(">>> USANDO FALLBACK ALMOFADAS: " + fallbackParts.length + " itens");
                 return true;
             }
 
