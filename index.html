@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V4.29 (Mobile Optimized)</title>
+    <title>Configurador 3D Eleganza - V4.31 (Order Validation)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- PDF Generation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -66,16 +71,17 @@
         /* --- ESTILOS DE TECIDOS V4.3 --- */
         .fabric-grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
-            gap: 12px; 
-            padding: 8px; 
-            padding-bottom: 20px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px 12px; 
+            padding: 12px; 
+            padding-bottom: 40px; 
+            align-content: start; 
         }
         
         .fabric-item { 
             aspect-ratio: 1; border-radius: 12px; cursor: pointer; position: relative; overflow: hidden; 
             border: 2px solid #e5e7eb; background-color: #d1d5db; 
-            background-repeat: no-repeat; /* Importante para thumbnails recortados */
+            background-repeat: no-repeat; 
             transition: all 0.2s ease; 
         }
         .fabric-item:hover { transform: scale(1.05); border-color: #9ca3af; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -116,7 +122,7 @@
         .btn-relax.active { background: #e84c26; color: white; border-color: #e84c26; }
 
         .custom-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 60; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .modal-content { background: white; padding: 30px; border-radius: 20px; text-align: center; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; text-align: center; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
         
         #room-controls { display: none; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 20; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); gap: 10px; align-items: center; }
         
@@ -139,6 +145,12 @@
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%; height: 4px; cursor: pointer; background: #e5e7eb; border-radius: 2px;
         }
+        
+        /* Tabela de Encomenda */
+        .order-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; text-align: left; }
+        .order-table th { background: #f9fafb; padding: 10px; border-bottom: 2px solid #e5e7eb; color: #6b7280; font-weight: 700; text-transform: uppercase; }
+        .order-table td { padding: 10px; border-bottom: 1px solid #f3f4f6; color: #1f2937; }
+        .order-table tr:last-child td { border-bottom: none; }
     </style>
 </head>
 <body>
@@ -232,7 +244,7 @@
         </div>
     </div>
 
-    <!-- UI SIDEBAR -->
+    <!-- UI SIDEBAR (ATUALIZADA) -->
     <div class="ui-panel absolute top-16 left-0 bottom-0 w-64 border-r border-gray-200 p-4 z-10 flex flex-col gap-4 overflow-y-auto">
         <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
             <div class="flex justify-between items-end mb-2">
@@ -245,7 +257,15 @@
             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Módulos Disponíveis</label>
             <div class="grid grid-cols-2 gap-2" id="module-list"></div>
         </div>
-        <div id="total-width-display" class="mt-auto bg-gray-800 text-white p-3 rounded-lg text-center font-bold text-sm">0 cm</div>
+        
+        <!-- ÁREA INFERIOR: Largura Total + Botão Encomendar -->
+        <div class="mt-auto flex flex-col gap-2">
+            <div id="total-width-display" class="bg-gray-800 text-white p-3 rounded-lg text-center font-bold text-sm">0 cm</div>
+            
+            <button onclick="openOrderSummary()" class="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-lg font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 group">
+                <i class="fas fa-file-pdf group-hover:scale-110 transition-transform"></i> Encomendar
+            </button>
+        </div>
     </div>
 
     <!-- HOVER MENU -->
@@ -254,35 +274,57 @@
         <button id="btn-remove" class="hover-btn btn-remove"><i class="fas fa-trash-alt"></i> <span>Remover</span></button>
     </div>
 
-    <!-- AI MODAL -->
-    <div id="ai-modal" class="custom-modal">
-        <div class="modal-content text-left">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg"><i class="fas fa-magic text-purple-600 mr-2"></i> Assistente IA</h3>
-                <button onclick="uiSet('ai-modal','display','none')" class="text-gray-400"><i class="fas fa-times"></i></button>
+    <!-- ORDER SUMMARY MODAL (NOVO) -->
+    <div id="order-modal" class="custom-modal">
+        <div class="modal-content text-left relative">
+            <button onclick="uiSet('order-modal','display','none')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            
+            <div class="flex items-center mb-4 border-b pb-4">
+                <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center mr-3">
+                    <i class="fas fa-clipboard-check text-emerald-600"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-xl text-gray-800">Resumo de Encomenda</h3>
+                    <p class="text-xs text-gray-500">Confirme os detalhes antes de enviar.</p>
+                </div>
             </div>
-            <div id="ai-room-analysis" class="hidden mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
-                <h4 class="font-bold text-xs text-indigo-800 mb-2"><i class="fas fa-eye mr-1"></i> Análise do Decorador Virtual</h4>
-                <p id="room-analysis-text" class="text-xs text-gray-700 italic">A analisar a sua sala...</p>
+
+            <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+                <div class="grid grid-cols-2 gap-4 text-sm mb-2">
+                    <div><span class="text-gray-500 font-bold">Modelo:</span> <span id="summary-model" class="font-semibold text-gray-800">--</span></div>
+                    <div><span class="text-gray-500 font-bold">Tecido:</span> <span id="summary-fabric" class="font-semibold text-gray-800">--</span></div>
+                    <div><span class="text-gray-500 font-bold">Largura:</span> <span id="summary-width" class="font-semibold text-gray-800">--</span></div>
+                </div>
             </div>
-            <div class="mb-4">
-                <label class="text-xs font-bold text-gray-500">Text-to-Sofa</label>
-                <input type="text" id="ai-prompt" placeholder="Ex: Sofá grande em L com tecido bege..." class="w-full border p-2 rounded mt-1 text-sm">
-                <button onclick="magicBuild()" class="w-full bg-purple-600 text-white py-2 rounded font-bold text-sm mt-2 flex items-center justify-center">
-                    <i class="fas fa-magic mr-2"></i> Gerar Configuração <i class="fas fa-circle-notch ai-loader ml-2 hidden"></i>
+
+            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Lista de Módulos</h4>
+            <div class="overflow-x-auto">
+                <table class="order-table">
+                    <thead>
+                        <tr>
+                            <th>Módulo</th>
+                            <th>Tamanho</th>
+                            <th>Mecanismo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="order-items-body">
+                        <!-- Items injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-6 flex gap-3">
+                <button onclick="uiSet('order-modal','display','none')" class="flex-1 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-bold text-sm hover:bg-gray-50">Cancelar</button>
+                <button onclick="confirmAndGeneratePDF()" class="flex-1 bg-emerald-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-emerald-700 shadow-md flex items-center justify-center gap-2">
+                    <i class="fas fa-check-circle"></i> Confirmar & Enviar
                 </button>
-            </div>
-             <div class="border-t pt-4">
-                <label class="text-xs font-bold text-gray-500">Copywriter</label>
-                <div id="ai-description-output" class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 italic min-h-[60px] mt-1 mb-2">Descrição...</div>
-                <button id="ai-describe-btn" onclick="generateDescription()" class="w-full bg-gray-800 text-white py-2 rounded font-bold text-sm flex items-center justify-center">
-                    <i class="fas fa-pen-fancy mr-2"></i> Gerar Descrição <i class="fas fa-circle-notch ai-loader ml-2 hidden"></i>
-                </button>
-            </div>
-            <div id="ai-key-warning" class="mt-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-[10px] text-yellow-800 hidden">
-                <i class="fas fa-key mr-1"></i> <b>Nota:</b> Necessária API Key do Google Gemini no código para funcionar.
             </div>
         </div>
+    </div>
+
+    <!-- AI MODAL (Mantido mas simplificado no código) -->
+    <div id="ai-modal" class="custom-modal">
+        <div class="modal-content text-left"><button onclick="uiSet('ai-modal','display','none')" class="absolute top-4 right-4"><i class="fas fa-times"></i></button><h3 class="font-bold text-lg mb-4">Assistente</h3><p class="text-sm text-gray-600">Funcionalidade de IA disponível apenas na versão completa.</p></div>
     </div>
     
     <div id="ar-modal" class="custom-modal" style="display:none;">
@@ -333,7 +375,6 @@
             'dayma': { name: 'Dayma', type: 'relax', folder: 'dayma', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'enzo': { name: 'Enzo', type: 'relax', folder: 'enzo', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'fiori': { name: 'Fiori', type: 'relax', folder: 'fiori', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
-            // ATUALIZAÇÃO: Adicionado tamanho XXL (110cm) exclusivamente no Infinity
             'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, 
                 modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] 
             },
@@ -345,12 +386,9 @@
             { id: 'seat_no_arm', name: 'Centro', icon: 'fa-couch', type: 'seat', fileKey: 'seat', hasArm: false },
             { id: 'seat_arm_l', name: 'Braço Esq.', icon: 'fa-cube', type: 'seat', fileKey: 'arm', hasArm: 'left' },
             { id: 'seat_arm_r', name: 'Braço Dir.', icon: 'fa-cube', type: 'seat', fileKey: 'arm', hasArm: 'right' },
-            
-            // NOVOS MÓDULOS (Duplos para Infinity)
             { id: '2seats_2arms', name: '2 Lug. 2 Braços', icon: 'fa-couch', type: 'seat', fileKey: '2arm2seats', hasArm: 'both' },
             { id: '2seats_arm_l', name: '2 Lug. Braço Esq.', icon: 'fa-couch', type: 'seat', fileKey: 'arm2seats', hasArm: 'left' },
             { id: '2seats_arm_r', name: '2 Lug. Braço Dir.', icon: 'fa-couch', type: 'seat', fileKey: 'arm2seats', hasArm: 'right' },
-
             { id: 'corner', name: 'Canto', icon: 'fa-border-all', type: 'corner', fileKey: 'corner', hasArm: false, fixed: true },
             { id: 'chaise_l', name: 'Chaise Esq.', icon: 'fa-l', type: 'chaise', fileKey: 'chaise', hasArm: 'left' },
             { id: 'chaise_r', name: 'Chaise Dir.', icon: 'fa-l', type: 'chaise', fileKey: 'chaise', hasArm: 'right' },
@@ -377,16 +415,9 @@
         let pendingConfiguration = null; // Variável para persistência de configuração
         let currentRapport = 35; // Global variable for rapport
         let loadedCollectionsQueue = []; // LRU Cache key tracker
-        
-        // VARIAVEIS ANIMAÇÃO LOOP
-        let loopInterval = null;
-        let isLoopRunning = false;
-        let loopStateOpen = false;
-
-        // VARIAVEIS DE OTIMIZAÇÃO (INFINITE SCROLL)
-        let activeCategoryList = []; // Lista completa filtrada
-        let renderedCount = 0; // Quantos já desenhámos
-        const BATCH_SIZE = 24; // Quantos carregamos de cada vez (poupa memória)
+        let activeCategoryList = []; 
+        let renderedCount = 0; 
+        const BATCH_SIZE = 30; 
 
         function detectEnvironment() {
             const h = window.location.hostname;
@@ -399,134 +430,56 @@
         function init() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene(); window.scene = scene;
-            
-            // Fundo Branco
             const bgColor = 0xffffff; 
             scene.background = new THREE.Color(bgColor); 
             scene.fog = new THREE.Fog(bgColor, 800, 2500);
-            
             camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 1, 5000); camera.position.set(0, 450, 750);
-            
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
             renderer.setSize(window.innerWidth, window.innerHeight); 
-            
-            // OTIMIZAÇÃO MOBILE: Reduzir resolução de sombras e pixel ratio se for mobile
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
-            
-            // Limita a densidade de pixeis para poupar GPU (max 2x em desktop, 1.5x em mobile)
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
-
-            // --- CONFIGURAÇÃO DE SOMBRAS AVANÇADA ---
             renderer.shadowMap.enabled = true; 
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Sombras suaves mas realistas
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
             renderer.outputEncoding = THREE.sRGBEncoding;
-
-            // Mantemos o padrão vibrante
             renderer.toneMapping = THREE.NoToneMapping; 
-
             container.appendChild(renderer.domElement);
-
-            // --- ILUMINAÇÃO DE ESTÚDIO ---
-            
-            // 1. HemisphereLight: Luz base suave
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.65); 
             hemiLight.position.set(0, 200, 0);
             scene.add(hemiLight);
-            
-            // 2. DirectionalLight: SOL (Principal fonte de sombras)
-            const dir = new THREE.DirectionalLight(0xffffff, 0.6); // Intensidade equilibrada
-            dir.position.set(100, 250, 100); // Posição alta para sombras projetadas no chão
-            
+            const dir = new THREE.DirectionalLight(0xffffff, 0.6); 
+            dir.position.set(100, 250, 100); 
             dir.castShadow = true; 
-            
-            // OTIMIZAÇÃO DE SOMBRAS PARA REALISMO (Ambient Occlusion Fake)
-            // Mobile: 2K (rápido) | Desktop: 4K (bonito)
             const shadowRes = isMobile ? 2048 : 4096;
-            dir.shadow.mapSize.width = shadowRes; 
-            dir.shadow.mapSize.height = shadowRes; 
-            
-            // "Apertamos" a câmara da sombra para focar apenas no sofá (±200cm), aumentando a densidade
+            dir.shadow.mapSize.width = shadowRes; dir.shadow.mapSize.height = shadowRes; 
             const d = 250;
-            dir.shadow.camera.left = -d;
-            dir.shadow.camera.right = d;
-            dir.shadow.camera.top = d;
-            dir.shadow.camera.bottom = -d;
-            dir.shadow.camera.near = 0.5;
-            dir.shadow.camera.far = 1000;
-            
-            // Ajuste fino para evitar "peter panning" (sombra a flutuar) ou riscas
-            dir.shadow.bias = -0.0001; 
-            // Normal bias ajuda a manter a sombra colada aos objetos curvos
-            dir.shadow.normalBias = 0.02;
-            
+            dir.shadow.camera.left = -d; dir.shadow.camera.right = d; dir.shadow.camera.top = d; dir.shadow.camera.bottom = -d;
+            dir.shadow.camera.near = 0.5; dir.shadow.camera.far = 1000;
+            dir.shadow.bias = -0.0001; dir.shadow.normalBias = 0.02;
             scene.add(dir);
-
-            // === CHÃO COMPOSTO (Imagem Real + Sombras) ===
             const textureLoader = new THREE.TextureLoader();
             const floorUrl = 'https://stoffus-pt.github.io/configurador-eleganza/assets/textures/floor.jpg';
-            
-            // 1. Textura da Madeira
-            const floorTexture = textureLoader.load(floorUrl, (tex) => {
-                tex.wrapS = THREE.RepeatWrapping;
-                tex.wrapT = THREE.RepeatWrapping;
-                tex.repeat.set(6, 6);
-                tex.anisotropy = 16;
-                tex.encoding = THREE.sRGBEncoding;
-                console.log("Chão carregado.");
-            });
-
-            // 2. Chão Visual (MeshBasicMaterial - Ignora luzes, mostra cor real)
+            const floorTexture = textureLoader.load(floorUrl, (tex) => { tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(6, 6); tex.anisotropy = 16; tex.encoding = THREE.sRGBEncoding; });
             const groundGeo = new THREE.PlaneGeometry(4000, 4000);
-            const groundVisual = new THREE.Mesh(
-                groundGeo, 
-                new THREE.MeshBasicMaterial({ 
-                    map: floorTexture,
-                    color: 0xffffff 
-                })
-            );
-            groundVisual.name = "env_ground_visual"; 
-            groundVisual.rotation.x = -Math.PI / 2; 
-            groundVisual.position.y = -0.2; 
+            const groundVisual = new THREE.Mesh(groundGeo, new THREE.MeshBasicMaterial({ map: floorTexture, color: 0xffffff }));
+            groundVisual.name = "env_ground_visual"; groundVisual.rotation.x = -Math.PI / 2; groundVisual.position.y = -0.2; 
             scene.add(groundVisual);
-
-            // 3. Camada de Sombra (ShadowMaterial - Invisível mas recebe sombras)
-            const groundShadow = new THREE.Mesh(
-                groundGeo,
-                new THREE.ShadowMaterial({ 
-                    opacity: 0.35, // AJUSTE: Reduzido de 0.5 para 0.35 para ser menos "pesada"
-                    color: 0x000000 
-                })
-            );
-            groundShadow.name = "env_ground_shadow"; 
-            groundShadow.rotation.x = -Math.PI / 2; 
-            groundShadow.position.y = -0.1; // Logo acima da imagem
-            groundShadow.receiveShadow = true;
+            const groundShadow = new THREE.Mesh(groundGeo, new THREE.ShadowMaterial({ opacity: 0.35, color: 0x000000 }));
+            groundShadow.name = "env_ground_shadow"; groundShadow.rotation.x = -Math.PI / 2; groundShadow.position.y = -0.1; groundShadow.receiveShadow = true;
             scene.add(groundShadow);
-            
-            // Grid muito subtil
-            const grid = new THREE.GridHelper(3000, 60, 0x000000, 0x000000); 
-            grid.material.opacity = 0.1; 
-            grid.material.transparent = true;
-            grid.name = "env_grid"; scene.add(grid);
-            
+            const grid = new THREE.GridHelper(3000, 60, 0x000000, 0x000000); grid.material.opacity = 0.1; grid.material.transparent = true; grid.name = "env_grid"; scene.add(grid);
             dimensionLinesGroup = new THREE.Group(); scene.add(dimensionLinesGroup);
             controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
             raycaster = new THREE.Raycaster(); mouse = new THREE.Vector2();
-
             window.addEventListener('resize', onWindowResize);
             renderer.domElement.addEventListener('mousemove', onMouseMove);
             renderer.domElement.addEventListener('click', onMouseClick);
-            
             renderer.domElement.addEventListener('touchstart', onTouchStart, {passive: false});
             renderer.domElement.addEventListener('touchend', onTouchEnd, {passive: false});
-
             manager = new THREE.LoadingManager();
             manager.onStart = () => document.getElementById('app-loader').style.display = 'flex';
-            
             manager.onLoad = () => { 
                 document.getElementById('app-loader').style.display = 'none'; 
                 renderModuleButtons(); 
-                
                 if (pendingConfiguration && pendingConfiguration.length > 0) {
                     pendingConfiguration.forEach(conf => {
                          const modelData = DB_MODELS[CURRENT_MODEL_ID];
@@ -535,63 +488,180 @@
                     });
                     pendingConfiguration = null; 
                     repositionModules();
-                } 
-                else if (addedModules.length === 0) {
-                    addDefaultConfiguration(); 
-                }
+                } else if (addedModules.length === 0) { addDefaultConfiguration(); }
             };
-
             initModelSelector(); initSizeSelector(); initFabricSystem(); initUIListeners();
             loadModelAssets(CURRENT_MODEL_ID);
-            
-            // NOVA LIGAGÃO PARA O BOTÃO RECENTRAR
             document.getElementById('btn-recenter').addEventListener('click', resetCamera);
-            
             animate();
         }
 
-        // --- NEW: Reset Camera Function with Smooth Zoom Transition ---
+        // --- NEW: Reset Camera Function ---
         function resetCamera() {
-            const duration = 1500; // 1.5 segundos para ser suave e cinematográfico
-            const startPos = camera.position.clone();
-            const startTarget = controls.target.clone();
-            
-            // Posição Final Desejada (Frente e Cima)
-            const endPos = new THREE.Vector3(0, 450, 750);
-            const endTarget = new THREE.Vector3(0, 0, 0);
-            
-            const startTime = performance.now();
-
-            // Desativar controlos temporariamente para evitar conflitos durante o voo
-            controls.enabled = false;
-
+            const duration = 1500; const startPos = camera.position.clone(); const startTarget = controls.target.clone();
+            const endPos = new THREE.Vector3(0, 450, 750); const endTarget = new THREE.Vector3(0, 0, 0);
+            const startTime = performance.now(); controls.enabled = false;
             function animateScroll(currentTime) {
-                const elapsed = currentTime - startTime;
-                let progress = Math.min(elapsed / duration, 1);
-                
-                // Easing Function: Ease Out Cubic (rápido no início, suave no fim)
-                // Fórmula: 1 - (1 - x)^3
+                const elapsed = currentTime - startTime; let progress = Math.min(elapsed / duration, 1);
                 const ease = 1 - Math.pow(1 - progress, 3);
-
-                // Interpolar posição e alvo
                 camera.position.lerpVectors(startPos, endPos, ease);
                 controls.target.lerpVectors(startTarget, endTarget, ease);
-                
                 controls.update();
-
-                if (progress < 1) {
-                    requestAnimationFrame(animateScroll);
-                } else {
-                    // Animação concluída
-                    controls.enabled = true; // Devolve o controlo ao utilizador
-                    showFeedback("Câmara recentrada", "success");
-                    
-                    // Esconder botão após recentrar
-                    document.getElementById('btn-recenter').classList.add('hidden');
-                }
+                if (progress < 1) { requestAnimationFrame(animateScroll); } else { controls.enabled = true; showFeedback("Câmara recentrada", "success"); document.getElementById('btn-recenter').classList.add('hidden'); }
             }
-            
             requestAnimationFrame(animateScroll);
+        }
+
+        // --- ORDER SUMMARY LOGIC (POP-UP) ---
+        window.openOrderSummary = function() {
+            const summaryModel = document.getElementById('summary-model');
+            const summaryFabric = document.getElementById('summary-fabric');
+            const summaryWidth = document.getElementById('summary-width');
+            const itemsBody = document.getElementById('order-items-body');
+            
+            if(!addedModules.length) {
+                showFeedback("Adicione módulos primeiro!", "error");
+                return;
+            }
+
+            // Populate Info
+            summaryModel.innerText = DB_MODELS[CURRENT_MODEL_ID].name;
+            summaryFabric.innerText = activeFabricId ? FABRIC_LIBRARY.find(f => f.id === activeFabricId).name : "Padrão / Não Selecionado";
+            summaryWidth.innerText = document.getElementById('total-width-display').innerText;
+
+            // Populate Items Table
+            itemsBody.innerHTML = '';
+            
+            addedModules.forEach((mod, index) => {
+                const row = document.createElement('tr');
+                
+                // Tamanho
+                let sizeStr = CURRENT_SIZE_KEY;
+                if (CURRENT_MODEL_ID === 'infinity' && CURRENT_SIZE_KEY === 'XXL' && mod.data.id !== '2seats_2arms') {
+                    sizeStr = 'XL (Restrição Infinity)';
+                } else if (mod.data.fixed) {
+                    sizeStr = 'Fixo (Canto/Meridien)';
+                }
+
+                // Mecanismo (Baseado se o Relax está ativo/aberto)
+                const modelType = DB_MODELS[CURRENT_MODEL_ID].type;
+                let mechStr = '<span class="text-gray-400">Fixo (Sem Mecanismo)</span>';
+                
+                // Se for um modelo com funcionalidade E o utilizador tiver "aberto" o módulo
+                if ((modelType === 'relax' || modelType === 'slide') && mod.hasRelax) {
+                    const mechName = modelType === 'slide' ? 'Assento Deslizante' : 'Relax Elétrico';
+                    mechStr = `<span class="text-emerald-600 font-bold"><i class="fas fa-check-circle mr-1"></i> ${mechName}</span>`;
+                } else if (mod.data.fixed) {
+                    mechStr = '<span class="text-gray-400">N/A (Módulo Fixo)</span>';
+                }
+
+                row.innerHTML = `
+                    <td class="font-medium">${mod.data.name}</td>
+                    <td>${sizeStr}</td>
+                    <td>${mechStr}</td>
+                `;
+                itemsBody.appendChild(row);
+            });
+
+            uiSet('order-modal', 'display', 'flex');
+        };
+
+        window.confirmAndGeneratePDF = function() {
+            uiSet('order-modal', 'display', 'none');
+            showFeedback("A gerar nota de encomenda...", "success");
+            setTimeout(generateOrderPDF, 500); // Delay para fechar modal e limpar ecrã
+        };
+
+        // --- NEW: Generate PDF Order (Contrato) ---
+        async function generateOrderPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // 1. Capture Screenshot
+            renderer.render(scene, camera);
+            const imgData = renderer.domElement.toDataURL("image/jpeg", 0.9);
+            
+            // 2. Add Header
+            doc.setFontSize(18);
+            doc.setTextColor(232, 76, 38);
+            doc.text("NOTA DE ENCOMENDA - STOFFUS", 20, 20);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            const dateStr = new Date().toLocaleString('pt-PT');
+            doc.text(`Data: ${dateStr}`, 20, 28);
+            
+            // 3. Add Image
+            const imgProps = doc.getImageProperties(imgData);
+            const pdfWidth = doc.internal.pageSize.getWidth();
+            const targetHeight = 80; 
+            const targetWidth = (imgProps.width * targetHeight) / imgProps.height;
+            const x = (pdfWidth - targetWidth) / 2;
+            doc.addImage(imgData, 'JPEG', x, 35, targetWidth, targetHeight);
+            
+            // 4. Model Info
+            let y = 125;
+            doc.setFontSize(11);
+            doc.setTextColor(0, 0, 0);
+            
+            const modelName = DB_MODELS[CURRENT_MODEL_ID].name;
+            const fabricName = activeFabricId ? FABRIC_LIBRARY.find(f => f.id === activeFabricId).name : "Padrão / Não Selecionado";
+            const totalWidth = document.getElementById('total-width-display').innerText;
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("DETALHES GERAIS:", 20, y);
+            y += 7;
+            doc.setFont("helvetica", "normal");
+            doc.text(`Modelo: ${modelName}`, 20, y);
+            y += 6;
+            doc.text(`Tecido: ${fabricName}`, 20, y);
+            y += 6;
+            doc.text(`Largura Total (Estimada): ${totalWidth}`, 20, y);
+            y += 10;
+            
+            // 5. Tabela de Módulos (AutoTable)
+            const tableBody = addedModules.map((mod, index) => {
+                let sizeStr = CURRENT_SIZE_KEY;
+                if (CURRENT_MODEL_ID === 'infinity' && CURRENT_SIZE_KEY === 'XXL' && mod.data.id !== '2seats_2arms') {
+                    sizeStr = 'XL';
+                } else if (mod.data.fixed) {
+                    sizeStr = '-';
+                }
+
+                const modelType = DB_MODELS[CURRENT_MODEL_ID].type;
+                let mechStr = "Fixo";
+                if ((modelType === 'relax' || modelType === 'slide') && mod.hasRelax) {
+                    mechStr = modelType === 'slide' ? "Com Deslizante" : "Com Relax";
+                } else if (mod.data.fixed) {
+                    mechStr = "-";
+                }
+
+                return [index + 1, mod.data.name, sizeStr, mechStr];
+            });
+
+            doc.autoTable({
+                startY: y,
+                head: [['#', 'Módulo', 'Tamanho', 'Acabamento']],
+                body: tableBody,
+                theme: 'grid',
+                headStyles: { fillColor: [232, 76, 38], textColor: 255, fontStyle: 'bold' },
+                styles: { fontSize: 10, cellPadding: 4 },
+                columnStyles: {
+                    0: { cellWidth: 15 },
+                    1: { cellWidth: 'auto' },
+                    2: { cellWidth: 30 },
+                    3: { cellWidth: 40, fontStyle: 'bold' } // Destaque na coluna acabamento
+                }
+            });
+            
+            // Footer
+            const finalY = doc.lastAutoTable.finalY + 20;
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text("Este documento serve como nota de encomenda técnica.", 20, finalY);
+            doc.text("Verifique todas as medidas e acabamentos antes de enviar para produção.", 20, finalY + 5);
+            
+            doc.save(`encomenda_${modelName.toLowerCase().replace(/\s/g, '_')}.pdf`);
         }
 
         // --- NEW: Touch Event Handlers ---
@@ -622,8 +692,6 @@
         }
 
         // ======================== TECIDOS (OPTIMIZED) ========================
-        
-        // --- Memory Management ---
         function manageTextureCache(newCollectionKey) {
             const idx = loadedCollectionsQueue.indexOf(newCollectionKey);
             if(idx !== -1) {
@@ -646,64 +714,41 @@
             }
         }
 
-        // --- OPTIMIZED: Render with Compressed Textures ---
-        // ATUALIZAÇÃO: Implementação de Infinite Scroll para evitar crashes em mobile
         function renderFabricLibrary(category) {
             const container = document.getElementById('fabric-library-container'); 
             if(!container) return; 
-            
-            // 1. Limpar e Resetar
             container.innerHTML = '';
             container.scrollTop = 0;
             renderedCount = 0;
-
-            // 2. Definir a lista ativa baseada na categoria
             activeCategoryList = category === 'all' ? FABRIC_LIBRARY : FABRIC_LIBRARY.filter(f => f.type === category);
-            
-            // 3. Carregar o primeiro lote
             loadMoreFabrics();
         }
 
-        // Função que carrega o próximo lote de tecidos (chamada no inicio e no scroll)
         function loadMoreFabrics() {
             const container = document.getElementById('fabric-library-container');
             if(!container) return;
-
-            // Se já carregámos tudo, parar
             if (renderedCount >= activeCategoryList.length) return;
-
-            // Cortar a fatia seguinte da lista
             const batch = activeCategoryList.slice(renderedCount, renderedCount + BATCH_SIZE);
             const thumbBase = 'https://stoffus-pt.github.io/configurador-eleganza/assets/compressedtextures/';
 
             batch.forEach(fab => { 
                 const el = document.createElement('div'); 
                 el.className = `fabric-item ${fab.id === activeFabricId ? 'active' : ''}`;
-                
-                // 1. Placeholder instantâneo
                 const placeholderUrl = getFabricThumbnailDataUrl(fab.type, fab.color);
                 el.style.backgroundImage = `url(${placeholderUrl})`;
                 el.style.backgroundSize = 'cover';
-
-                // 2. Determinar qual imagem carregar (1 ou 2) e como recortar
                 const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type);
                 const colName = col ? col.name : fab.collection;
-                
                 const mapType = fab.map; 
                 const coords = TEXTURE_LAYOUTS[mapType];
-                
                 let targetSuffix = '1'; 
-                if (coords && coords.src === 'back') {
-                    targetSuffix = '2'; 
-                }
-
+                if (coords && coords.src === 'back') { targetSuffix = '2'; }
                 const candidates = [
                     `${thumbBase}${colName} ${targetSuffix}.jpg`,           
                     `${thumbBase}${colName.toLowerCase()} ${targetSuffix}.jpg`, 
                     `${thumbBase}${colName}_${targetSuffix}.jpg`,           
                     `${thumbBase}${colName.toLowerCase()}_${targetSuffix}.jpg` 
                 ];
-
                 const tryLoad = (index) => {
                     if (index >= candidates.length) {
                         if (targetSuffix === '2') {
@@ -717,474 +762,180 @@
                         }
                         return; 
                     }
-                    
                     const img = new Image();
                     img.onload = () => {
-                        if (coords) {
-                            applyThumbnailCrop(el, img.src, coords);
-                        } else {
-                            el.style.backgroundImage = `url('${img.src}')`;
-                            el.style.backgroundSize = 'cover';
-                        }
+                        if (coords) { applyThumbnailCrop(el, img.src, coords); } else { el.style.backgroundImage = `url('${img.src}')`; el.style.backgroundSize = 'cover'; }
                     };
                     img.onerror = () => { tryLoad(index + 1); };
                     img.src = candidates[index];
                 };
-                
                 tryLoad(0);
-
                 el.innerHTML = `<div class="fabric-name">${fab.name}</div>`; 
                 el.onclick = () => setFabricFromLibrary(fab.id); 
-                
                 container.appendChild(el); 
             });
-
-            // Atualizar o contador
             renderedCount += batch.length;
+            setTimeout(() => { if (container.scrollHeight <= container.clientHeight && renderedCount < activeCategoryList.length) { loadMoreFabrics(); } }, 50);
         }
         
         function applyThumbnailCrop(element, imageSrc, coords) {
-             const sizeX = (1 / coords.w) * 100;
-             const sizeY = (1 / coords.h) * 100;
-             
-             const posX = coords.w === 1 ? 0 : (coords.x / (1 - coords.w)) * 100;
-             const posY = coords.h === 1 ? 0 : (coords.y / (1 - coords.h)) * 100;
-             
-             element.style.backgroundImage = `url('${imageSrc}')`;
-             element.style.backgroundSize = `${sizeX}% ${sizeY}%`;
-             element.style.backgroundPosition = `${posX}% ${posY}%`;
+             const sizeX = (1 / coords.w) * 100; const sizeY = (1 / coords.h) * 100;
+             const posX = coords.w === 1 ? 0 : (coords.x / (1 - coords.w)) * 100; const posY = coords.h === 1 ? 0 : (coords.y / (1 - coords.h)) * 100;
+             element.style.backgroundImage = `url('${imageSrc}')`; element.style.backgroundSize = `${sizeX}% ${sizeY}%`; element.style.backgroundPosition = `${posX}% ${posY}%`;
         }
         
-        // --- NEW: Procedural Thumbnail Generator (INSTANT) ---
         function getFabricThumbnailDataUrl(type, color) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 128; canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = color;
-            ctx.fillRect(0, 0, 128, 128);
-            ctx.fillStyle = "rgba(0,0,0,0.05)";
-            for(let i=0; i<128; i+=4) { ctx.fillRect(i, 0, 1, 128); ctx.fillRect(0, i, 128, 1); }
-            for(let i=0; i<400; i++) {
-                ctx.fillStyle = Math.random() > 0.5 ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
-                ctx.fillRect(Math.random()*128, Math.random()*128, 2, 2);
-            }
-            const grad = ctx.createRadialGradient(64, 64, 50, 64, 64, 90);
-            grad.addColorStop(0, "rgba(0,0,0,0)");
-            grad.addColorStop(1, "rgba(0,0,0,0.3)");
-            ctx.fillStyle = grad;
-            ctx.fillRect(0,0,128,128);
-            return canvas.toDataURL('image/jpeg', 0.8);
+            const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128; const ctx = canvas.getContext('2d');
+            ctx.fillStyle = color; ctx.fillRect(0, 0, 128, 128); ctx.fillStyle = "rgba(0,0,0,0.05)"; for(let i=0; i<128; i+=4) { ctx.fillRect(i, 0, 1, 128); ctx.fillRect(0, i, 128, 1); }
+            for(let i=0; i<400; i++) { ctx.fillStyle = Math.random() > 0.5 ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"; ctx.fillRect(Math.random()*128, Math.random()*128, 2, 2); }
+            const grad = ctx.createRadialGradient(64, 64, 50, 64, 64, 90); grad.addColorStop(0, "rgba(0,0,0,0)"); grad.addColorStop(1, "rgba(0,0,0,0.3)"); ctx.fillStyle = grad; ctx.fillRect(0,0,128,128); return canvas.toDataURL('image/jpeg', 0.8);
         }
 
         function setFabricFromLibrary(id) {
             const fab = FABRIC_LIBRARY.find(f => f.id === id); if(!fab) return; 
             activeFabricId = id; 
-            
             const items = document.querySelectorAll('.fabric-item');
-            items.forEach(el => {
-                if(el.textContent.includes(fab.name)) el.classList.add('active');
-                else el.classList.remove('active');
-            });
-
-            const tempMat = createProceduralFabricTexture(fab.type, fab.color);
-            currentFabricMaterial = tempMat;
-            updateAllModulesMaterial();
-
+            items.forEach(el => { if(el.textContent.includes(fab.name)) el.classList.add('active'); else el.classList.remove('active'); });
+            const tempMat = createProceduralFabricTexture(fab.type, fab.color); currentFabricMaterial = tempMat; updateAllModulesMaterial();
             const store = IMAGES[fab.type];
-            if (store && store.loaded) {
-                 manageTextureCache(fab.type);
-                 applyHighResTexture(fab, store);
-            } else {
-                 showFeedback("A carregar textura...", "info");
-                 loadCollectionImages(fab.type, (newStore) => {
-                     if(newStore && newStore.loaded) {
-                         applyHighResTexture(fab, newStore);
-                     }
-                 });
-            }
+            if (store && store.loaded) { manageTextureCache(fab.type); applyHighResTexture(fab, store); } else { showFeedback("A carregar textura...", "info"); loadCollectionImages(fab.type, (newStore) => { if(newStore && newStore.loaded) { applyHighResTexture(fab, newStore); } }); }
         }
 
         function applyHighResTexture(fab, store) {
-            const coords = TEXTURE_LAYOUTS[fab.map]; 
-            const sourceImg = (coords.src === 'front') ? store.front : store.back; 
-            
-            if(sourceImg) { 
-                currentFabricMaterial = cropTextureFromImage(sourceImg, coords, fab.type); 
-                updateAllModulesMaterial(); 
-                showFeedback(fab.name, "success"); 
-            }
+            const coords = TEXTURE_LAYOUTS[fab.map]; const sourceImg = (coords.src === 'front') ? store.front : store.back; 
+            if(sourceImg) { currentFabricMaterial = cropTextureFromImage(sourceImg, coords, fab.type); updateAllModulesMaterial(); showFeedback(fab.name, "success"); }
         }
 
         function loadCollectionImages(collectionKey, callback) {
             manageTextureCache(collectionKey); 
-
-            if(IMAGES[collectionKey] && IMAGES[collectionKey].loaded) {
-                callback(IMAGES[collectionKey]);
-                return;
-            }
-
-            const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === collectionKey);
-            if(!col) return;
-
-            const texLoader = new THREE.TextureLoader(); 
-            texLoader.setCrossOrigin('anonymous');
-            
-            // ALTERAÇÃO: Caminho URL Absoluto para texturas do sofá
+            if(IMAGES[collectionKey] && IMAGES[collectionKey].loaded) { callback(IMAGES[collectionKey]); return; }
+            const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === collectionKey); if(!col) return;
+            const texLoader = new THREE.TextureLoader(); texLoader.setCrossOrigin('anonymous');
             let BASE = 'https://stoffus-pt.github.io/configurador-eleganza/assets/textures/'; 
-            
-            let loadedCount = 0;
-            const target = 2; 
-            
+            let loadedCount = 0; const target = 2; 
             if(!IMAGES[collectionKey]) IMAGES[collectionKey] = { front: null, back: null, loaded: false };
-
             const tryLoadVariant = (suffix, targetSlot) => {
-                const candidates = [ 
-                    `${col.name} ${suffix}.jpg`,
-                    `${col.name.toLowerCase()} ${suffix}.jpg`,
-                    `${col.name}_${suffix}.jpg`,
-                    `${col.name.toLowerCase()}_${suffix}.jpg`
-                ];
-                
+                const candidates = [ `${col.name} ${suffix}.jpg`, `${col.name.toLowerCase()} ${suffix}.jpg`, `${col.name}_${suffix}.jpg`, `${col.name.toLowerCase()}_${suffix}.jpg` ];
                 let attempt = 0;
                 const tryNext = () => {
-                    if (attempt >= candidates.length) {
-                        checkDone();
-                        return;
-                    }
-                    const url = `${BASE}${candidates[attempt]}`; // Use BASE URL
-                    texLoader.load(url, 
-                        (tex) => { 
-                            if(targetSlot === 'front') IMAGES[collectionKey].front = tex.image;
-                            else IMAGES[collectionKey].back = tex.image;
-                            checkDone();
-                        },
-                        undefined,
-                        () => { attempt++; tryNext(); }
-                    );
+                    if (attempt >= candidates.length) { checkDone(); return; }
+                    const url = `${BASE}${candidates[attempt]}`; 
+                    texLoader.load(url, (tex) => { if(targetSlot === 'front') IMAGES[collectionKey].front = tex.image; else IMAGES[collectionKey].back = tex.image; checkDone(); }, undefined, () => { attempt++; tryNext(); });
                 };
                 tryNext();
             };
-
-            const checkDone = () => {
-                loadedCount++;
-                if(loadedCount >= target) {
-                    IMAGES[collectionKey].loaded = true;
-                    callback(IMAGES[collectionKey]);
-                }
-            };
-
-            tryLoadVariant('1', 'front');
-            tryLoadVariant('2', 'back');
+            const checkDone = () => { loadedCount++; if(loadedCount >= target) { IMAGES[collectionKey].loaded = true; callback(IMAGES[collectionKey]); } };
+            tryLoadVariant('1', 'front'); tryLoadVariant('2', 'back');
         }
 
-        // UPDATED: Initialize fabric data but DO NOT preload everything
         function initFabricData() {
             DB_COLLECTIONS.forEach(col => {
                 const key = col.name.toLowerCase().replace(/\s/g, '');
                 IMAGES[key] = { front: null, back: null, loaded: false }; 
-                
                 FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start}`, name: `${col.name} ${col.prefix}${col.start}`, color: '#dcdcdc', type: key, map: 'front', collection: col.name });
-                for (let i = 1; i <= 6; i++) { 
-                    FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start + i}`, name: `${col.name} ${col.prefix}${col.start + i}`, color: '#b0b0b0', type: key, map: `back_${i}`, collection: col.name }); 
-                }
+                for (let i = 1; i <= 6; i++) { FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start + i}`, name: `${col.name} ${col.prefix}${col.start + i}`, color: '#b0b0b0', type: key, map: `back_${i}`, collection: col.name }); }
             });
         }
 
         function initFabricSystem() {
              initFabricData(); 
-             
              const catContainer = document.getElementById('fabric-categories');
              let btnAll = document.createElement('button'); btnAll.className = 'cat-btn active'; btnAll.textContent = 'Todos';
-             btnAll.onclick = () => { 
-                 document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
-                 btnAll.classList.add('active');
-                 renderFabricLibrary('all'); 
-             };
+             btnAll.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btnAll.classList.add('active'); renderFabricLibrary('all'); };
              catContainer.appendChild(btnAll);
              DB_COLLECTIONS.forEach(col => {
                  const key = col.name.toLowerCase().replace(/\s/g, '');
                  const btn = document.createElement('button'); btn.className = 'cat-btn'; btn.textContent = col.name;
-                 btn.onclick = () => { 
-                     document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
-                     btn.classList.add('active');
-                     renderFabricLibrary(key); 
-                 };
+                 btn.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderFabricLibrary(key); };
                  catContainer.appendChild(btn);
              });
-             
-             // Setup inicial
              renderFabricLibrary('all');
-
-             // EVENT LISTENER PARA INFINITE SCROLL
              const scrollContainer = document.getElementById('fabric-library-container');
-             if (scrollContainer) {
-                 scrollContainer.addEventListener('scroll', () => {
-                     // Verifica se estamos perto do fundo (100px de margem)
-                     if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 100) {
-                         loadMoreFabrics();
-                     }
-                 });
-             }
+             if (scrollContainer) { scrollContainer.addEventListener('scroll', () => { if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 100) { loadMoreFabrics(); } }); }
         }
         
         function applyTextureRepeat(texture, rapportCm) {
-            if(!texture) return; 
-            const referenceSizeCm = 90; const repeatFactor = referenceSizeCm / rapportCm;
-            texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; 
-            texture.repeat.set(repeatFactor, repeatFactor); texture.needsUpdate = true;
+            if(!texture) return; const referenceSizeCm = 90; const repeatFactor = referenceSizeCm / rapportCm;
+            texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(repeatFactor, repeatFactor); texture.needsUpdate = true;
         }
 
         function cropTextureFromImage(sourceImg, crop, type) {
-            if(!sourceImg) return null; 
-            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-            canvas.width = 512; canvas.height = 512; 
-            ctx.drawImage(sourceImg, sourceImg.width * crop.x, sourceImg.height * crop.y, sourceImg.width * crop.w, sourceImg.height * crop.h, 0, 0, 512, 512);
-            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding;
-            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-            // UPDATED: Use currentRapport variable
-            applyTextureRepeat(tex, currentRapport); 
-            let params = { map: tex, color: 0xffffff, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.02 };
-            return new THREE.MeshStandardMaterial(params);
+            if(!sourceImg) return null; const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+            canvas.width = 512; canvas.height = 512; ctx.drawImage(sourceImg, sourceImg.width * crop.x, sourceImg.height * crop.y, sourceImg.width * crop.w, sourceImg.height * crop.h, 0, 0, 512, 512);
+            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; applyTextureRepeat(tex, currentRapport); 
+            let params = { map: tex, color: 0xffffff, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.02 }; return new THREE.MeshStandardMaterial(params);
         }
 
         function createProceduralFabricTexture(type, colorHex) {
             const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size);
             if(type === 'linen' || type === 'boucle') { ctx.globalAlpha = 0.1; for(let i=0; i<size*100; i++) { ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#000000'; ctx.fillRect(Math.random()*size, Math.random()*size, 1, 1); } }
-            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; 
-            // UPDATED: Use currentRapport variable
-            applyTextureRepeat(tex, currentRapport);
+            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; applyTextureRepeat(tex, currentRapport);
             return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.01 });
         }
         
         function updateAllModulesMaterial() { 
-            addedModules.forEach(mod => { 
-                if(!mod.mesh) return;
-                mod.mesh.traverse((node) => { 
-                    if (node.isMesh) { 
-                        const lowerName = node.name.toLowerCase(); 
-                        const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw));
-                        if (!isLeg && node.name !== 'shadow_plane') node.material = currentFabricMaterial;
-                        if (isLeg) node.material = currentLegMaterial;
-                    } 
-                });
-            }); 
+            addedModules.forEach(mod => { if(!mod.mesh) return; mod.mesh.traverse((node) => { if (node.isMesh) { const lowerName = node.name.toLowerCase(); const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw)); if (!isLeg && node.name !== 'shadow_plane') node.material = currentFabricMaterial; if (isLeg) node.material = currentLegMaterial; } }); }); 
         }
 
         function updateFabricRapport() {
-            if(currentFabricMaterial && currentFabricMaterial.map) {
-                applyTextureRepeat(currentFabricMaterial.map, currentRapport);
-                if(currentFabricMaterial.bumpMap) applyTextureRepeat(currentFabricMaterial.bumpMap, currentRapport);
-            }
+            if(currentFabricMaterial && currentFabricMaterial.map) { applyTextureRepeat(currentFabricMaterial.map, currentRapport); if(currentFabricMaterial.bumpMap) applyTextureRepeat(currentFabricMaterial.bumpMap, currentRapport); }
         }
 
-        function loadTextureMega(loader, basePath, collectionName, suffix, callback) {
-            // O parâmetro basePath é ignorado aqui para usar o caminho local fixo
-            
-            const candidates = [ 
-                `${collectionName}_${suffix}.jpg`, 
-                `${collectionName.toLowerCase()}_${suffix}.jpg`, 
-                `${collectionName} ${suffix}.jpg`,
-                `textures/${collectionName}_${suffix}.jpg`
-            ];
-            
-            let attemptIndex = 0;
-            function tryNext() {
-                if (attemptIndex >= candidates.length) { callback(null, false); return; }
-                
-                // ALTERAÇÃO: Caminho relativo exato para texturas
-                const url = `assets/textures/${candidates[attemptIndex]}`;
-                
-                loader.load(url, 
-                    (tex) => { callback(tex, true); },
-                    undefined,
-                    (err) => { attemptIndex++; tryNext(); }
-                );
-            }
-            tryNext();
-        }
-
-        // REMOVED preloadTextures entirely to fix initial load speed
-
-        // ======================== LOGICA 3D GERAL ========================
         function renderModuleButtons() {
-            const container = document.getElementById('module-list');
-            container.innerHTML = '';
-            const modelData = DB_MODELS[CURRENT_MODEL_ID];
+            const container = document.getElementById('module-list'); container.innerHTML = ''; const modelData = DB_MODELS[CURRENT_MODEL_ID];
             DB_MODULES.forEach(def => {
                 if (modelData.modules && !modelData.modules.includes(def.id)) return;
-                const btn = document.createElement('button');
-                btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16";
-                btn.onclick = () => addModule(def.id);
-                btn.innerHTML = `<i class="fas ${def.icon} text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i><span class="text-[9px] font-bold text-gray-600 leading-tight text-center">${def.name}</span>`;
+                const btn = document.createElement('button'); btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16";
+                btn.onclick = () => addModule(def.id); btn.innerHTML = `<i class="fas ${def.icon} text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i><span class="text-[9px] font-bold text-gray-600 leading-tight text-center">${def.name}</span>`;
                 container.appendChild(btn);
             });
         }
 
         function initUIListeners() {
-            const resetBtn = document.getElementById('reset-btn');
-            if(resetBtn) resetBtn.addEventListener('click', () => { addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; repositionModules(); showFeedback("Cena limpa", "success"); });
-            
-            const editorBtn = document.getElementById('toggle-editor-btn');
-            if(editorBtn) editorBtn.addEventListener('click', () => { document.getElementById('editor-panel').classList.toggle('hidden'); });
-            
-            const dimsBtn = document.getElementById('toggle-dims-btn');
-            if(dimsBtn) dimsBtn.addEventListener('click', () => { showDimensions = !showDimensions; updateDimensionLabels(); });
-
-            // Slider Listener
-            const rapportSlider = document.getElementById('rapport-slider');
-            if(rapportSlider) {
-                rapportSlider.addEventListener('input', (e) => {
-                    currentRapport = parseInt(e.target.value);
-                    document.getElementById('rapport-display').innerText = currentRapport + " cm";
-                    updateFabricRapport();
-                });
-            }
+            const resetBtn = document.getElementById('reset-btn'); if(resetBtn) resetBtn.addEventListener('click', () => { addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; repositionModules(); showFeedback("Cena limpa", "success"); });
+            const editorBtn = document.getElementById('toggle-editor-btn'); if(editorBtn) editorBtn.addEventListener('click', () => { document.getElementById('editor-panel').classList.toggle('hidden'); });
+            const dimsBtn = document.getElementById('toggle-dims-btn'); if(dimsBtn) dimsBtn.addEventListener('click', () => { showDimensions = !showDimensions; updateDimensionLabels(); });
+            const rapportSlider = document.getElementById('rapport-slider'); if(rapportSlider) { rapportSlider.addEventListener('input', (e) => { currentRapport = parseInt(e.target.value); document.getElementById('rapport-display').innerText = currentRapport + " cm"; updateFabricRapport(); }); }
         }
-        function initModelSelector() {
-            const select = document.getElementById('model-select');
-            Object.keys(DB_MODELS).forEach(key => { const opt = document.createElement('option'); opt.value = key; opt.innerText = DB_MODELS[key].name; select.appendChild(opt); });
-        }
+        function initModelSelector() { const select = document.getElementById('model-select'); Object.keys(DB_MODELS).forEach(key => { const opt = document.createElement('option'); opt.value = key; opt.innerText = DB_MODELS[key].name; select.appendChild(opt); }); }
         function initSizeSelector() {
             const container = document.getElementById('size-selector-container'); container.innerHTML = '';
-            
-            // ATUALIZAÇÃO: Gerar botões dinamicamente baseado nos tamanhos do modelo atual
-            // Isto permite que o 'XXL' apareça apenas no Infinity e não nos outros
             const modelSizes = DB_MODELS[CURRENT_MODEL_ID].sizes;
-            
-            Object.keys(modelSizes).forEach(size => {
-                const btn = document.createElement('button'); 
-                btn.className = `flex-1 py-1.5 text-xs font-bold rounded-md transition ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`;
-                btn.innerText = size; 
-                btn.onclick = () => changeSize(size); 
-                container.appendChild(btn);
-            });
+            Object.keys(modelSizes).forEach(size => { const btn = document.createElement('button'); btn.className = `flex-1 py-1.5 text-xs font-bold rounded-md transition ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`; btn.innerText = size; btn.onclick = () => changeSize(size); container.appendChild(btn); });
             updateSizePreview();
         }
         
-        // UPDATE: Agora guarda a configuração antes de mudar
         window.changeModel = function(modelId) {
             if (!DB_MODELS[modelId]) return;
-            
-            // 1. Guardar a configuração atual
-            pendingConfiguration = addedModules.map(m => ({
-                id: m.data.id,
-                hasRelax: m.hasRelax
-            }));
-
-            CURRENT_MODEL_ID = modelId; 
-            const modelData = DB_MODELS[modelId];
-            document.getElementById('model-type-badge').innerText = modelData.type;
-            
-            // CORREÇÃO CRÍTICA: Validar e atualizar seletor de tamanhos
-            // Se mudarmos do Infinity (XXL) para o Athena (max XL), temos de resetar o tamanho
-            if (!modelData.sizes[CURRENT_SIZE_KEY]) {
-                CURRENT_SIZE_KEY = 'M'; // Reset seguro
-            }
-            
-            // Força o redesenho dos botões S/M/L/XL/XXL
-            initSizeSelector();
-
-            // 2. Limpar a cena
-            addedModules.forEach(m => scene.remove(m.mesh)); 
-            addedModules = [];
-            
-            // 3. Carregar o novo modelo (o manager.onLoad vai tratar de restaurar a config)
-            loadModelAssets(modelId); 
-            updateSizePreview();
+            pendingConfiguration = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax }));
+            CURRENT_MODEL_ID = modelId; const modelData = DB_MODELS[modelId]; document.getElementById('model-type-badge').innerText = modelData.type;
+            if (!modelData.sizes[CURRENT_SIZE_KEY]) { CURRENT_SIZE_KEY = 'M'; }
+            initSizeSelector(); addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; loadModelAssets(modelId); updateSizePreview();
         };
 
         window.changeSize = function(sizeKey) {
-            // NOVA LÓGICA DE VALIDAÇÃO XXL
-            // Impede a seleção visual do botão XXL se o módulo obrigatório não estiver presente
             if (CURRENT_MODEL_ID === 'infinity' && sizeKey === 'XXL') {
                 const hasValidModule = addedModules.some(m => m.data.id === '2seats_2arms');
-                
-                if (!hasValidModule) {
-                    showFeedback("Tamanho XXL exclusivo para o módulo '2 Lug. 2 Braços'. Adicione-o primeiro.", "error");
-                    // Força o redesenho dos botões para garantir que o XXL não fica visualmente selecionado
-                    initSizeSelector(); 
-                    return; // Interrompe a função aqui, não mudando o tamanho
-                }
+                if (!hasValidModule) { showFeedback("Tamanho XXL exclusivo para o módulo '2 Lug. 2 Braços'. Adicione-o primeiro.", "error"); initSizeSelector(); return; }
             }
-
-            // NOVA NOTIFICAÇÃO (Mantemos como reforço positivo se passar a validação acima)
-            if (CURRENT_MODEL_ID === 'infinity' && sizeKey === 'XXL') {
-                showFeedback("Tamanho XXL aplicado ao módulo '2 Lug. 2 Braços'.", "success");
-            }
-
-            CURRENT_SIZE_KEY = sizeKey; initSizeSelector();
-            const currentModules = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax }));
-            addedModules.forEach(m => scene.remove(m.mesh)); addedModules = [];
-            currentModules.forEach(m => addModule(m.id, true, m.hasRelax)); repositionModules();
+            if (CURRENT_MODEL_ID === 'infinity' && sizeKey === 'XXL') { showFeedback("Tamanho XXL aplicado ao módulo '2 Lug. 2 Braços'.", "success"); }
+            CURRENT_SIZE_KEY = sizeKey; initSizeSelector(); const currentModules = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax }));
+            addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; currentModules.forEach(m => addModule(m.id, true, m.hasRelax)); repositionModules();
         };
         function updateSizePreview() { document.getElementById('size-preview').innerText = `${DB_MODELS[CURRENT_MODEL_ID].sizes[CURRENT_SIZE_KEY]} cm`; }
 
-        // UPDATED: Strict Model Loader
         function loadModelAssets(modelId) {
-            const modelData = DB_MODELS[modelId]; modelLibrary = {}; 
-            const loader = new THREE.GLTFLoader(manager); 
-            
-            // CONFIGURAÇÃO DRACO (ADICIONADA)
-            const dracoLoader = new THREE.DRACOLoader();
-            // Aponta para a biblioteca de descodificadores na cloud (WASM/JS)
-            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
-            dracoLoader.setDecoderConfig({ type: 'js' }); // Fallback seguro
-            loader.setDRACOLoader(dracoLoader);
-            
-            loader.setCrossOrigin('anonymous');
-            
-            const cacheBuster = `?v=${Date.now()}`;
-            
-            // ATUALIZAÇÃO: Lista expandida com os módulos novos indicados pelo utilizador
-            // Mantemos 'seat', 'corner', 'meridien' para compatibilidade com outros modelos
+            const modelData = DB_MODELS[modelId]; modelLibrary = {}; const loader = new THREE.GLTFLoader(manager); 
+            const dracoLoader = new THREE.DRACOLoader(); dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/'); dracoLoader.setDecoderConfig({ type: 'js' }); loader.setDRACOLoader(dracoLoader);
+            loader.setCrossOrigin('anonymous'); const cacheBuster = `?v=${Date.now()}`;
             const partsToLoad = ['seat', 'arm', 'corner', 'chaise', 'meridien', 'meiple', '2arm2seats', 'arm2seats'];
-
             partsToLoad.forEach(part => {
-                const folderName = modelData.folder;
-                const partCap = part.charAt(0).toUpperCase() + part.slice(1);
-                const folderCap = folderName.charAt(0).toUpperCase() + folderName.slice(1).toLowerCase();
-                const folderLower = folderName.toLowerCase();
-                
-                // COMBINAÇÕES DE CAMINHOS (Tentativa exaustiva para encontrar o ficheiro)
-                const paths = [
-                    // 1. Pasta Original / Ficheiro Original (Ex: Infinity/arm.glb)
-                    `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`,
-                    // 2. Pasta Minúscula / Ficheiro Original (Ex: infinity/arm.glb)
-                    `${GITHUB_REPO_URL}assets/models/${folderLower}/${part}.glb${cacheBuster}`,
-                    // 3. Pasta Original / Ficheiro Capitalizado (Ex: Infinity/Arm.glb)
-                    `${GITHUB_REPO_URL}assets/models/${folderName}/${partCap}.glb${cacheBuster}`,
-                    // 4. Pasta Minúscula / Ficheiro Capitalizado (Ex: infinity/Arm.glb) - ESTE FALTAVA
-                    `${GITHUB_REPO_URL}assets/models/${folderLower}/${partCap}.glb${cacheBuster}`,
-                    // 5. Pasta Capitalizada / Ficheiro Original (Ex: Infinity/arm.glb - redundante mas seguro)
-                    `${GITHUB_REPO_URL}assets/models/${folderCap}/${part}.glb${cacheBuster}`,
-                    // 6. Fallback Bartini (apenas se falhar tudo no Infinity)
-                    `${GITHUB_REPO_URL}assets/models/bartini/${part}.glb${cacheBuster}`
-                ];
-
-                // Função recursiva para tentar carregar a lista de caminhos
+                const folderName = modelData.folder; const partCap = part.charAt(0).toUpperCase() + part.slice(1); const folderCap = folderName.charAt(0).toUpperCase() + folderName.slice(1).toLowerCase(); const folderLower = folderName.toLowerCase();
+                const paths = [ `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderLower}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderName}/${partCap}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderLower}/${partCap}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderCap}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/bartini/${part}.glb${cacheBuster}` ];
                 const tryLoadPath = (index) => {
-                    if (index >= paths.length) {
-                        // Se esgotou todas as tentativas, tenta a raiz (para o Athena) ou desiste
-                        if (modelId === 'athena') {
-                             loader.load(`${GITHUB_REPO_URL}assets/models/${part}.glb`, (gltf) => processLoadedModel(gltf.scene, part), undefined, () => {});
-                        }
-                        return;
-                    }
-
-                    loader.load(paths[index], 
-                        (gltf) => {
-                            // Sucesso! Processa o modelo
-                            processLoadedModel(gltf.scene, part);
-                        }, 
-                        undefined, 
-                        (err) => {
-                            // Falha! Tenta o próximo caminho da lista
-                            tryLoadPath(index + 1);
-                        }
-                    );
+                    if (index >= paths.length) { if (modelId === 'athena') { loader.load(`${GITHUB_REPO_URL}assets/models/${part}.glb`, (gltf) => processLoadedModel(gltf.scene, part), undefined, () => {}); } return; }
+                    loader.load(paths[index], (gltf) => { processLoadedModel(gltf.scene, part); }, undefined, (err) => { tryLoadPath(index + 1); });
                 };
-
-                // Inicia a cadeia de tentativas
                 tryLoadPath(0);
             });
         }
@@ -1192,427 +943,135 @@
         function processLoadedModel(sceneObj, partKey) {
              const box = new THREE.Box3().setFromObject(sceneObj); const size = new THREE.Vector3(); box.getSize(size);
              if (size.x < 20) { sceneObj.scale.set(100, 100, 100); sceneObj.updateMatrixWorld(true); }
-             
-             // UPDATED: Hide Shadow Planes to avoid z-fighting and double shadows
-             sceneObj.traverse(n => { 
-                if (n.isMesh) { 
-                    if(n.name === 'shadow_plane') {
-                        n.visible = false;
-                        n.castShadow = false;
-                        n.receiveShadow = false;
-                    } else {
-                        n.castShadow = true; 
-                        n.receiveShadow = true; 
-                    }
-                } 
-             });
-             
+             sceneObj.traverse(n => { if (n.isMesh) { if(n.name === 'shadow_plane') { n.visible = false; n.castShadow = false; n.receiveShadow = false; } else { n.castShadow = true; n.receiveShadow = true; } } });
              modelLibrary[partKey] = sceneObj;
         }
 
         function createModuleMesh(moduleId) {
             const def = DB_MODULES.find(m => m.id === moduleId); const modelData = DB_MODELS[CURRENT_MODEL_ID]; const group = new THREE.Group();
-            
-            // LÓGICA DE EXCEÇÃO PARA O TAMANHO XXL NO INFINITY
-            // Se o tamanho atual for XXL, mas o módulo não for "2seats_2arms", forçamos o tamanho XL.
-            // Isso cumpre a regra "apenas na opção de 2 lugares com 2 braços".
             let effectiveSizeKey = CURRENT_SIZE_KEY;
-            if (CURRENT_MODEL_ID === 'infinity' && CURRENT_SIZE_KEY === 'XXL' && def.id !== '2seats_2arms') {
-                effectiveSizeKey = 'XL';
-            }
-
+            if (CURRENT_MODEL_ID === 'infinity' && CURRENT_SIZE_KEY === 'XXL' && def.id !== '2seats_2arms') { effectiveSizeKey = 'XL'; }
             let width = def.fixed ? modelData.cornerSize : modelData.sizes[effectiveSizeKey];
-            
-            // Ajuste para módulos duplos (fallback para caixa cinzenta se o modelo 3D falhar)
             if (def.id.startsWith('2seats')) width *= 2;
-
-            let depth = modelData.depth;
-            if (def.type === 'chaise') depth = modelData.chaiseDepth;
-            if (def.type === 'meridien') depth = modelData.chaiseDepth; // Add depth specifically for meridien
-            if (def.type === 'corner') depth = modelData.cornerSize;
+            let depth = modelData.depth; if (def.type === 'chaise') depth = modelData.chaiseDepth; if (def.type === 'meridien') depth = modelData.chaiseDepth; if (def.type === 'corner') depth = modelData.cornerSize;
             let totalWidth = width + (def.hasArm ? modelData.armWidth : 0);
-            
-            // REMOVED Manual construction logic for Meiple
-            // It now flows to the standard loading logic below using fileKey: 'meiple'
-
             const asset = modelLibrary[def.fileKey];
             if (asset) {
                 const mesh = asset.clone();
-                // Ajuste de escala para módulos que não são fixos
-                if (!def.fixed) { 
-                    const baseRefSize = 72; 
-                    
-                    // Calcular fator de escala usando o tamanho efetivo (com a regra de exceção aplicada)
-                    const scaleFactor = modelData.sizes[effectiveSizeKey] / baseRefSize; 
-                    mesh.scale.x *= scaleFactor; 
-                }
-                
-                // Logic for flipping/mirroring modules
-                let flip = def.hasArm === 'right'; 
-                
-                // Special case for meridien (always inverted relative to arm seat usually?)
-                if (def.type === 'meridien') {
-                    flip = def.hasArm === 'left';
-                }
-
-                // Special handling for Chaise based on model
-                if (def.type === 'chaise') {
-                    if (CURRENT_MODEL_ID === 'athena') {
-                        // Athena chaise behaves like standard arm seat (flip if right)
-                        flip = def.hasArm === 'right';
-                    } else {
-                        // Brittany, Bartini, Dayma (and likely Enzo) seem to have inverted Chaise assets
-                        flip = def.hasArm === 'left';
-                    }
-                }
-
-                // NEW: Invert arm modules for Kindia
-                if (CURRENT_MODEL_ID === 'kindia' && def.id.includes('seat_arm')) {
-                    flip = !flip;
-                }
-
-                if (flip) { 
-                    mesh.scale.x *= -1; 
-                    mesh.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); 
-                }
-                
-                const box = new THREE.Box3().setFromObject(mesh); const size = new THREE.Vector3(); box.getSize(size);
-                totalWidth = size.x; depth = size.z;
-                const center = new THREE.Vector3(); box.getCenter(center);
-                mesh.position.sub(center); mesh.position.y += (box.max.y - box.min.y) / 2;
-                
-                const isArmModule = def.id.includes('seat_arm');
-                const isDoubleArmModule = def.id.includes('2seats_arm'); // Novo check para os duplos
-                const isChaise = def.type === 'chaise';
-                const isMeridien = def.type === 'meridien';
-                const isBartini = CURRENT_MODEL_ID === 'bartini';
-                const isFiori = CURRENT_MODEL_ID === 'fiori';
-                const isKindia = CURRENT_MODEL_ID === 'kindia';
-                const isSting = CURRENT_MODEL_ID === 'sting'; 
-                const isInfinity = CURRENT_MODEL_ID === 'infinity'; // Novo
-
-                // Adicionado isSting e isInfinity à condição para não elevar
-                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity) {
-                    mesh.position.y += 12;
-                }
-                
-                // Specific adjustment for Kindia seat_no_arm (+4cm)
-                if (isKindia && def.id === 'seat_no_arm') {
-                    mesh.position.y += 4;
-                }
-
+                if (!def.fixed) { const baseRefSize = 72; const scaleFactor = modelData.sizes[effectiveSizeKey] / baseRefSize; mesh.scale.x *= scaleFactor; }
+                let flip = def.hasArm === 'right'; if (def.type === 'meridien') { flip = def.hasArm === 'left'; }
+                if (def.type === 'chaise') { if (CURRENT_MODEL_ID === 'athena') { flip = def.hasArm === 'right'; } else { flip = def.hasArm === 'left'; } }
+                if (CURRENT_MODEL_ID === 'kindia' && def.id.includes('seat_arm')) { flip = !flip; }
+                if (flip) { mesh.scale.x *= -1; mesh.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); }
+                const box = new THREE.Box3().setFromObject(mesh); const size = new THREE.Vector3(); box.getSize(size); totalWidth = size.x; depth = size.z;
+                const center = new THREE.Vector3(); box.getCenter(center); mesh.position.sub(center); mesh.position.y += (box.max.y - box.min.y) / 2;
+                const isArmModule = def.id.includes('seat_arm'); const isDoubleArmModule = def.id.includes('2seats_arm'); const isChaise = def.type === 'chaise'; const isMeridien = def.type === 'meridien'; const isBartini = CURRENT_MODEL_ID === 'bartini'; const isFiori = CURRENT_MODEL_ID === 'fiori'; const isKindia = CURRENT_MODEL_ID === 'kindia'; const isSting = CURRENT_MODEL_ID === 'sting'; const isInfinity = CURRENT_MODEL_ID === 'infinity';
+                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity) { mesh.position.y += 12; }
+                if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
                 group.add(mesh);
-            } else {
-                const box = new THREE.Mesh(new THREE.BoxGeometry(totalWidth, 45, depth), new THREE.MeshStandardMaterial({color:0x999999})); box.position.y = 34.5; group.add(box);
-            }
+            } else { const box = new THREE.Mesh(new THREE.BoxGeometry(totalWidth, 45, depth), new THREE.MeshStandardMaterial({color:0x999999})); box.position.y = 34.5; group.add(box); }
             group.userData = { def: def, width: totalWidth, depth: depth, hasRelax: false, relaxFactor: 0 };
             return group;
         }
 
         window.addModule = function(moduleId, silent = false, startRelax = false) {
-            // CORREÇÃO CRÍTICA: Bloquear adição de módulos inválidos para o modelo atual
-            // Isto impede que o 'seat_no_arm' (Centro) seja carregado no Infinity
             const modelData = DB_MODELS[CURRENT_MODEL_ID];
-            if (modelData.modules && !modelData.modules.includes(moduleId)) {
-                // Se não for silencioso, avisa (útil para debug), mas na migração automática deve apenas ignorar
-                if (!silent) console.warn(`Módulo ${moduleId} ignorado: inválido para ${modelData.name}`);
-                return;
-            }
-
+            if (modelData.modules && !modelData.modules.includes(moduleId)) { if (!silent) console.warn(`Módulo ${moduleId} ignorado`); return; }
             const mesh = createModuleMesh(moduleId); scene.add(mesh);
             const data = mesh.userData; data.hasRelax = startRelax; data.relaxFactor = startRelax ? 1 : 0;
             addedModules.push({ mesh: mesh, data: data.def, ...data });
-            
-            // CORREÇÃO: Aplicar materiais ativos ao novo módulo imediatamente
-            mesh.traverse((node) => { 
-                if (node.isMesh) { 
-                    const lowerName = node.name.toLowerCase(); 
-                    const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw));
-                    
-                    // Se já houver um tecido selecionado, aplica-o ao novo módulo
-                    if (!isLeg && node.name !== 'shadow_plane' && currentFabricMaterial) {
-                        node.material = currentFabricMaterial;
-                    }
-                    // Garante que os pés combinam com o resto (o default é preto se nada for escolhido)
-                    if (isLeg && currentLegMaterial) {
-                        node.material = currentLegMaterial;
-                    }
-                } 
-            });
-
+            mesh.traverse((node) => { if (node.isMesh) { const lowerName = node.name.toLowerCase(); const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw)); if (!isLeg && node.name !== 'shadow_plane' && currentFabricMaterial) { node.material = currentFabricMaterial; } if (isLeg && currentLegMaterial) { node.material = currentLegMaterial; } } });
             repositionModules(); if(!silent) showFeedback("Módulo Adicionado", "success");
         }
 
         function repositionModules() {
-            let cornerIdx = -1;
-            for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIdx = i; break; }
+            let cornerIdx = -1; for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIdx = i; break; }
             let cornerPos = { x:0, z:0, depth: 0 }; const modelData = DB_MODELS[CURRENT_MODEL_ID];
-            // Removed duplicate totalW declaration here
-
-            // Specific adjustment for Dayma to reduce gap
             const gapCorrection = (CURRENT_MODEL_ID === 'dayma') ? -2 : 0;
-
             addedModules.forEach((mod, i) => {
                 const mesh = mod.mesh;
                 if(cornerIdx === -1 || i <= cornerIdx) {
                     mod.isCornerLine = false; mesh.rotation.y = 0;
-                    if(i === 0) mesh.position.x = 0; 
-                    else { 
-                        const prev = addedModules[i-1]; 
-                        // Apply gap correction here
-                        mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2) + gapCorrection; 
-                    }
-                    mesh.position.z = ((mod.depth - modelData.depth) / 2);
-                    if(mod.data.type === 'corner') cornerPos = { x: mesh.position.x, z: mesh.position.z, depth: mod.depth };
-                } 
-                else {
+                    if(i === 0) mesh.position.x = 0; else { const prev = addedModules[i-1]; mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2) + gapCorrection; }
+                    mesh.position.z = ((mod.depth - modelData.depth) / 2); if(mod.data.type === 'corner') cornerPos = { x: mesh.position.x, z: mesh.position.z, depth: mod.depth };
+                } else {
                     mod.isCornerLine = true; mesh.rotation.y = -Math.PI / 2; 
-                    if(i === cornerIdx + 1) {
-                        // Apply gap correction here too
-                        mesh.position.z = cornerPos.z + (cornerPos.depth/2) + (mod.width/2) + gapCorrection;
-                    } else {
-                        const prev = addedModules[i-1];
-                        // Apply gap correction here too
-                        mesh.position.z = prev.mesh.position.z + (prev.width/2) + (mod.width/2) + gapCorrection;
-                    }
+                    if(i === cornerIdx + 1) { mesh.position.z = cornerPos.z + (cornerPos.depth/2) + (mod.width/2) + gapCorrection; } else { const prev = addedModules[i-1]; mesh.position.z = prev.mesh.position.z + (prev.width/2) + (mod.width/2) + gapCorrection; }
                     mesh.position.x = cornerPos.x + (cornerPos.depth/2) - (mod.depth/2);
                 }
             });
             let totalW = 0;
-            addedModules.forEach(m => { if(!m.isCornerLine) totalW += m.width; });
-            // Adjust total width calculation considering overlaps if necessary, but roughly keep it sum of widths for sales
-            // document.getElementById('total-width-display').innerText = Math.round(totalW) + " cm";
-             // Actually, true width is end position - start position. Let's calculate real dimension
-             if (addedModules.length > 0) {
-                 const first = addedModules[0];
-                 let lastInLine1 = addedModules.length - 1;
-                 if (cornerIdx !== -1) lastInLine1 = cornerIdx;
-                 
-                 const startX = first.mesh.position.x - first.width/2;
-                 const endX = addedModules[lastInLine1].mesh.position.x + addedModules[lastInLine1].width/2;
-                 totalW = endX - startX;
-             }
-             document.getElementById('total-width-display').innerText = Math.round(totalW) + " cm";
-
-             // CORREÇÃO: Atualizar as etiquetas de dimensão sempre que os módulos são reposicionados
-             updateDimensionLabels();
+            if (addedModules.length > 0) { const first = addedModules[0]; let lastInLine1 = addedModules.length - 1; if (cornerIdx !== -1) lastInLine1 = cornerIdx; const startX = first.mesh.position.x - first.width/2; const endX = addedModules[lastInLine1].mesh.position.x + addedModules[lastInLine1].width/2; totalW = endX - startX; }
+            document.getElementById('total-width-display').innerText = Math.round(totalW) + " cm";
+            updateDimensionLabels();
         }
 
         function animate() {
             requestAnimationFrame(animate); controls.update();
-            
-            // --- NEW: Check Camera Bounds Logic ---
             const btnRecenter = document.getElementById('btn-recenter');
-            if (btnRecenter) {
-                // Distância do ponto de foco ao centro (0,0,0)
-                const distTarget = controls.target.length(); 
-                // Distância da câmara ao ponto de foco (Zoom)
-                const distCam = camera.position.distanceTo(controls.target); 
-                
-                // Mostrar se estiver muito longe do centro OU muito zoom out
-                if (distTarget > 300 || distCam > 2000) {
-                    if(btnRecenter.classList.contains('hidden')) btnRecenter.classList.remove('hidden');
-                } else {
-                    if(!btnRecenter.classList.contains('hidden')) btnRecenter.classList.add('hidden');
-                }
-            }
-
+            if (btnRecenter) { const distTarget = controls.target.length(); const distCam = camera.position.distanceTo(controls.target); if (distTarget > 300 || distCam > 2000) { if(btnRecenter.classList.contains('hidden')) btnRecenter.classList.remove('hidden'); } else { if(!btnRecenter.classList.contains('hidden')) btnRecenter.classList.add('hidden'); } }
             const modelType = DB_MODELS[CURRENT_MODEL_ID].type;
             addedModules.forEach(mod => {
                 const target = mod.hasRelax ? 1 : 0; mod.relaxFactor += (target - mod.relaxFactor) * 0.08;
-                
-                // Otimização: parar processamento se já estiver na posição final
-                if (Math.abs(target - mod.relaxFactor) < 0.001 && (target === 0 || target === 1)) {
-                     // mod.relaxFactor = target; 
-                }
-
+                if (Math.abs(target - mod.relaxFactor) < 0.001 && (target === 0 || target === 1)) {}
                 if (modelType === 'relax') {
-                    const foot = mod.mesh.getObjectByName('footrest_anim') || mod.mesh.getObjectByName('recliner');
-                    const back = mod.mesh.getObjectByName('back_anim') || mod.mesh.getObjectByName('backrest');
+                    const foot = mod.mesh.getObjectByName('footrest_anim') || mod.mesh.getObjectByName('recliner'); const back = mod.mesh.getObjectByName('back_anim') || mod.mesh.getObjectByName('backrest');
                     if (foot) { foot.rotation.x = -Math.PI / 2.5 * mod.relaxFactor; foot.position.y = mod.relaxFactor * 30 + 12; foot.position.z = mod.relaxFactor * 40; }
                     if (back) back.rotation.x = -0.2 * mod.relaxFactor;
                 } else if (modelType === 'slide') {
-                    // APLICAÇÃO DA ANIMAÇÃO (MULTI-PEÇAS + CORREÇÃO DE ESCALA)
-                    
-                    let internalScale = 1;
-                    if (mod.mesh.children.length > 0) {
-                        internalScale = mod.mesh.children[0].scale.z;
-                    }
-                    
+                    let internalScale = 1; if (mod.mesh.children.length > 0) { internalScale = mod.mesh.children[0].scale.z; }
                     const slideDistance = 50 / internalScale;
-
-                    // Itera sobre TODAS as peças encontradas na lista sliderParts
-                    if (mod.sliderParts && mod.sliderParts.length > 0) {
-                        mod.sliderParts.forEach(part => {
-                             // Garante que temos a posição original
-                             if (part.userData.origZ === undefined) part.userData.origZ = part.position.z;
-                             
-                             // Aplica o movimento
-                             part.position.z = part.userData.origZ + (mod.relaxFactor * slideDistance);
-                        });
-                    }
-                    // Fallback legado para sliderGroup único (caso exista em cache antiga)
-                    else if (mod.sliderGroup) {
-                         mod.sliderGroup.position.z = mod.sliderGroup.userData.origZ + (mod.relaxFactor * slideDistance);
-                    }
+                    if (mod.sliderParts && mod.sliderParts.length > 0) { mod.sliderParts.forEach(part => { if (part.userData.origZ === undefined) part.userData.origZ = part.position.z; part.position.z = part.userData.origZ + (mod.relaxFactor * slideDistance); }); } else if (mod.sliderGroup) { mod.sliderGroup.position.z = mod.sliderGroup.userData.origZ + (mod.relaxFactor * slideDistance); }
                 }
             });
             if (scene) renderer.render(scene, camera);
         }
 
-        // --- FUNÇÃO DE PROCURA DE PEÇAS (MULTI-ASSENTO) ---
         function findSlideParts(mod) {
-            // Se já temos a lista populada, não fazemos nada
             if (mod.sliderParts && mod.sliderParts.length > 0) return true;
-
-            console.log("--- A PROCURAR TODOS OS 'ASSENTOS' NO MÓDULO: " + mod.data.name + " ---");
-            
             const foundNodes = [];
-            
             mod.mesh.traverse(node => {
-                // Ignora a raiz do módulo para não mover o sofá todo
                 if (node === mod.mesh) return;
-
                 const cleanName = node.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
-
-                // Critério de busca: nome contém "assento", "seat" ou "slid"
                 if (cleanName.includes('assento') || cleanName.includes('seat') || cleanName.includes('slid')) {
-                    
-                    // PROTEÇÃO DE HIERARQUIA: 
-                    // Verifica se algum PAI deste nó já foi adicionado à lista.
-                    // Se encontrarmos o GRUPO "Assento", não queremos adicionar também a MESH "Espuma" que está lá dentro,
-                    // senão a espuma move-se 2 vezes (uma vez pelo pai, outra vez por ela própria).
-                    let parentAlreadyFound = false;
-                    let curr = node.parent;
-                    while(curr && curr !== mod.mesh) {
-                        if (foundNodes.includes(curr)) {
-                            parentAlreadyFound = true;
-                            break;
-                        }
-                        curr = curr.parent;
-                    }
-
-                    if (!parentAlreadyFound) {
-                        foundNodes.push(node);
-                        console.log(">>> ALVO IDENTIFICADO:", node.name);
-                    }
+                    let parentAlreadyFound = false; let curr = node.parent; while(curr && curr !== mod.mesh) { if (foundNodes.includes(curr)) { parentAlreadyFound = true; break; } curr = curr.parent; }
+                    if (!parentAlreadyFound) { foundNodes.push(node); }
                 }
             });
-
-            // Se encontrou peças (uma ou várias)
-            if (foundNodes.length > 0) {
-                mod.sliderParts = foundNodes;
-                // Inicializa a posição original para todas
-                mod.sliderParts.forEach(p => { 
-                    if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; 
-                });
-                return true;
-            }
-
-            // Fallback: Procura meshes soltas (almofada/cushion) se não encontrou grupos "assento"
-            const fallbackParts = [];
-            mod.mesh.traverse(node => {
-               if (node.isMesh) {
-                   const n = node.name.toLowerCase();
-                   if (n.includes('almofada') || n.includes('cushion')) {
-                       fallbackParts.push(node);
-                   }
-               }
-            });
-            
-            if (fallbackParts.length > 0) {
-                mod.sliderParts = fallbackParts;
-                mod.sliderParts.forEach(p => { if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; });
-                console.log(">>> USANDO FALLBACK ALMOFADAS: " + fallbackParts.length + " itens");
-                return true;
-            }
-
-            console.warn(">>> FALHA: Nenhuma peça 'assento' encontrada.");
+            if (foundNodes.length > 0) { mod.sliderParts = foundNodes; mod.sliderParts.forEach(p => { if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; }); return true; }
+            const fallbackParts = []; mod.mesh.traverse(node => { if (node.isMesh) { const n = node.name.toLowerCase(); if (n.includes('almofada') || n.includes('cushion')) { fallbackParts.push(node); } } });
+            if (fallbackParts.length > 0) { mod.sliderParts = fallbackParts; mod.sliderParts.forEach(p => { if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; }); return true; }
             return false;
         }
 
-        // --- NEW: Helper function to handle interaction logic ---
         function interactWithScene(x, y) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((x - rect.left) / rect.width) * 2 - 1; 
-            mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
-            
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(scene.children, true);
+            const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((x - rect.left) / rect.width) * 2 - 1; mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(scene.children, true);
             const hoverMenu = document.getElementById('module-hover-menu');
-            
             if (intersects.length > 0) {
-                let obj = intersects[0].object; 
-                while(obj.parent && obj.parent.type !== 'Scene') obj = obj.parent;
+                let obj = intersects[0].object; while(obj.parent && obj.parent.type !== 'Scene') obj = obj.parent;
                 const idx = addedModules.findIndex(m => m.mesh === obj);
-                
                 if (idx !== -1) {
                     const mod = addedModules[idx];
-                    const vector = new THREE.Vector3(); 
-                    mod.mesh.getWorldPosition(vector); 
-                    vector.y += 60; 
-                    vector.project(camera);
-                    
-                    const screenX = (vector.x * .5 + .5) * renderer.domElement.clientWidth; 
-                    const screenY = (vector.y * -.5 + .5) * renderer.domElement.clientHeight;
-                    
-                    hoverMenu.style.left = `${screenX}px`; 
-                    hoverMenu.style.top = `${screenY}px`; 
-                    hoverMenu.classList.add('visible');
-                    
-                    const btnRelax = document.getElementById('btn-relax');
-                    const btnRemove = document.getElementById('btn-remove');
-                    
+                    const vector = new THREE.Vector3(); mod.mesh.getWorldPosition(vector); vector.y += 60; vector.project(camera);
+                    const screenX = (vector.x * .5 + .5) * renderer.domElement.clientWidth; const screenY = (vector.y * -.5 + .5) * renderer.domElement.clientHeight;
+                    hoverMenu.style.left = `${screenX}px`; hoverMenu.style.top = `${screenY}px`; hoverMenu.classList.add('visible');
+                    const btnRelax = document.getElementById('btn-relax'); const btnRemove = document.getElementById('btn-remove');
                     if (DB_MODELS[CURRENT_MODEL_ID].type === 'fixed') btnRelax.style.display = 'none';
                     else { 
-                        btnRelax.style.display = 'flex'; 
-                        const isSlide = DB_MODELS[CURRENT_MODEL_ID].type === 'slide';
-                        document.getElementById('relax-text').innerText = isSlide ? 'Deslizar' : 'Relax'; 
-                        
-                        // Atualização: Feedback visual ao clicar com verificação de peças
-                        btnRelax.onclick = () => { 
-                            if (isSlide) {
-                                // Tenta encontrar as peças AGORA e dá feedback se falhar
-                                const found = findSlideParts(mod);
-                                if (!found) {
-                                    showFeedback("ERRO: Peça 'assento' não encontrada no 3D.", "error");
-                                    return;
-                                }
-                            }
-                            
-                            mod.hasRelax = !mod.hasRelax; 
-                            if (isSlide) showFeedback(mod.hasRelax ? "A deslizar..." : "A recolher...", "success");
-                        }; 
-                        
-                        // Muda a cor do botão se estiver ativo
-                        if (mod.hasRelax) btnRelax.classList.add('active');
-                        else btnRelax.classList.remove('active');
+                        btnRelax.style.display = 'flex'; const isSlide = DB_MODELS[CURRENT_MODEL_ID].type === 'slide'; document.getElementById('relax-text').innerText = isSlide ? 'Deslizar' : 'Relax'; 
+                        btnRelax.onclick = () => { if (isSlide) { const found = findSlideParts(mod); if (!found) { showFeedback("ERRO: Peça 'assento' não encontrada.", "error"); return; } } mod.hasRelax = !mod.hasRelax; if (isSlide) showFeedback(mod.hasRelax ? "A deslizar..." : "A recolher...", "success"); }; 
+                        if (mod.hasRelax) btnRelax.classList.add('active'); else btnRelax.classList.remove('active');
                     }
-                    
-                    btnRemove.onclick = () => { 
-                        scene.remove(mod.mesh); 
-                        addedModules.splice(idx, 1); 
-                        repositionModules(); 
-                        hoverMenu.classList.remove('visible'); 
-                    };
-                    return true; // Found and handled
+                    btnRemove.onclick = () => { scene.remove(mod.mesh); addedModules.splice(idx, 1); repositionModules(); hoverMenu.classList.remove('visible'); };
+                    return true;
                 }
             }
-            // Pequeno delay para evitar flickering se o rato passar rápido
-            // Mas mantemos simples: se não intersecta nada, esconde
-            hoverMenu.classList.remove('visible');
-            return false; // Nothing found
+            hoverMenu.classList.remove('visible'); return false;
         }
 
-        // --- UPDATED: Mouse move handler using shared logic ---
-        function onMouseMove(e) {
-            interactWithScene(e.clientX, e.clientY);
-        }
-
-        // --- UPDATED: Click/Tap handler for mobile support ---
-        function onMouseClick(e) {
-            interactWithScene(e.clientX, e.clientY);
-        }
+        function onMouseMove(e) { interactWithScene(e.clientX, e.clientY); }
+        function onMouseClick(e) { interactWithScene(e.clientX, e.clientY); }
 
         function updateDimensionLabels() {
              while(dimensionLinesGroup.children.length > 0){ const obj = dimensionLinesGroup.children[0]; if(obj.material && obj.material.map) obj.material.map.dispose(); dimensionLinesGroup.remove(obj); }
@@ -1621,29 +1080,22 @@
             const endLeg1Index = cornerIndex === -1 ? addedModules.length - 1 : cornerIndex; let startX = 0; let endX = 0;
             if(addedModules.length > 0) {
                 const first = addedModules[0]; const lastLeg1 = addedModules[endLeg1Index]; endX = lastLeg1.mesh.position.x + lastLeg1.width/2; startX = -first.width/2; leg1Length = endX - startX;
-                const lineY = 110; const linePoints = [new THREE.Vector3(startX, lineY, 0), new THREE.Vector3(endX, lineY, 0)];
-                const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePoints), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 })); dimensionLinesGroup.add(line);
+                const lineY = 110; const linePoints = [new THREE.Vector3(startX, lineY, 0), new THREE.Vector3(endX, lineY, 0)]; const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePoints), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 })); dimensionLinesGroup.add(line);
                 const sprite = createTextSprite(Math.round(leg1Length) + " cm"); sprite.position.set((startX + endX)/2, lineY + 15, 0); dimensionLinesGroup.add(sprite);
             }
             if(cornerIndex !== -1 && cornerIndex < addedModules.length - 1) {
-                const corner = addedModules[cornerIndex]; const lastLeg2 = addedModules[addedModules.length - 1];
-                const startZ = corner.mesh.position.z - corner.depth/2; const endZ = lastLeg2.mesh.position.z + lastLeg2.width/2; leg2Length = endZ - startZ;
-                const lineX = corner.mesh.position.x + corner.width/2 + 20; const lineY = 110;
-                const linePointsZ = [new THREE.Vector3(lineX, lineY, startZ), new THREE.Vector3(lineX, lineY, endZ)];
-                const lineZ = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePointsZ), new THREE.LineBasicMaterial({ color: 0xffffff })); dimensionLinesGroup.add(lineZ);
+                const corner = addedModules[cornerIndex]; const lastLeg2 = addedModules[addedModules.length - 1]; const startZ = corner.mesh.position.z - corner.depth/2; const endZ = lastLeg2.mesh.position.z + lastLeg2.width/2; leg2Length = endZ - startZ;
+                const lineX = corner.mesh.position.x + corner.width/2 + 20; const lineY = 110; const linePointsZ = [new THREE.Vector3(lineX, lineY, startZ), new THREE.Vector3(lineX, lineY, endZ)]; const lineZ = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePointsZ), new THREE.LineBasicMaterial({ color: 0xffffff })); dimensionLinesGroup.add(lineZ);
                 const spriteZ = createTextSprite(Math.round(leg2Length) + " cm"); spriteZ.position.set(lineX + 10, lineY + 15, (startZ + endZ)/2); dimensionLinesGroup.add(spriteZ);
             }
         }
         function createTextSprite(message) {
-            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); const fontSize = 64;
-            ctx.font = "Bold " + fontSize + "px Arial"; const textWidth = ctx.measureText(message).width; canvas.width = textWidth + 40; canvas.height = fontSize + 40;
-            ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; 
-            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, canvas.width, canvas.height, 20); ctx.fill(); } else { ctx.fillRect(0, 0, canvas.width, canvas.height); }
+            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); const fontSize = 64; ctx.font = "Bold " + fontSize + "px Arial"; const textWidth = ctx.measureText(message).width; canvas.width = textWidth + 40; canvas.height = fontSize + 40;
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, canvas.width, canvas.height, 20); ctx.fill(); } else { ctx.fillRect(0, 0, canvas.width, canvas.height); }
             ctx.fillStyle = "white"; ctx.font = "Bold " + fontSize + "px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(message, canvas.width/2, canvas.height/2);
             const texture = new THREE.CanvasTexture(canvas); const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false })); sprite.scale.set(canvas.width * 0.15, canvas.height * 0.15, 1); sprite.renderOrder = 999; return sprite;
         }
 
-        // Helper Functions
         function showFeedback(msg, type) {
             const el = document.getElementById('feedback-message'); if(!el) return; el.textContent = msg;
             let className = "fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-5 py-2 rounded-full text-white font-bold shadow-lg transition-opacity duration-300 pointer-events-none opacity-100 show-feedback flex items-center gap-2 ";
@@ -1652,175 +1104,24 @@
         }
         function uiSet(id, prop, val) { const el = document.getElementById(id); if(el) el.style[prop] = val; }
         function uiText(id, text) { const el = document.getElementById(id); if(el) el.innerText = text; }
-
         function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
-        function onMouseClick() {} 
-
         function enterRoomMode(imgUrl) {
-            const bgDiv = document.getElementById('room-background');
-            const controls = document.getElementById('room-controls');
+            const bgDiv = document.getElementById('room-background'); const controls = document.getElementById('room-controls');
             bgDiv.style.backgroundImage = `url(${imgUrl})`; bgDiv.style.display = 'block'; controls.style.display = 'flex';
             renderer.setClearColor(0x000000, 0); scene.background = null; scene.fog = null;
-            
-            // Esconder chão visual ao entrar em AR/Sala
-            const gVis = scene.getObjectByName('env_ground_visual');
-            if(gVis) gVis.visible = false;
-            
-            // Ajustar sombras para o modo sala
-            const gShadow = scene.getObjectByName('env_ground_shadow');
-            if(gShadow) gShadow.material.opacity = 0.5;
-
+            const gVis = scene.getObjectByName('env_ground_visual'); if(gVis) gVis.visible = false; const gShadow = scene.getObjectByName('env_ground_shadow'); if(gShadow) gShadow.material.opacity = 0.5;
             const grid = scene.getObjectByName('env_grid'); if(grid) grid.visible = false;
-            camera.position.set(0, 100, 400); camera.lookAt(0, 50, 0);
-            showFeedback("Modo Sala Ativo! Ajuste o sofá.", "success");
-            if (imgUrl.startsWith('data:image')) autoStyleWithAI(imgUrl);
+            camera.position.set(0, 100, 400); camera.lookAt(0, 50, 0); showFeedback("Modo Sala Ativo! Ajuste o sofá.", "success");
         }
         function exitRoomMode() {
-            document.getElementById('room-background').style.display = 'none';
-            document.getElementById('room-controls').style.display = 'none';
-            document.getElementById('ai-room-analysis').classList.add('hidden');
-            
-            const bgColor = 0xffffff;
-            renderer.setClearColor(bgColor, 1); 
-            scene.background = new THREE.Color(bgColor); 
-            scene.fog = new THREE.Fog(bgColor, 800, 2500);
-            
-            // Restaurar chão visual
-            const gVis = scene.getObjectByName('env_ground_visual');
-            if(gVis) gVis.visible = true;
-
-            const gShadow = scene.getObjectByName('env_ground_shadow');
-            if(gShadow) gShadow.material.opacity = 0.3;
-            
+            document.getElementById('room-background').style.display = 'none'; document.getElementById('room-controls').style.display = 'none'; document.getElementById('ai-room-analysis').classList.add('hidden');
+            const bgColor = 0xffffff; renderer.setClearColor(bgColor, 1); scene.background = new THREE.Color(bgColor); scene.fog = new THREE.Fog(bgColor, 800, 2500);
+            const gVis = scene.getObjectByName('env_ground_visual'); if(gVis) gVis.visible = true; const gShadow = scene.getObjectByName('env_ground_shadow'); if(gShadow) gShadow.material.opacity = 0.3;
             const grid = scene.getObjectByName('env_grid'); if(grid) grid.visible = true;
         }
         window.exitRoomMode = exitRoomMode;
 
-        async function callGemini(type, userText = "", imageData = null) {
-            // Removida verificação manual da API Key
-            
-            let prompt = "";
-            let sysInstruct = "";
-
-            if (type === "JSON") {
-                const validIds = DB_MODULES.map(m => m.id).join(', ');
-                prompt = `Gera apenas um array JSON (sem markdown, sem texto extra) contendo uma lista de IDs de módulos para montar um sofá baseado nisto: "${userText}".
-                IDs válidos: ${validIds}.
-                Exemplo de resposta: ["seat_arm_l", "seat_no_arm", "seat_arm_r"]`;
-            } else if (type === "DESC") {
-                const config = addedModules.map(m => m.data.name).join(', ');
-                prompt = `Escreve uma descrição comercial, elegante e apelativa (em Português de Portugal) para um sofá com esta configuração: ${config}. O modelo é ${DB_MODELS[CURRENT_MODEL_ID].name}. Destaca o conforto e o design.`;
-            } else if (type === "RECOMMEND") {
-                // Create a simplified list of fabrics for the AI to choose from
-                // To save tokens, maybe just send the Collection Names and a few generic color codes or just names?
-                // Actually, let's try sending a mapped list.
-                const fabricOptions = FABRIC_LIBRARY.map(f => `${f.id}: ${f.name} (${f.color})`).join('\n');
-                
-                prompt = `Analisa esta imagem da sala. Atua como um decorador de interiores.
-                Tenho estes tecidos disponíveis:
-                ${fabricOptions}
-                
-                Escolhe O MELHOR tecido desta lista que combine com a sala.
-                Responde APENAS com um objeto JSON neste formato:
-                {
-                    "reasoning": "Texto curto (PT-PT) a explicar a escolha (max 2 frases).",
-                    "fabricId": "O ID exato do tecido escolhido da lista acima"
-                }`;
-            }
-
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            
-            const payload = {
-                contents: [{
-                    parts: [
-                        { text: prompt },
-                        ...(imageData ? [{ inline_data: { mime_type: "image/png", data: imageData.split(',')[1] } }] : [])
-                    ]
-                }]
-            };
-
-            // Add JSON schema enforcement if type is JSON or RECOMMEND
-            if (type === "JSON" || type === "RECOMMEND") {
-                payload.generationConfig = { response_mime_type: "application/json" };
-            }
-
-            try {
-                const response = await fetch(url, { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify(payload) 
-                });
-                const data = await response.json();
-                
-                if (data.error) {
-                    console.error("Gemini Error:", data.error);
-                    throw new Error(data.error.message);
-                }
-                
-                return data.candidates[0].content.parts[0].text;
-            } catch (e) { 
-                console.error(e);
-                return null; 
-            }
-        }
-
-        async function autoStyleWithAI(img) {
-            const analysisDiv = document.getElementById('ai-room-analysis');
-            const analysisText = document.getElementById('room-analysis-text');
-            const loader = document.querySelector('#btn-analyze-room .ai-loader');
-            
-            if(loader) loader.classList.remove('hidden');
-            showFeedback("A analisar a sala...", "success");
-            
-            const text = await callGemini("RECOMMEND", "", img);
-            
-            if(loader) loader.classList.add('hidden');
-            
-            if (text) {
-                try {
-                    const result = JSON.parse(text);
-                    analysisDiv.classList.remove('hidden');
-                    analysisText.innerText = result.reasoning;
-                    
-                    if (result.fabricId) {
-                        setFabricFromLibrary(result.fabricId);
-                        showFeedback(`Tecido aplicado: ${result.fabricId}`, "success");
-                    }
-                    uiSet('ai-modal', 'display', 'flex');
-                } catch (e) {
-                    // Fallback for plain text if JSON fails (legacy/fallback)
-                    analysisDiv.classList.remove('hidden');
-                    analysisText.innerText = text;
-                    uiSet('ai-modal', 'display', 'flex');
-                }
-            } else {
-                showFeedback("Falha na análise IA", "error");
-            }
-        }
-
-        async function magicBuild() {
-             const val = document.getElementById('ai-prompt').value;
-             if(!val) return;
-             const text = await callGemini("JSON", val);
-             // JSON parsing safety
-             try {
-                 const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
-                 const ids = JSON.parse(jsonStr);
-                 addedModules.forEach(m => scene.remove(m.mesh)); addedModules = [];
-                 if(Array.isArray(ids)) ids.forEach(id => { if(DB_MODULES.find(m=>m.id===id)) addModule(id, true); });
-                 repositionModules(); showFeedback("Sofá gerado com IA!", "success"); uiSet('ai-modal', 'display', 'none');
-             } catch(e) { showFeedback("A IA respondeu, mas não entendi.", "error"); }
-        }
-        async function generateDescription() {
-            const btn = document.getElementById('ai-describe-btn');
-            const out = document.getElementById('ai-description-output');
-            if(!addedModules.length) { showFeedback("Adicione módulos!", "error"); return; }
-            if(btn) btn.disabled = true;
-            const text = await callGemini("DESC");
-            out.textContent = text || "Não foi possível gerar a descrição.";
-            if(btn) btn.disabled = false;
-        }
-
+        // Upload/AR handlers
         function uploadToHost(blob) {
             const formData = new FormData(); formData.append('file', blob, 'sofa-eleganza.glb');
             uiSet('ar-loading', 'display', 'block'); uiText('ar-status-text', "A enviar...");
@@ -1837,19 +1138,13 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-             document.getElementById('room-upload').addEventListener('change', (e) => {
-                 if(e.target.files[0]) { const r = new FileReader(); r.onload = (evt) => enterRoomMode(evt.target.result); r.readAsDataURL(e.target.files[0]); }
-             });
-             const arBtn = document.getElementById('btn-ar-open');
-             if(arBtn) arBtn.addEventListener('click', exportToAR);
-             const closeAr = document.getElementById('close-ar-btn');
-             if(closeAr) closeAr.addEventListener('click', () => uiSet('ar-modal', 'display', 'none'));
-             const closeAi = document.getElementById('close-ai-btn');
-             if(closeAi) closeAi.addEventListener('click', () => uiSet('ai-modal', 'display', 'none'));
+             document.getElementById('room-upload').addEventListener('change', (e) => { if(e.target.files[0]) { const r = new FileReader(); r.onload = (evt) => enterRoomMode(evt.target.result); r.readAsDataURL(e.target.files[0]); } });
+             const arBtn = document.getElementById('btn-ar-open'); if(arBtn) arBtn.addEventListener('click', exportToAR);
+             const closeAr = document.getElementById('close-ar-btn'); if(closeAr) closeAr.addEventListener('click', () => uiSet('ar-modal', 'display', 'none'));
+             const closeAi = document.getElementById('close-ai-btn'); if(closeAi) closeAi.addEventListener('click', () => uiSet('ai-modal', 'display', 'none'));
         });
 
         window.onload = init;
-
     </script>
 </body>
 </html>
