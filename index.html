@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V4.31 (Order Validation)</title>
+    <title>Configurador 3D Eleganza - V4.33 (Rotation Reverted)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -375,7 +375,12 @@
             'dayma': { name: 'Dayma', type: 'relax', folder: 'dayma', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'enzo': { name: 'Enzo', type: 'relax', folder: 'enzo', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'fiori': { name: 'Fiori', type: 'relax', folder: 'fiori', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
+            // ATUALIZAÇÃO: Adicionado tamanho XXL (110cm) exclusivamente no Infinity
             'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, 
+                modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] 
+            },
+            // ADIÇÃO: Modelo Magic (Cópia das condições do Infinity)
+            'magic': { name: 'Magic (Deslizante)', type: 'slide', folder: 'magic', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, 
                 modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] 
             },
             'kindia': { name: 'Kindia', type: 'relax', folder: 'kindia', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 0, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'chaise_l', 'chaise_r'] },
@@ -537,7 +542,7 @@
                 
                 // Tamanho
                 let sizeStr = CURRENT_SIZE_KEY;
-                if (CURRENT_MODEL_ID === 'infinity' && CURRENT_SIZE_KEY === 'XXL' && mod.data.id !== '2seats_2arms') {
+                if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && CURRENT_SIZE_KEY === 'XXL' && mod.data.id !== '2seats_2arms') {
                     sizeStr = 'XL (Restrição Infinity)';
                 } else if (mod.data.fixed) {
                     sizeStr = 'Fixo (Canto/Meridien)';
@@ -622,7 +627,7 @@
             // 5. Tabela de Módulos (AutoTable)
             const tableBody = addedModules.map((mod, index) => {
                 let sizeStr = CURRENT_SIZE_KEY;
-                if (CURRENT_MODEL_ID === 'infinity' && CURRENT_SIZE_KEY === 'XXL' && mod.data.id !== '2seats_2arms') {
+                if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && CURRENT_SIZE_KEY === 'XXL' && mod.data.id !== '2seats_2arms') {
                     sizeStr = 'XL';
                 } else if (mod.data.fixed) {
                     sizeStr = '-';
@@ -641,7 +646,8 @@
 
             doc.autoTable({
                 startY: y,
-                head: [['#', 'Módulo', 'Tamanho', 'Acabamento']],
+                // CORREÇÃO: "Tipo de Mecanismo" em vez de "Acabamento"
+                head: [['#', 'Módulo', 'Tamanho', 'Tipo de Mecanismo']],
                 body: tableBody,
                 theme: 'grid',
                 headStyles: { fillColor: [232, 76, 38], textColor: 255, fontStyle: 'bold' },
@@ -650,7 +656,7 @@
                     0: { cellWidth: 15 },
                     1: { cellWidth: 'auto' },
                     2: { cellWidth: 30 },
-                    3: { cellWidth: 40, fontStyle: 'bold' } // Destaque na coluna acabamento
+                    3: { cellWidth: 40, fontStyle: 'bold' } // Destaque na coluna mecanismo
                 }
             });
             
@@ -914,11 +920,11 @@
         };
 
         window.changeSize = function(sizeKey) {
-            if (CURRENT_MODEL_ID === 'infinity' && sizeKey === 'XXL') {
+            if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && sizeKey === 'XXL') {
                 const hasValidModule = addedModules.some(m => m.data.id === '2seats_2arms');
                 if (!hasValidModule) { showFeedback("Tamanho XXL exclusivo para o módulo '2 Lug. 2 Braços'. Adicione-o primeiro.", "error"); initSizeSelector(); return; }
             }
-            if (CURRENT_MODEL_ID === 'infinity' && sizeKey === 'XXL') { showFeedback("Tamanho XXL aplicado ao módulo '2 Lug. 2 Braços'.", "success"); }
+            if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && sizeKey === 'XXL') { showFeedback("Tamanho XXL aplicado ao módulo '2 Lug. 2 Braços'.", "success"); }
             CURRENT_SIZE_KEY = sizeKey; initSizeSelector(); const currentModules = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax }));
             addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; currentModules.forEach(m => addModule(m.id, true, m.hasRelax)); repositionModules();
         };
@@ -950,7 +956,8 @@
         function createModuleMesh(moduleId) {
             const def = DB_MODULES.find(m => m.id === moduleId); const modelData = DB_MODELS[CURRENT_MODEL_ID]; const group = new THREE.Group();
             let effectiveSizeKey = CURRENT_SIZE_KEY;
-            if (CURRENT_MODEL_ID === 'infinity' && CURRENT_SIZE_KEY === 'XXL' && def.id !== '2seats_2arms') { effectiveSizeKey = 'XL'; }
+            const isSlidingModel = ['infinity', 'magic'].includes(CURRENT_MODEL_ID);
+            if (isSlidingModel && CURRENT_SIZE_KEY === 'XXL' && def.id !== '2seats_2arms') { effectiveSizeKey = 'XL'; }
             let width = def.fixed ? modelData.cornerSize : modelData.sizes[effectiveSizeKey];
             if (def.id.startsWith('2seats')) width *= 2;
             let depth = modelData.depth; if (def.type === 'chaise') depth = modelData.chaiseDepth; if (def.type === 'meridien') depth = modelData.chaiseDepth; if (def.type === 'corner') depth = modelData.cornerSize;
@@ -965,8 +972,9 @@
                 if (flip) { mesh.scale.x *= -1; mesh.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); }
                 const box = new THREE.Box3().setFromObject(mesh); const size = new THREE.Vector3(); box.getSize(size); totalWidth = size.x; depth = size.z;
                 const center = new THREE.Vector3(); box.getCenter(center); mesh.position.sub(center); mesh.position.y += (box.max.y - box.min.y) / 2;
-                const isArmModule = def.id.includes('seat_arm'); const isDoubleArmModule = def.id.includes('2seats_arm'); const isChaise = def.type === 'chaise'; const isMeridien = def.type === 'meridien'; const isBartini = CURRENT_MODEL_ID === 'bartini'; const isFiori = CURRENT_MODEL_ID === 'fiori'; const isKindia = CURRENT_MODEL_ID === 'kindia'; const isSting = CURRENT_MODEL_ID === 'sting'; const isInfinity = CURRENT_MODEL_ID === 'infinity';
-                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity) { mesh.position.y += 12; }
+                const isArmModule = def.id.includes('seat_arm'); const isDoubleArmModule = def.id.includes('2seats_arm'); const isChaise = def.type === 'chaise'; const isMeridien = def.type === 'meridien'; const isBartini = CURRENT_MODEL_ID === 'bartini'; const isFiori = CURRENT_MODEL_ID === 'fiori'; const isKindia = CURRENT_MODEL_ID === 'kindia'; const isSting = CURRENT_MODEL_ID === 'sting'; 
+                const isInfinity = CURRENT_MODEL_ID === 'infinity'; const isMagic = CURRENT_MODEL_ID === 'magic';
+                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic) { mesh.position.y += 12; }
                 if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
                 group.add(mesh);
             } else { const box = new THREE.Mesh(new THREE.BoxGeometry(totalWidth, 45, depth), new THREE.MeshStandardMaterial({color:0x999999})); box.position.y = 34.5; group.add(box); }
