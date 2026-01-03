@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V4.33 (Rotation Reverted)</title>
+    <title>Configurador 3D Eleganza - V4.46 (Final Consolidated)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,6 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
+    <!-- Three.js e Loaders -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -36,117 +37,60 @@
     <style>
         body { margin: 0; overflow: hidden; background-color: #f3f4f6; font-family: 'Inter', sans-serif; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        #room-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background-size: cover; background-position: center bottom; display: none; transition: background-image 0.5s ease-in-out; }
         
-        /* Fundo da Sala */
-        #room-background { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; 
-            background-size: cover; background-position: center bottom; 
-            display: none; transition: background-image 0.5s ease-in-out; 
-        }
-        
-        /* Seletor de Modelo */
-        #model-selector-bar {
-            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
-            background: white; padding: 8px 20px; border-radius: 50px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 20;
-            display: flex; gap: 12px; align-items: center; border: 1px solid #e5e7eb;
-        }
-        
+        #model-selector-bar { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; justify-content: center; background: transparent; box-shadow: none; border: none; padding: 0; }
+        .model-trigger-btn { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); padding: 10px 24px; border-radius: 50px; border: 1px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.3s ease; font-family: 'Inter', sans-serif; }
+        .model-trigger-btn:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
+        .model-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; font-weight: 700; }
+        .model-current { font-size: 16px; font-weight: 800; color: #1f2937; }
+        .model-chevron { color: #e84c26; font-size: 14px; transition: transform 0.3s; }
+        .model-trigger-btn:hover .model-chevron { transform: rotate(180deg); }
+
         .ui-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); }
         .module-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-        
-        #feedback-message { 
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
-            z-index: 100; padding: 10px 20px; border-radius: 20px; 
-            color: white; font-weight: bold; opacity: 0; 
-            transition: opacity 0.3s; pointer-events: none; 
-            display: flex; align-items: center; gap: 8px;
-        }
+        #feedback-message { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; padding: 10px 20px; border-radius: 20px; color: white; font-weight: bold; opacity: 0; transition: opacity 0.3s; pointer-events: none; display: flex; align-items: center; gap: 8px; }
         .show-feedback { opacity: 1 !important; }
-        
         #app-loader { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
         .loader-bar { width: 200px; height: 4px; background: #eee; border-radius: 2px; overflow: hidden; margin-top: 15px; }
         .loader-progress { width: 0%; height: 100%; background: #e84c26; transition: width 0.3s; }
         
-        /* --- ESTILOS DE TECIDOS V4.3 --- */
-        .fabric-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px 12px; 
-            padding: 12px; 
-            padding-bottom: 40px; 
-            align-content: start; 
-        }
-        
-        .fabric-item { 
-            aspect-ratio: 1; border-radius: 12px; cursor: pointer; position: relative; overflow: hidden; 
-            border: 2px solid #e5e7eb; background-color: #d1d5db; 
-            background-repeat: no-repeat; 
-            transition: all 0.2s ease; 
-        }
+        .fabric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px 12px; padding: 12px; padding-bottom: 40px; align-content: start; }
+        .fabric-item { aspect-ratio: 1; border-radius: 12px; cursor: pointer; position: relative; overflow: hidden; border: 2px solid #e5e7eb; background-color: #d1d5db; background-repeat: no-repeat; transition: all 0.2s ease; }
         .fabric-item:hover { transform: scale(1.05); border-color: #9ca3af; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .fabric-item.active { border-color: #e84c26; box-shadow: 0 0 0 2px rgba(232, 76, 38, 0.2); }
-        
-        .fabric-item.active::after {
-            content: '\f00c'; font-family: 'Font Awesome 5 Free'; font-weight: 900;
-            position: absolute; top: 6px; right: 6px; color: white; background: #e84c26;
-            width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .fabric-name { 
-            position: absolute; bottom: 0; left: 0; right: 0; 
-            background: rgba(0, 0, 0, 0.7); 
-            color: white; font-size: 10px; font-weight: 600;
-            padding: 4px; text-align: center; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-        }
+        .fabric-item.active::after { content: '\f00c'; font-family: 'Font Awesome 5 Free'; font-weight: 900; position: absolute; top: 6px; right: 6px; color: white; background: #e84c26; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .fabric-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0, 0, 0, 0.7); color: white; font-size: 10px; font-weight: 600; padding: 4px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* Spinner para carregamento de texturas */
-        .loading-spinner {
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top: 3px solid #e84c26;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            position: absolute;
-            top: 50%; left: 50%;
-            margin-top: -10px; margin-left: -10px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .model-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; padding: 10px; }
+        .model-card { background: #ffffff; border: 2px solid #e5e7eb; border-radius: 16px; padding: 12px; cursor: pointer; text-align: center; transition: all 0.2s ease; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; height: 100%; }
+        .model-card:hover { border-color: #e84c26; background: #fff7ed; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(232, 76, 38, 0.1); }
+        .model-card.active { border-color: #e84c26; background: white; box-shadow: 0 0 0 2px rgba(232, 76, 38, 0.2); }
+        .model-card-img { width: 100%; height: 90px; object-fit: contain; margin-bottom: 10px; border-radius: 8px; background-color: #f3f4f6; }
+        .model-card.active .model-card-img { background-color: #fff; }
+        .model-card-name { font-weight: 800; font-size: 13px; color: #1f2937; margin-bottom: 6px; width: 100%; }
+        .model-badge { display: inline-block; font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 10px; margin-top: auto; }
+        .badge-relax { background: #dbeafe; color: #1e40af; }
+        .badge-slide { background: #f3e8ff; color: #6b21a8; }
+        .badge-fixed { background: #f3f4f6; color: #4b5563; }
 
         #module-hover-menu { position: absolute; pointer-events: auto; z-index: 50; transform: translate(-50%, -100%); opacity: 0; transition: opacity 0.2s, transform 0.2s; display: flex; gap: 8px; padding-bottom: 10px; }
         #module-hover-menu.visible { opacity: 1; transform: translate(-50%, -120%); }
         .hover-btn { background: white; color: #4b5563; border: 1px solid #e5e7eb; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .btn-relax.active { background: #e84c26; color: white; border-color: #e84c26; }
-
         .custom-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 60; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-content { background: white; padding: 30px; border-radius: 20px; text-align: center; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
-        
         #room-controls { display: none; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 20; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); gap: 10px; align-items: center; }
-        
         .hidden { display: none !important; }
         #ai-room-analysis { display: none; margin-bottom: 15px; padding: 10px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; }
         #ai-room-analysis:not(.hidden) { display: block; }
         #asset-warning { display: none; position: absolute; top: 130px; left: 50%; transform: translateX(-50%); background: #fff7ed; border: 1px solid #fed7aa; color: #c2410c; padding: 8px 16px; border-radius: 20px; font-size: 11px; z-index: 40; box-shadow: 0 4px 6px rgba(0,0,0,0.05); align-items: center; gap: 8px; }
-        
         .cat-btn { padding: 6px 12px; background: #f3f4f6; border-radius: 8px; cursor: pointer; transition: all 0.2s; white-space: nowrap; border: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; color: #4b5563; }
         .cat-btn:hover { background: #e5e7eb; }
         .cat-btn.active { background: #e84c26; color: white; border-color: #e84c26; box-shadow: 0 2px 4px rgba(232, 76, 38, 0.2); }
-
-        /* Estilo do Slider */
-        input[type=range] {
-            -webkit-appearance: none; width: 100%; background: transparent;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #e84c26; cursor: pointer; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 4px; cursor: pointer; background: #e5e7eb; border-radius: 2px;
-        }
-        
-        /* Tabela de Encomenda */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #e84c26; cursor: pointer; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e5e7eb; border-radius: 2px; }
         .order-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; text-align: left; }
         .order-table th { background: #f9fafb; padding: 10px; border-bottom: 2px solid #e5e7eb; color: #6b7280; font-weight: 700; text-transform: uppercase; }
         .order-table td { padding: 10px; border-bottom: 1px solid #f3f4f6; color: #1f2937; }
@@ -154,220 +98,116 @@
     </style>
 </head>
 <body>
-    <div id="app-loader">
-        <h1 class="text-xl font-bold text-gray-800 mb-2">Stoffus Studio</h1>
-        <div class="loader-bar"><div class="loader-progress" id="loading-bar"></div></div>
-        <p class="text-xs text-gray-500 mt-2" id="loading-text">A carregar...</p>
-    </div>
-
-    <div id="asset-warning">
-        <i class="fas fa-exclamation-triangle"></i><span>Alguns modelos 3D não foram encontrados.</span>
-    </div>
+    <div id="app-loader"><h1 class="text-xl font-bold text-gray-800 mb-2">Stoffus Studio</h1><div class="loader-bar"><div class="loader-progress" id="loading-bar"></div></div><p class="text-xs text-gray-500 mt-2" id="loading-text">A carregar...</p></div>
+    <div id="asset-warning"><i class="fas fa-exclamation-triangle"></i><span>Alguns modelos 3D não foram encontrados.</span></div>
     <div id="room-background"></div>
     <div id="canvas-container"></div>
     <div id="feedback-message" class="bg-gray-800 shadow-lg"></div>
 
-    <!-- SELETOR DE MODELO -->
     <div id="model-selector-bar">
-        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Modelo</span>
-        <select id="model-select" onchange="changeModel(this.value)" class="bg-transparent text-sm font-bold text-gray-800 focus:outline-none cursor-pointer border-b-2 border-transparent hover:border-gray-200 transition-colors pb-1"></select>
-        <span id="model-type-badge" class="ml-2 text-[9px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-bold uppercase tracking-wide border border-gray-200">Relax</span>
+        <button onclick="openModelSelector()" class="model-trigger-btn">
+            <div class="flex flex-col items-start"><span class="model-label">Modelo Selecionado</span><span id="current-model-name" class="model-current">Carregando...</span></div>
+            <i class="fas fa-chevron-down model-chevron"></i>
+        </button>
     </div>
 
-    <!-- UI HEADER -->
-    <div class="ui-panel absolute top-0 left-0 w-full h-16 border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm z-10">
-        <div class="flex items-center">
-             <div class="font-bold text-xl sm:text-2xl text-gray-800 tracking-tight"><span class="text-stoffus-primary">Stoffus</span> 3D</div>
-             <div class="ml-4 pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.3</span></div>
+    <div id="model-modal" class="custom-modal">
+        <div class="modal-content relative max-w-2xl w-full">
+            <button onclick="uiSet('model-modal','display','none')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            <div class="text-left mb-6 border-b pb-4"><h3 class="font-bold text-xl text-gray-800">Escolha o Modelo</h3><p class="text-sm text-gray-500">Selecione a base para a sua configuração.</p></div>
+            <div id="model-grid-container" class="model-grid max-h-[60vh] overflow-y-auto pr-2"></div>
         </div>
+    </div>
+
+    <div class="ui-panel absolute top-0 left-0 w-full h-16 border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm z-10">
+        <div class="flex items-center"><div class="font-bold text-xl sm:text-2xl text-gray-800 tracking-tight"><span class="text-stoffus-primary">Stoffus</span> 3D</div><div class="ml-4 pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.46</span></div></div>
         <div class="flex items-center gap-2">
             <input type="file" id="room-upload" accept="image/*" class="hidden">
-            
              <button id="btn-ar-open" class="bg-[#e84c26] text-white hover:bg-[#cf401e] px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-md transform hover:scale-105"><i class="fas fa-cube mr-2"></i> <span>Visualizar AR</span></button>
              <button id="toggle-editor-btn" class="bg-gray-800 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-md"><i class="fas fa-layer-group mr-2"></i> <span class="hidden sm:inline">Acabamentos</span></button>
              <button id="toggle-dims-btn" class="bg-white border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-bold shadow-sm" title="Mostrar Medidas"><i class="fas fa-ruler-combined"></i></button>
-             
-             <!-- Separador -->
              <div class="h-6 w-px bg-gray-300 mx-1"></div>
-             
-             <!-- Botão Limpar Destacado -->
              <button id="reset-btn" class="bg-white border-2 border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center shadow-sm group"><i class="fas fa-trash-alt mr-2 group-hover:rotate-12 transition-transform"></i> <span>Limpar Tudo</span></button>
         </div>
     </div>
 
-    <!-- BOTÃO RECENTRAR (NOVO) -->
     <div id="btn-recenter" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg cursor-pointer hidden z-50 flex items-center gap-2 hover:bg-gray-700 transition-all border border-gray-600">
         <i class="fas fa-compress-arrows-alt"></i> <span class="text-xs font-bold">Recentrar Câmara</span>
     </div>
 
-    <!-- CONTROLOS DA SALA -->
     <div id="room-controls">
         <button onclick="document.getElementById('room-upload').click()" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition"><i class="fas fa-sync mr-1"></i> Trocar Foto</button>
         <button onclick="exitRoomMode()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition"><i class="fas fa-times"></i> Sair</button>
     </div>
 
-    <!-- UI EDITOR (Melhorado) -->
     <div id="editor-panel" class="ui-panel absolute top-20 right-4 w-80 p-4 rounded-xl shadow-2xl z-20 hidden flex flex-col h-[70vh]">
         <div class="flex justify-between items-center mb-4 border-b pb-2 flex-shrink-0">
             <h3 class="font-bold text-gray-800 flex items-center"><i class="fas fa-swatchbook mr-2 text-stoffus-primary"></i> Personalização</h3>
             <button onclick="document.getElementById('editor-panel').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
         </div>
-        
-        <!-- Lista de Tecidos Expandida -->
         <div class="flex-1 flex flex-col min-h-0">
-            <div class="flex justify-between items-center mb-2 flex-shrink-0">
-                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Coleção de Tecidos</p>
-                 <span class="text-[9px] bg-gray-100 px-2 py-0.5 rounded-full text-gray-500">Premium</span>
-            </div>
-            
-            <!-- Categorias -->
+            <div class="flex justify-between items-center mb-2 flex-shrink-0"><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Coleção de Tecidos</p><span class="text-[9px] bg-gray-100 px-2 py-0.5 rounded-full text-gray-500">Premium</span></div>
             <div id="fabric-categories" class="flex gap-2 overflow-x-auto pb-2 mb-2 flex-shrink-0 scrollbar-hide px-1"></div>
-            
-            <!-- Grelha -->
             <div id="fabric-library-container" class="fabric-grid overflow-y-auto pr-1 flex-1 border-t border-gray-100 pt-2"></div>
-
-            <!-- CONTROLO DE RAPPORT (NOVO) -->
             <div class="mt-4 border-t border-gray-200 pt-2">
-                <div class="flex justify-between items-center mb-1">
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Rapport (Escala)</label>
-                    <span id="rapport-display" class="text-xs font-mono text-stoffus-primary bg-orange-50 px-1 rounded">35 cm</span>
-                </div>
+                <div class="flex justify-between items-center mb-1"><label class="text-[10px] font-bold text-gray-500 uppercase">Rapport (Escala)</label><span id="rapport-display" class="text-xs font-mono text-stoffus-primary bg-orange-50 px-1 rounded">35 cm</span></div>
                 <input type="range" id="rapport-slider" min="10" max="100" value="35" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-stoffus-primary">
             </div>
-
         </div>
-        
-        <!-- Pés (Fixo no fundo) -->
         <div class="pt-4 border-t border-gray-200 flex-shrink-0 mt-2">
              <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Acabamento dos Pés</p>
              <div class="text-xs text-gray-400 italic">Pés standard do modelo selecionado.</div>
         </div>
     </div>
 
-    <!-- UI SIDEBAR (ATUALIZADA) -->
     <div class="ui-panel absolute top-16 left-0 bottom-0 w-64 border-r border-gray-200 p-4 z-10 flex flex-col gap-4 overflow-y-auto">
         <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-            <div class="flex justify-between items-end mb-2">
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Largura Assento</label>
-                <span id="size-preview" class="text-xs font-mono text-stoffus-primary bg-orange-50 px-1 rounded">-- cm</span>
-            </div>
+            <div class="flex justify-between items-end mb-2"><label class="text-[10px] font-bold text-gray-500 uppercase">Largura Assento</label><span id="size-preview" class="text-xs font-mono text-stoffus-primary bg-orange-50 px-1 rounded">-- cm</span></div>
             <div class="flex bg-gray-100 p-1 rounded-lg" id="size-selector-container"></div>
         </div>
-        <div>
-            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Módulos Disponíveis</label>
-            <div class="grid grid-cols-2 gap-2" id="module-list"></div>
-        </div>
-        
-        <!-- ÁREA INFERIOR: Largura Total + Botão Encomendar -->
+        <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Módulos Disponíveis</label><div class="grid grid-cols-2 gap-2" id="module-list"></div></div>
         <div class="mt-auto flex flex-col gap-2">
             <div id="total-width-display" class="bg-gray-800 text-white p-3 rounded-lg text-center font-bold text-sm">0 cm</div>
-            
-            <button onclick="openOrderSummary()" class="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-lg font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 group">
-                <i class="fas fa-file-pdf group-hover:scale-110 transition-transform"></i> Encomendar
-            </button>
+            <button onclick="openOrderSummary()" class="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-lg font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 group"><i class="fas fa-file-pdf group-hover:scale-110 transition-transform"></i> Encomendar</button>
         </div>
     </div>
 
-    <!-- HOVER MENU -->
     <div id="module-hover-menu">
         <button id="btn-relax" class="hover-btn btn-relax"><i class="fas fa-couch"></i> <span id="relax-text">Relax</span></button>
         <button id="btn-remove" class="hover-btn btn-remove"><i class="fas fa-trash-alt"></i> <span>Remover</span></button>
     </div>
 
-    <!-- ORDER SUMMARY MODAL (NOVO) -->
     <div id="order-modal" class="custom-modal">
         <div class="modal-content text-left relative">
             <button onclick="uiSet('order-modal','display','none')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
-            
-            <div class="flex items-center mb-4 border-b pb-4">
-                <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center mr-3">
-                    <i class="fas fa-clipboard-check text-emerald-600"></i>
-                </div>
-                <div>
-                    <h3 class="font-bold text-xl text-gray-800">Resumo de Encomenda</h3>
-                    <p class="text-xs text-gray-500">Confirme os detalhes antes de enviar.</p>
-                </div>
-            </div>
-
-            <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
-                <div class="grid grid-cols-2 gap-4 text-sm mb-2">
-                    <div><span class="text-gray-500 font-bold">Modelo:</span> <span id="summary-model" class="font-semibold text-gray-800">--</span></div>
-                    <div><span class="text-gray-500 font-bold">Tecido:</span> <span id="summary-fabric" class="font-semibold text-gray-800">--</span></div>
-                    <div><span class="text-gray-500 font-bold">Largura:</span> <span id="summary-width" class="font-semibold text-gray-800">--</span></div>
-                </div>
-            </div>
-
+            <div class="flex items-center mb-4 border-b pb-4"><div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center mr-3"><i class="fas fa-clipboard-check text-emerald-600"></i></div><div><h3 class="font-bold text-xl text-gray-800">Resumo de Encomenda</h3><p class="text-xs text-gray-500">Confirme os detalhes antes de enviar.</p></div></div>
+            <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200"><div class="grid grid-cols-2 gap-4 text-sm mb-2"><div><span class="text-gray-500 font-bold">Modelo:</span> <span id="summary-model" class="font-semibold text-gray-800">--</span></div><div><span class="text-gray-500 font-bold">Tecido:</span> <span id="summary-fabric" class="font-semibold text-gray-800">--</span></div><div><span class="text-gray-500 font-bold">Largura:</span> <span id="summary-width" class="font-semibold text-gray-800">--</span></div></div></div>
             <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Lista de Módulos</h4>
-            <div class="overflow-x-auto">
-                <table class="order-table">
-                    <thead>
-                        <tr>
-                            <th>Módulo</th>
-                            <th>Tamanho</th>
-                            <th>Mecanismo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="order-items-body">
-                        <!-- Items injected via JS -->
-                    </tbody>
-                </table>
-            </div>
-
+            <div class="overflow-x-auto"><table class="order-table"><thead><tr><th>Módulo</th><th>Tamanho</th><th>Mecanismo</th></tr></thead><tbody id="order-items-body"></tbody></table></div>
             <div class="mt-6 flex gap-3">
                 <button onclick="uiSet('order-modal','display','none')" class="flex-1 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-bold text-sm hover:bg-gray-50">Cancelar</button>
-                <button onclick="confirmAndGeneratePDF()" class="flex-1 bg-emerald-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-emerald-700 shadow-md flex items-center justify-center gap-2">
-                    <i class="fas fa-check-circle"></i> Confirmar & Enviar
-                </button>
+                <button onclick="confirmAndGeneratePDF()" class="flex-1 bg-emerald-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-emerald-700 shadow-md flex items-center justify-center gap-2"><i class="fas fa-check-circle"></i> Confirmar & Enviar</button>
             </div>
         </div>
     </div>
-
-    <!-- AI MODAL (Mantido mas simplificado no código) -->
-    <div id="ai-modal" class="custom-modal">
-        <div class="modal-content text-left"><button onclick="uiSet('ai-modal','display','none')" class="absolute top-4 right-4"><i class="fas fa-times"></i></button><h3 class="font-bold text-lg mb-4">Assistente</h3><p class="text-sm text-gray-600">Funcionalidade de IA disponível apenas na versão completa.</p></div>
-    </div>
+    
+    <div id="ai-modal" class="custom-modal"><div class="modal-content text-left"><button onclick="uiSet('ai-modal','display','none')" class="absolute top-4 right-4"><i class="fas fa-times"></i></button><h3 class="font-bold text-lg mb-4">Assistente</h3><p class="text-sm text-gray-600">Funcionalidade de IA disponível apenas na versão completa.</p></div></div>
     
     <div id="ar-modal" class="custom-modal" style="display:none;">
         <div class="modal-content">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-cube text-stoffus-primary mr-2"></i> Viewer & AR</h3>
-                <button id="close-ar-btn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="relative border border-gray-200 rounded-lg overflow-hidden mb-4">
-                <div id="mv-loader" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-10"><div class="ar-spinner"></div><span class="text-xs text-gray-500">A processar...</span></div>
-                <model-viewer id="sofa-viewer" src="" ar ar-modes="webxr scene-viewer quick-look" camera-controls shadow-intensity="1" class="w-full h-64 bg-gray-100"><button slot="ar-button" class="absolute bottom-4 right-4 bg-white text-black px-4 py-2 rounded-lg font-bold shadow-lg text-xs flex items-center hover:bg-gray-50"><i class="fas fa-camera mr-2"></i> Ver no Espaço</button></model-viewer>
-            </div>
-            
+            <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800"><i class="fas fa-cube text-stoffus-primary mr-2"></i> Viewer & AR</h3><button id="close-ar-btn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div>
+            <div class="relative border border-gray-200 rounded-lg overflow-hidden mb-4"><div id="mv-loader" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-10"><div class="ar-spinner"></div><span class="text-xs text-gray-500">A processar...</span></div><model-viewer id="sofa-viewer" src="" ar ar-modes="webxr scene-viewer quick-look" camera-controls shadow-intensity="1" class="w-full h-64 bg-gray-100"><button slot="ar-button" class="absolute bottom-4 right-4 bg-white text-black px-4 py-2 rounded-lg font-bold shadow-lg text-xs flex items-center hover:bg-gray-50"><i class="fas fa-camera mr-2"></i> Ver no Espaço</button></model-viewer></div>
             <button id="download-glb-btn" class="w-full bg-gray-800 text-white py-3 rounded-lg font-bold text-sm hover:bg-gray-700 transition flex items-center justify-center shadow-lg mb-4"><i class="fas fa-download mr-2"></i> Descarregar Ficheiro (.glb)</button>
-
-            <!-- Status de AR -->
             <div class="border-t pt-4">
-                <!-- Loading State -->
-                <div id="ar-loading" class="hidden text-center py-4">
-                    <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-800 mb-2"></div>
-                    <p id="ar-status-text" class="text-xs text-gray-600">A preparar AR...</p>
-                </div>
-
-                <!-- Success State (QR) -->
-                <div id="ar-success" class="hidden text-center">
-                    <p class="text-[10px] text-gray-500 mb-2">Digitalize para ver na sala:</p>
-                    <div id="qrcode" class="flex justify-center mb-2"></div>
-                </div>
-
-                <!-- Fallback State -->
-                <div id="ar-fallback" class="hidden text-center py-2">
-                     <div class="bg-blue-50 border border-blue-200 p-3 rounded-lg text-left">
-                        <p class="text-[10px] text-blue-800 font-bold mb-1"><i class="fas fa-info-circle mr-1"></i> AR no Telemóvel</p>
-                        <p class="text-[10px] text-blue-700 leading-tight">Para ver em casa: Descarregue o ficheiro (.glb) e envie para o seu telemóvel.</p>
-                    </div>
-                </div>
+                <div id="ar-loading" class="hidden text-center py-4"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-800 mb-2"></div><p id="ar-status-text" class="text-xs text-gray-600">A preparar AR...</p></div>
+                <div id="ar-success" class="hidden text-center"><p class="text-[10px] text-gray-500 mb-2">Digitalize para ver na sala:</p><div id="qrcode" class="flex justify-center mb-2"></div></div>
+                <div id="ar-fallback" class="hidden text-center py-2"><div class="bg-blue-50 border border-blue-200 p-3 rounded-lg text-left"><p class="text-[10px] text-blue-800 font-bold mb-1"><i class="fas fa-info-circle mr-1"></i> AR no Telemóvel</p><p class="text-[10px] text-blue-700 leading-tight">Para ver em casa: Descarregue o ficheiro (.glb) e envie para o seu telemóvel.</p></div></div>
             </div>
-
         </div>
     </div>
 
     <script>
-        // ======================== 1. DADOS E CONFIGURAÇÃO (RENAME TO AVOID CONFLICT) ========================
+        // ======================== DADOS ========================
         const DB_MODELS = {
             'athena': { name: 'Athena', type: 'relax', folder: 'athena', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'bartini': { name: 'Bartini', type: 'relax', folder: 'Bartini', sizes: { S: 60, M: 70, L: 80, XL: 90 }, armWidth: 22, depth: 108, chaiseDepth: 170, cornerSize: 115, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r', 'meiple'] },
@@ -375,14 +215,9 @@
             'dayma': { name: 'Dayma', type: 'relax', folder: 'dayma', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'enzo': { name: 'Enzo', type: 'relax', folder: 'enzo', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'fiori': { name: 'Fiori', type: 'relax', folder: 'fiori', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
-            // ATUALIZAÇÃO: Adicionado tamanho XXL (110cm) exclusivamente no Infinity
-            'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, 
-                modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] 
-            },
-            // ADIÇÃO: Modelo Magic (Cópia das condições do Infinity)
-            'magic': { name: 'Magic (Deslizante)', type: 'slide', folder: 'magic', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, 
-                modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] 
-            },
+            'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
+            'magic': { name: 'Magic (Deslizante)', type: 'slide', folder: 'magic', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
+            'bruma': { name: 'Bruma (Fixo)', type: 'fixed', folder: 'bruma', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'kindia': { name: 'Kindia', type: 'relax', folder: 'kindia', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 0, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'chaise_l', 'chaise_r'] },
             'sting': { name: 'Sting', type: 'relax', folder: 'sting', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] }
         };
@@ -417,12 +252,14 @@
         let showDimensions = false, dimensionLinesGroup = null;
         let activeFabricId = null; 
         let failedAssetsCount = 0;
-        let pendingConfiguration = null; // Variável para persistência de configuração
-        let currentRapport = 35; // Global variable for rapport
-        let loadedCollectionsQueue = []; // LRU Cache key tracker
+        let pendingConfiguration = null; 
+        let currentRapport = 35; 
+        let loadedCollectionsQueue = []; 
         let activeCategoryList = []; 
         let renderedCount = 0; 
         const BATCH_SIZE = 30; 
+        let touchStartX = 0;
+        let touchStartY = 0;
 
         function detectEnvironment() {
             const h = window.location.hostname;
@@ -431,526 +268,153 @@
         }
         const CURRENT_ENV = detectEnvironment();
 
-        // ======================== INIT & BOOT ========================
-        function init() {
-            const container = document.getElementById('canvas-container');
-            scene = new THREE.Scene(); window.scene = scene;
-            const bgColor = 0xffffff; 
-            scene.background = new THREE.Color(bgColor); 
-            scene.fog = new THREE.Fog(bgColor, 800, 2500);
-            camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 1, 5000); camera.position.set(0, 450, 750);
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-            renderer.setSize(window.innerWidth, window.innerHeight); 
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
-            renderer.shadowMap.enabled = true; 
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
-            renderer.outputEncoding = THREE.sRGBEncoding;
-            renderer.toneMapping = THREE.NoToneMapping; 
-            container.appendChild(renderer.domElement);
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.65); 
-            hemiLight.position.set(0, 200, 0);
-            scene.add(hemiLight);
-            const dir = new THREE.DirectionalLight(0xffffff, 0.6); 
-            dir.position.set(100, 250, 100); 
-            dir.castShadow = true; 
-            const shadowRes = isMobile ? 2048 : 4096;
-            dir.shadow.mapSize.width = shadowRes; dir.shadow.mapSize.height = shadowRes; 
-            const d = 250;
-            dir.shadow.camera.left = -d; dir.shadow.camera.right = d; dir.shadow.camera.top = d; dir.shadow.camera.bottom = -d;
-            dir.shadow.camera.near = 0.5; dir.shadow.camera.far = 1000;
-            dir.shadow.bias = -0.0001; dir.shadow.normalBias = 0.02;
-            scene.add(dir);
-            const textureLoader = new THREE.TextureLoader();
-            const floorUrl = 'https://stoffus-pt.github.io/configurador-eleganza/assets/textures/floor.jpg';
-            const floorTexture = textureLoader.load(floorUrl, (tex) => { tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(6, 6); tex.anisotropy = 16; tex.encoding = THREE.sRGBEncoding; });
-            const groundGeo = new THREE.PlaneGeometry(4000, 4000);
-            const groundVisual = new THREE.Mesh(groundGeo, new THREE.MeshBasicMaterial({ map: floorTexture, color: 0xffffff }));
-            groundVisual.name = "env_ground_visual"; groundVisual.rotation.x = -Math.PI / 2; groundVisual.position.y = -0.2; 
-            scene.add(groundVisual);
-            const groundShadow = new THREE.Mesh(groundGeo, new THREE.ShadowMaterial({ opacity: 0.35, color: 0x000000 }));
-            groundShadow.name = "env_ground_shadow"; groundShadow.rotation.x = -Math.PI / 2; groundShadow.position.y = -0.1; groundShadow.receiveShadow = true;
-            scene.add(groundShadow);
-            const grid = new THREE.GridHelper(3000, 60, 0x000000, 0x000000); grid.material.opacity = 0.1; grid.material.transparent = true; grid.name = "env_grid"; scene.add(grid);
-            dimensionLinesGroup = new THREE.Group(); scene.add(dimensionLinesGroup);
-            controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
-            raycaster = new THREE.Raycaster(); mouse = new THREE.Vector2();
-            window.addEventListener('resize', onWindowResize);
-            renderer.domElement.addEventListener('mousemove', onMouseMove);
-            renderer.domElement.addEventListener('click', onMouseClick);
-            renderer.domElement.addEventListener('touchstart', onTouchStart, {passive: false});
-            renderer.domElement.addEventListener('touchend', onTouchEnd, {passive: false});
-            manager = new THREE.LoadingManager();
-            manager.onStart = () => document.getElementById('app-loader').style.display = 'flex';
-            manager.onLoad = () => { 
-                document.getElementById('app-loader').style.display = 'none'; 
-                renderModuleButtons(); 
-                if (pendingConfiguration && pendingConfiguration.length > 0) {
-                    pendingConfiguration.forEach(conf => {
-                         const modelData = DB_MODELS[CURRENT_MODEL_ID];
-                         const isValid = !modelData.modules || modelData.modules.includes(conf.id);
-                         if(isValid) addModule(conf.id, true, conf.hasRelax);
-                    });
-                    pendingConfiguration = null; 
-                    repositionModules();
-                } else if (addedModules.length === 0) { addDefaultConfiguration(); }
-            };
-            initModelSelector(); initSizeSelector(); initFabricSystem(); initUIListeners();
-            loadModelAssets(CURRENT_MODEL_ID);
-            document.getElementById('btn-recenter').addEventListener('click', resetCamera);
-            animate();
-        }
-
-        // --- NEW: Reset Camera Function ---
+        // ======================== HELPER FUNCTIONS (PRE-INIT) ========================
+        
         function resetCamera() {
-            const duration = 1500; const startPos = camera.position.clone(); const startTarget = controls.target.clone();
-            const endPos = new THREE.Vector3(0, 450, 750); const endTarget = new THREE.Vector3(0, 0, 0);
-            const startTime = performance.now(); controls.enabled = false;
+            const duration = 1500; 
+            const startPos = camera.position.clone(); 
+            const startTarget = controls.target.clone();
+            const endPos = new THREE.Vector3(0, 450, 750); 
+            const endTarget = new THREE.Vector3(0, 0, 0);
+            
+            const startTime = performance.now(); 
+            controls.enabled = false;
+
             function animateScroll(currentTime) {
-                const elapsed = currentTime - startTime; let progress = Math.min(elapsed / duration, 1);
+                const elapsed = currentTime - startTime; 
+                let progress = Math.min(elapsed / duration, 1);
                 const ease = 1 - Math.pow(1 - progress, 3);
+
                 camera.position.lerpVectors(startPos, endPos, ease);
                 controls.target.lerpVectors(startTarget, endTarget, ease);
+                
                 controls.update();
-                if (progress < 1) { requestAnimationFrame(animateScroll); } else { controls.enabled = true; showFeedback("Câmara recentrada", "success"); document.getElementById('btn-recenter').classList.add('hidden'); }
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateScroll);
+                } else {
+                    controls.enabled = true; 
+                    showFeedback("Câmara recentrada", "success");
+                    document.getElementById('btn-recenter').classList.add('hidden');
+                }
             }
             requestAnimationFrame(animateScroll);
         }
 
-        // --- ORDER SUMMARY LOGIC (POP-UP) ---
-        window.openOrderSummary = function() {
-            const summaryModel = document.getElementById('summary-model');
-            const summaryFabric = document.getElementById('summary-fabric');
-            const summaryWidth = document.getElementById('summary-width');
-            const itemsBody = document.getElementById('order-items-body');
+        function createTextSprite(message) {
+            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); 
+            const fontSize = 64; ctx.font = "Bold " + fontSize + "px Arial"; 
+            const textWidth = ctx.measureText(message).width; canvas.width = textWidth + 40; canvas.height = fontSize + 40;
             
-            if(!addedModules.length) {
-                showFeedback("Adicione módulos primeiro!", "error");
-                return;
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; 
+            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, canvas.width, canvas.height, 20); ctx.fill(); } 
+            else { ctx.fillRect(0, 0, canvas.width, canvas.height); }
+            
+            ctx.fillStyle = "white"; ctx.font = "Bold " + fontSize + "px Arial"; 
+            ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+            ctx.fillText(message, canvas.width/2, canvas.height/2);
+            
+            const texture = new THREE.CanvasTexture(canvas); 
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false })); 
+            sprite.scale.set(canvas.width * 0.15, canvas.height * 0.15, 1); sprite.renderOrder = 999; 
+            return sprite;
+        }
+
+        function updateDimensionLabels() {
+             while(dimensionLinesGroup.children.length > 0){ 
+                const obj = dimensionLinesGroup.children[0]; 
+                if(obj.material && obj.material.map) obj.material.map.dispose(); 
+                dimensionLinesGroup.remove(obj); 
             }
-
-            // Populate Info
-            summaryModel.innerText = DB_MODELS[CURRENT_MODEL_ID].name;
-            summaryFabric.innerText = activeFabricId ? FABRIC_LIBRARY.find(f => f.id === activeFabricId).name : "Padrão / Não Selecionado";
-            summaryWidth.innerText = document.getElementById('total-width-display').innerText;
-
-            // Populate Items Table
-            itemsBody.innerHTML = '';
             
-            addedModules.forEach((mod, index) => {
-                const row = document.createElement('tr');
+            if(!showDimensions || addedModules.length === 0) return;
+            
+            let leg1Length = 0; let leg2Length = 0; 
+            let cornerIndex = -1; 
+            for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIndex = i; break; }
+            
+            const endLeg1Index = cornerIndex === -1 ? addedModules.length - 1 : cornerIndex; 
+            let startX = 0; let endX = 0;
+            
+            if(addedModules.length > 0) {
+                const first = addedModules[0]; 
+                const lastLeg1 = addedModules[endLeg1Index]; 
+                endX = lastLeg1.mesh.position.x + lastLeg1.width/2; 
+                startX = -first.width/2; 
+                leg1Length = endX - startX;
                 
-                // Tamanho
-                let sizeStr = CURRENT_SIZE_KEY;
-                if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && CURRENT_SIZE_KEY === 'XXL' && mod.data.id !== '2seats_2arms') {
-                    sizeStr = 'XL (Restrição Infinity)';
-                } else if (mod.data.fixed) {
-                    sizeStr = 'Fixo (Canto/Meridien)';
-                }
-
-                // Mecanismo (Baseado se o Relax está ativo/aberto)
-                const modelType = DB_MODELS[CURRENT_MODEL_ID].type;
-                let mechStr = '<span class="text-gray-400">Fixo (Sem Mecanismo)</span>';
+                const lineY = 110; 
+                const linePoints = [new THREE.Vector3(startX, lineY, 0), new THREE.Vector3(endX, lineY, 0)]; 
+                const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePoints), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 })); 
+                dimensionLinesGroup.add(line);
                 
-                // Se for um modelo com funcionalidade E o utilizador tiver "aberto" o módulo
-                if ((modelType === 'relax' || modelType === 'slide') && mod.hasRelax) {
-                    const mechName = modelType === 'slide' ? 'Assento Deslizante' : 'Relax Elétrico';
-                    mechStr = `<span class="text-emerald-600 font-bold"><i class="fas fa-check-circle mr-1"></i> ${mechName}</span>`;
-                } else if (mod.data.fixed) {
-                    mechStr = '<span class="text-gray-400">N/A (Módulo Fixo)</span>';
-                }
-
-                row.innerHTML = `
-                    <td class="font-medium">${mod.data.name}</td>
-                    <td>${sizeStr}</td>
-                    <td>${mechStr}</td>
-                `;
-                itemsBody.appendChild(row);
-            });
-
-            uiSet('order-modal', 'display', 'flex');
-        };
-
-        window.confirmAndGeneratePDF = function() {
-            uiSet('order-modal', 'display', 'none');
-            showFeedback("A gerar nota de encomenda...", "success");
-            setTimeout(generateOrderPDF, 500); // Delay para fechar modal e limpar ecrã
-        };
-
-        // --- NEW: Generate PDF Order (Contrato) ---
-        async function generateOrderPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+                const sprite = createTextSprite(Math.round(leg1Length) + " cm"); 
+                sprite.position.set((startX + endX)/2, lineY + 15, 0); 
+                dimensionLinesGroup.add(sprite);
+            }
             
-            // 1. Capture Screenshot
-            renderer.render(scene, camera);
-            const imgData = renderer.domElement.toDataURL("image/jpeg", 0.9);
-            
-            // 2. Add Header
-            doc.setFontSize(18);
-            doc.setTextColor(232, 76, 38);
-            doc.text("NOTA DE ENCOMENDA - STOFFUS", 20, 20);
-            
-            doc.setFontSize(10);
-            doc.setTextColor(100);
-            const dateStr = new Date().toLocaleString('pt-PT');
-            doc.text(`Data: ${dateStr}`, 20, 28);
-            
-            // 3. Add Image
-            const imgProps = doc.getImageProperties(imgData);
-            const pdfWidth = doc.internal.pageSize.getWidth();
-            const targetHeight = 80; 
-            const targetWidth = (imgProps.width * targetHeight) / imgProps.height;
-            const x = (pdfWidth - targetWidth) / 2;
-            doc.addImage(imgData, 'JPEG', x, 35, targetWidth, targetHeight);
-            
-            // 4. Model Info
-            let y = 125;
-            doc.setFontSize(11);
-            doc.setTextColor(0, 0, 0);
-            
-            const modelName = DB_MODELS[CURRENT_MODEL_ID].name;
-            const fabricName = activeFabricId ? FABRIC_LIBRARY.find(f => f.id === activeFabricId).name : "Padrão / Não Selecionado";
-            const totalWidth = document.getElementById('total-width-display').innerText;
-            
-            doc.setFont("helvetica", "bold");
-            doc.text("DETALHES GERAIS:", 20, y);
-            y += 7;
-            doc.setFont("helvetica", "normal");
-            doc.text(`Modelo: ${modelName}`, 20, y);
-            y += 6;
-            doc.text(`Tecido: ${fabricName}`, 20, y);
-            y += 6;
-            doc.text(`Largura Total (Estimada): ${totalWidth}`, 20, y);
-            y += 10;
-            
-            // 5. Tabela de Módulos (AutoTable)
-            const tableBody = addedModules.map((mod, index) => {
-                let sizeStr = CURRENT_SIZE_KEY;
-                if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && CURRENT_SIZE_KEY === 'XXL' && mod.data.id !== '2seats_2arms') {
-                    sizeStr = 'XL';
-                } else if (mod.data.fixed) {
-                    sizeStr = '-';
-                }
-
-                const modelType = DB_MODELS[CURRENT_MODEL_ID].type;
-                let mechStr = "Fixo";
-                if ((modelType === 'relax' || modelType === 'slide') && mod.hasRelax) {
-                    mechStr = modelType === 'slide' ? "Com Deslizante" : "Com Relax";
-                } else if (mod.data.fixed) {
-                    mechStr = "-";
-                }
-
-                return [index + 1, mod.data.name, sizeStr, mechStr];
-            });
-
-            doc.autoTable({
-                startY: y,
-                // CORREÇÃO: "Tipo de Mecanismo" em vez de "Acabamento"
-                head: [['#', 'Módulo', 'Tamanho', 'Tipo de Mecanismo']],
-                body: tableBody,
-                theme: 'grid',
-                headStyles: { fillColor: [232, 76, 38], textColor: 255, fontStyle: 'bold' },
-                styles: { fontSize: 10, cellPadding: 4 },
-                columnStyles: {
-                    0: { cellWidth: 15 },
-                    1: { cellWidth: 'auto' },
-                    2: { cellWidth: 30 },
-                    3: { cellWidth: 40, fontStyle: 'bold' } // Destaque na coluna mecanismo
-                }
-            });
-            
-            // Footer
-            const finalY = doc.lastAutoTable.finalY + 20;
-            doc.setFontSize(8);
-            doc.setTextColor(150);
-            doc.text("Este documento serve como nota de encomenda técnica.", 20, finalY);
-            doc.text("Verifique todas as medidas e acabamentos antes de enviar para produção.", 20, finalY + 5);
-            
-            doc.save(`encomenda_${modelName.toLowerCase().replace(/\s/g, '_')}.pdf`);
-        }
-
-        // --- NEW: Touch Event Handlers ---
-        let touchStartX = 0;
-        let touchStartY = 0;
-
-        function onTouchStart(e) {
-            if (e.touches.length === 1) {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
+            if(cornerIndex !== -1 && cornerIndex < addedModules.length - 1) {
+                const corner = addedModules[cornerIndex]; 
+                const lastLeg2 = addedModules[addedModules.length - 1]; 
+                const startZ = corner.mesh.position.z - corner.depth/2; 
+                const endZ = lastLeg2.mesh.position.z + lastLeg2.width/2; 
+                leg2Length = endZ - startZ;
+                
+                const lineX = corner.mesh.position.x + corner.width/2 + 20; 
+                const lineY = 110;
+                const linePointsZ = [new THREE.Vector3(lineX, lineY, startZ), new THREE.Vector3(lineX, lineY, endZ)]; 
+                const lineZ = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePointsZ), new THREE.LineBasicMaterial({ color: 0xffffff })); 
+                dimensionLinesGroup.add(lineZ);
+                
+                const spriteZ = createTextSprite(Math.round(leg2Length) + " cm"); 
+                spriteZ.position.set(lineX + 10, lineY + 15, (startZ + endZ)/2); 
+                dimensionLinesGroup.add(spriteZ);
             }
         }
 
-        function onTouchEnd(e) {
-            if (e.changedTouches.length === 1) {
-                const dx = e.changedTouches[0].clientX - touchStartX;
-                const dy = e.changedTouches[0].clientY - touchStartY;
-                if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-                    interactWithScene(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-                }
-            }
-        }
+        function repositionModules() {
+            let cornerIdx = -1; 
+            for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIdx = i; break; }
+            
+            let cornerPos = { x:0, z:0, depth: 0 }; 
+            const modelData = DB_MODELS[CURRENT_MODEL_ID];
+            const gapCorrection = (CURRENT_MODEL_ID === 'dayma') ? -2 : 0;
 
-        function addDefaultConfiguration() {
-            addModule('seat_arm_l', true);
-            addModule('seat_no_arm', true);
-            addModule('seat_arm_r', true);
-        }
-
-        // ======================== TECIDOS (OPTIMIZED) ========================
-        function manageTextureCache(newCollectionKey) {
-            const idx = loadedCollectionsQueue.indexOf(newCollectionKey);
-            if(idx !== -1) {
-                loadedCollectionsQueue.splice(idx, 1);
-                loadedCollectionsQueue.push(newCollectionKey);
-                return;
-            }
-            loadedCollectionsQueue.push(newCollectionKey);
-            if(loadedCollectionsQueue.length > 3) {
-                const toRemove = loadedCollectionsQueue.shift();
-                unloadCollection(toRemove);
-            }
-        }
-
-        function unloadCollection(key) {
-            if(IMAGES[key]) {
-                IMAGES[key].front = null;
-                IMAGES[key].back = null;
-                IMAGES[key].loaded = false;
-            }
-        }
-
-        function renderFabricLibrary(category) {
-            const container = document.getElementById('fabric-library-container'); 
-            if(!container) return; 
-            container.innerHTML = '';
-            container.scrollTop = 0;
-            renderedCount = 0;
-            activeCategoryList = category === 'all' ? FABRIC_LIBRARY : FABRIC_LIBRARY.filter(f => f.type === category);
-            loadMoreFabrics();
-        }
-
-        function loadMoreFabrics() {
-            const container = document.getElementById('fabric-library-container');
-            if(!container) return;
-            if (renderedCount >= activeCategoryList.length) return;
-            const batch = activeCategoryList.slice(renderedCount, renderedCount + BATCH_SIZE);
-            const thumbBase = 'https://stoffus-pt.github.io/configurador-eleganza/assets/compressedtextures/';
-
-            batch.forEach(fab => { 
-                const el = document.createElement('div'); 
-                el.className = `fabric-item ${fab.id === activeFabricId ? 'active' : ''}`;
-                const placeholderUrl = getFabricThumbnailDataUrl(fab.type, fab.color);
-                el.style.backgroundImage = `url(${placeholderUrl})`;
-                el.style.backgroundSize = 'cover';
-                const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type);
-                const colName = col ? col.name : fab.collection;
-                const mapType = fab.map; 
-                const coords = TEXTURE_LAYOUTS[mapType];
-                let targetSuffix = '1'; 
-                if (coords && coords.src === 'back') { targetSuffix = '2'; }
-                const candidates = [
-                    `${thumbBase}${colName} ${targetSuffix}.jpg`,           
-                    `${thumbBase}${colName.toLowerCase()} ${targetSuffix}.jpg`, 
-                    `${thumbBase}${colName}_${targetSuffix}.jpg`,           
-                    `${thumbBase}${colName.toLowerCase()}_${targetSuffix}.jpg` 
-                ];
-                const tryLoad = (index) => {
-                    if (index >= candidates.length) {
-                        if (targetSuffix === '2') {
-                             const fallbackUrl = `${thumbBase}${colName} 1.jpg`;
-                             const imgFallback = new Image();
-                             imgFallback.onload = () => {
-                                 if(coords) applyThumbnailCrop(el, imgFallback.src, coords);
-                                 else el.style.backgroundImage = `url('${imgFallback.src}')`;
-                             };
-                             imgFallback.src = fallbackUrl;
-                        }
-                        return; 
+            addedModules.forEach((mod, i) => {
+                const mesh = mod.mesh;
+                if(cornerIdx === -1 || i <= cornerIdx) {
+                    mod.isCornerLine = false; mesh.rotation.y = 0;
+                    if(i === 0) mesh.position.x = 0; 
+                    else { 
+                        const prev = addedModules[i-1]; 
+                        mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2) + gapCorrection; 
                     }
-                    const img = new Image();
-                    img.onload = () => {
-                        if (coords) { applyThumbnailCrop(el, img.src, coords); } else { el.style.backgroundImage = `url('${img.src}')`; el.style.backgroundSize = 'cover'; }
-                    };
-                    img.onerror = () => { tryLoad(index + 1); };
-                    img.src = candidates[index];
-                };
-                tryLoad(0);
-                el.innerHTML = `<div class="fabric-name">${fab.name}</div>`; 
-                el.onclick = () => setFabricFromLibrary(fab.id); 
-                container.appendChild(el); 
+                    mesh.position.z = ((mod.depth - modelData.depth) / 2); 
+                    if(mod.data.type === 'corner') cornerPos = { x: mesh.position.x, z: mesh.position.z, depth: mod.depth };
+                } else {
+                    mod.isCornerLine = true; mesh.rotation.y = -Math.PI / 2; 
+                    if(i === cornerIdx + 1) { 
+                        mesh.position.z = cornerPos.z + (cornerPos.depth/2) + (mod.width/2) + gapCorrection; 
+                    } else { 
+                        const prev = addedModules[i-1]; 
+                        mesh.position.z = prev.mesh.position.z + (prev.width/2) + (mod.width/2) + gapCorrection; 
+                    }
+                    mesh.position.x = cornerPos.x + (cornerPos.depth/2) - (mod.depth/2);
+                }
             });
-            renderedCount += batch.length;
-            setTimeout(() => { if (container.scrollHeight <= container.clientHeight && renderedCount < activeCategoryList.length) { loadMoreFabrics(); } }, 50);
-        }
-        
-        function applyThumbnailCrop(element, imageSrc, coords) {
-             const sizeX = (1 / coords.w) * 100; const sizeY = (1 / coords.h) * 100;
-             const posX = coords.w === 1 ? 0 : (coords.x / (1 - coords.w)) * 100; const posY = coords.h === 1 ? 0 : (coords.y / (1 - coords.h)) * 100;
-             element.style.backgroundImage = `url('${imageSrc}')`; element.style.backgroundSize = `${sizeX}% ${sizeY}%`; element.style.backgroundPosition = `${posX}% ${posY}%`;
-        }
-        
-        function getFabricThumbnailDataUrl(type, color) {
-            const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128; const ctx = canvas.getContext('2d');
-            ctx.fillStyle = color; ctx.fillRect(0, 0, 128, 128); ctx.fillStyle = "rgba(0,0,0,0.05)"; for(let i=0; i<128; i+=4) { ctx.fillRect(i, 0, 1, 128); ctx.fillRect(0, i, 128, 1); }
-            for(let i=0; i<400; i++) { ctx.fillStyle = Math.random() > 0.5 ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"; ctx.fillRect(Math.random()*128, Math.random()*128, 2, 2); }
-            const grad = ctx.createRadialGradient(64, 64, 50, 64, 64, 90); grad.addColorStop(0, "rgba(0,0,0,0)"); grad.addColorStop(1, "rgba(0,0,0,0.3)"); ctx.fillStyle = grad; ctx.fillRect(0,0,128,128); return canvas.toDataURL('image/jpeg', 0.8);
-        }
-
-        function setFabricFromLibrary(id) {
-            const fab = FABRIC_LIBRARY.find(f => f.id === id); if(!fab) return; 
-            activeFabricId = id; 
-            const items = document.querySelectorAll('.fabric-item');
-            items.forEach(el => { if(el.textContent.includes(fab.name)) el.classList.add('active'); else el.classList.remove('active'); });
-            const tempMat = createProceduralFabricTexture(fab.type, fab.color); currentFabricMaterial = tempMat; updateAllModulesMaterial();
-            const store = IMAGES[fab.type];
-            if (store && store.loaded) { manageTextureCache(fab.type); applyHighResTexture(fab, store); } else { showFeedback("A carregar textura...", "info"); loadCollectionImages(fab.type, (newStore) => { if(newStore && newStore.loaded) { applyHighResTexture(fab, newStore); } }); }
-        }
-
-        function applyHighResTexture(fab, store) {
-            const coords = TEXTURE_LAYOUTS[fab.map]; const sourceImg = (coords.src === 'front') ? store.front : store.back; 
-            if(sourceImg) { currentFabricMaterial = cropTextureFromImage(sourceImg, coords, fab.type); updateAllModulesMaterial(); showFeedback(fab.name, "success"); }
-        }
-
-        function loadCollectionImages(collectionKey, callback) {
-            manageTextureCache(collectionKey); 
-            if(IMAGES[collectionKey] && IMAGES[collectionKey].loaded) { callback(IMAGES[collectionKey]); return; }
-            const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === collectionKey); if(!col) return;
-            const texLoader = new THREE.TextureLoader(); texLoader.setCrossOrigin('anonymous');
-            let BASE = 'https://stoffus-pt.github.io/configurador-eleganza/assets/textures/'; 
-            let loadedCount = 0; const target = 2; 
-            if(!IMAGES[collectionKey]) IMAGES[collectionKey] = { front: null, back: null, loaded: false };
-            const tryLoadVariant = (suffix, targetSlot) => {
-                const candidates = [ `${col.name} ${suffix}.jpg`, `${col.name.toLowerCase()} ${suffix}.jpg`, `${col.name}_${suffix}.jpg`, `${col.name.toLowerCase()}_${suffix}.jpg` ];
-                let attempt = 0;
-                const tryNext = () => {
-                    if (attempt >= candidates.length) { checkDone(); return; }
-                    const url = `${BASE}${candidates[attempt]}`; 
-                    texLoader.load(url, (tex) => { if(targetSlot === 'front') IMAGES[collectionKey].front = tex.image; else IMAGES[collectionKey].back = tex.image; checkDone(); }, undefined, () => { attempt++; tryNext(); });
-                };
-                tryNext();
-            };
-            const checkDone = () => { loadedCount++; if(loadedCount >= target) { IMAGES[collectionKey].loaded = true; callback(IMAGES[collectionKey]); } };
-            tryLoadVariant('1', 'front'); tryLoadVariant('2', 'back');
-        }
-
-        function initFabricData() {
-            DB_COLLECTIONS.forEach(col => {
-                const key = col.name.toLowerCase().replace(/\s/g, '');
-                IMAGES[key] = { front: null, back: null, loaded: false }; 
-                FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start}`, name: `${col.name} ${col.prefix}${col.start}`, color: '#dcdcdc', type: key, map: 'front', collection: col.name });
-                for (let i = 1; i <= 6; i++) { FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start + i}`, name: `${col.name} ${col.prefix}${col.start + i}`, color: '#b0b0b0', type: key, map: `back_${i}`, collection: col.name }); }
-            });
-        }
-
-        function initFabricSystem() {
-             initFabricData(); 
-             const catContainer = document.getElementById('fabric-categories');
-             let btnAll = document.createElement('button'); btnAll.className = 'cat-btn active'; btnAll.textContent = 'Todos';
-             btnAll.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btnAll.classList.add('active'); renderFabricLibrary('all'); };
-             catContainer.appendChild(btnAll);
-             DB_COLLECTIONS.forEach(col => {
-                 const key = col.name.toLowerCase().replace(/\s/g, '');
-                 const btn = document.createElement('button'); btn.className = 'cat-btn'; btn.textContent = col.name;
-                 btn.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderFabricLibrary(key); };
-                 catContainer.appendChild(btn);
-             });
-             renderFabricLibrary('all');
-             const scrollContainer = document.getElementById('fabric-library-container');
-             if (scrollContainer) { scrollContainer.addEventListener('scroll', () => { if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 100) { loadMoreFabrics(); } }); }
-        }
-        
-        function applyTextureRepeat(texture, rapportCm) {
-            if(!texture) return; const referenceSizeCm = 90; const repeatFactor = referenceSizeCm / rapportCm;
-            texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(repeatFactor, repeatFactor); texture.needsUpdate = true;
-        }
-
-        function cropTextureFromImage(sourceImg, crop, type) {
-            if(!sourceImg) return null; const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-            canvas.width = 512; canvas.height = 512; ctx.drawImage(sourceImg, sourceImg.width * crop.x, sourceImg.height * crop.y, sourceImg.width * crop.w, sourceImg.height * crop.h, 0, 0, 512, 512);
-            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; applyTextureRepeat(tex, currentRapport); 
-            let params = { map: tex, color: 0xffffff, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.02 }; return new THREE.MeshStandardMaterial(params);
-        }
-
-        function createProceduralFabricTexture(type, colorHex) {
-            const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size);
-            if(type === 'linen' || type === 'boucle') { ctx.globalAlpha = 0.1; for(let i=0; i<size*100; i++) { ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#000000'; ctx.fillRect(Math.random()*size, Math.random()*size, 1, 1); } }
-            const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; applyTextureRepeat(tex, currentRapport);
-            return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.01 });
-        }
-        
-        function updateAllModulesMaterial() { 
-            addedModules.forEach(mod => { if(!mod.mesh) return; mod.mesh.traverse((node) => { if (node.isMesh) { const lowerName = node.name.toLowerCase(); const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw)); if (!isLeg && node.name !== 'shadow_plane') node.material = currentFabricMaterial; if (isLeg) node.material = currentLegMaterial; } }); }); 
-        }
-
-        function updateFabricRapport() {
-            if(currentFabricMaterial && currentFabricMaterial.map) { applyTextureRepeat(currentFabricMaterial.map, currentRapport); if(currentFabricMaterial.bumpMap) applyTextureRepeat(currentFabricMaterial.bumpMap, currentRapport); }
-        }
-
-        function renderModuleButtons() {
-            const container = document.getElementById('module-list'); container.innerHTML = ''; const modelData = DB_MODELS[CURRENT_MODEL_ID];
-            DB_MODULES.forEach(def => {
-                if (modelData.modules && !modelData.modules.includes(def.id)) return;
-                const btn = document.createElement('button'); btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16";
-                btn.onclick = () => addModule(def.id); btn.innerHTML = `<i class="fas ${def.icon} text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i><span class="text-[9px] font-bold text-gray-600 leading-tight text-center">${def.name}</span>`;
-                container.appendChild(btn);
-            });
-        }
-
-        function initUIListeners() {
-            const resetBtn = document.getElementById('reset-btn'); if(resetBtn) resetBtn.addEventListener('click', () => { addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; repositionModules(); showFeedback("Cena limpa", "success"); });
-            const editorBtn = document.getElementById('toggle-editor-btn'); if(editorBtn) editorBtn.addEventListener('click', () => { document.getElementById('editor-panel').classList.toggle('hidden'); });
-            const dimsBtn = document.getElementById('toggle-dims-btn'); if(dimsBtn) dimsBtn.addEventListener('click', () => { showDimensions = !showDimensions; updateDimensionLabels(); });
-            const rapportSlider = document.getElementById('rapport-slider'); if(rapportSlider) { rapportSlider.addEventListener('input', (e) => { currentRapport = parseInt(e.target.value); document.getElementById('rapport-display').innerText = currentRapport + " cm"; updateFabricRapport(); }); }
-        }
-        function initModelSelector() { const select = document.getElementById('model-select'); Object.keys(DB_MODELS).forEach(key => { const opt = document.createElement('option'); opt.value = key; opt.innerText = DB_MODELS[key].name; select.appendChild(opt); }); }
-        function initSizeSelector() {
-            const container = document.getElementById('size-selector-container'); container.innerHTML = '';
-            const modelSizes = DB_MODELS[CURRENT_MODEL_ID].sizes;
-            Object.keys(modelSizes).forEach(size => { const btn = document.createElement('button'); btn.className = `flex-1 py-1.5 text-xs font-bold rounded-md transition ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`; btn.innerText = size; btn.onclick = () => changeSize(size); container.appendChild(btn); });
-            updateSizePreview();
-        }
-        
-        window.changeModel = function(modelId) {
-            if (!DB_MODELS[modelId]) return;
-            pendingConfiguration = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax }));
-            CURRENT_MODEL_ID = modelId; const modelData = DB_MODELS[modelId]; document.getElementById('model-type-badge').innerText = modelData.type;
-            if (!modelData.sizes[CURRENT_SIZE_KEY]) { CURRENT_SIZE_KEY = 'M'; }
-            initSizeSelector(); addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; loadModelAssets(modelId); updateSizePreview();
-        };
-
-        window.changeSize = function(sizeKey) {
-            if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && sizeKey === 'XXL') {
-                const hasValidModule = addedModules.some(m => m.data.id === '2seats_2arms');
-                if (!hasValidModule) { showFeedback("Tamanho XXL exclusivo para o módulo '2 Lug. 2 Braços'. Adicione-o primeiro.", "error"); initSizeSelector(); return; }
+            
+            let totalW = 0;
+            if (addedModules.length > 0) { 
+                const first = addedModules[0]; 
+                let lastInLine1 = addedModules.length - 1; 
+                if (cornerIdx !== -1) lastInLine1 = cornerIdx; 
+                const startX = first.mesh.position.x - first.width/2; 
+                const endX = addedModules[lastInLine1].mesh.position.x + addedModules[lastInLine1].width/2; 
+                totalW = endX - startX; 
             }
-            if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && sizeKey === 'XXL') { showFeedback("Tamanho XXL aplicado ao módulo '2 Lug. 2 Braços'.", "success"); }
-            CURRENT_SIZE_KEY = sizeKey; initSizeSelector(); const currentModules = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax }));
-            addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; currentModules.forEach(m => addModule(m.id, true, m.hasRelax)); repositionModules();
-        };
-        function updateSizePreview() { document.getElementById('size-preview').innerText = `${DB_MODELS[CURRENT_MODEL_ID].sizes[CURRENT_SIZE_KEY]} cm`; }
-
-        function loadModelAssets(modelId) {
-            const modelData = DB_MODELS[modelId]; modelLibrary = {}; const loader = new THREE.GLTFLoader(manager); 
-            const dracoLoader = new THREE.DRACOLoader(); dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/'); dracoLoader.setDecoderConfig({ type: 'js' }); loader.setDRACOLoader(dracoLoader);
-            loader.setCrossOrigin('anonymous'); const cacheBuster = `?v=${Date.now()}`;
-            const partsToLoad = ['seat', 'arm', 'corner', 'chaise', 'meridien', 'meiple', '2arm2seats', 'arm2seats'];
-            partsToLoad.forEach(part => {
-                const folderName = modelData.folder; const partCap = part.charAt(0).toUpperCase() + part.slice(1); const folderCap = folderName.charAt(0).toUpperCase() + folderName.slice(1).toLowerCase(); const folderLower = folderName.toLowerCase();
-                const paths = [ `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderLower}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderName}/${partCap}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderLower}/${partCap}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderCap}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/bartini/${part}.glb${cacheBuster}` ];
-                const tryLoadPath = (index) => {
-                    if (index >= paths.length) { if (modelId === 'athena') { loader.load(`${GITHUB_REPO_URL}assets/models/${part}.glb`, (gltf) => processLoadedModel(gltf.scene, part), undefined, () => {}); } return; }
-                    loader.load(paths[index], (gltf) => { processLoadedModel(gltf.scene, part); }, undefined, (err) => { tryLoadPath(index + 1); });
-                };
-                tryLoadPath(0);
-            });
-        }
-        
-        function processLoadedModel(sceneObj, partKey) {
-             const box = new THREE.Box3().setFromObject(sceneObj); const size = new THREE.Vector3(); box.getSize(size);
-             if (size.x < 20) { sceneObj.scale.set(100, 100, 100); sceneObj.updateMatrixWorld(true); }
-             sceneObj.traverse(n => { if (n.isMesh) { if(n.name === 'shadow_plane') { n.visible = false; n.castShadow = false; n.receiveShadow = false; } else { n.castShadow = true; n.receiveShadow = true; } } });
-             modelLibrary[partKey] = sceneObj;
+            document.getElementById('total-width-display').innerText = Math.round(totalW) + " cm";
+            
+            updateDimensionLabels();
         }
 
         function createModuleMesh(moduleId) {
@@ -973,8 +437,8 @@
                 const box = new THREE.Box3().setFromObject(mesh); const size = new THREE.Vector3(); box.getSize(size); totalWidth = size.x; depth = size.z;
                 const center = new THREE.Vector3(); box.getCenter(center); mesh.position.sub(center); mesh.position.y += (box.max.y - box.min.y) / 2;
                 const isArmModule = def.id.includes('seat_arm'); const isDoubleArmModule = def.id.includes('2seats_arm'); const isChaise = def.type === 'chaise'; const isMeridien = def.type === 'meridien'; const isBartini = CURRENT_MODEL_ID === 'bartini'; const isFiori = CURRENT_MODEL_ID === 'fiori'; const isKindia = CURRENT_MODEL_ID === 'kindia'; const isSting = CURRENT_MODEL_ID === 'sting'; 
-                const isInfinity = CURRENT_MODEL_ID === 'infinity'; const isMagic = CURRENT_MODEL_ID === 'magic';
-                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic) { mesh.position.y += 12; }
+                const isInfinity = CURRENT_MODEL_ID === 'infinity'; const isMagic = CURRENT_MODEL_ID === 'magic'; const isBruma = CURRENT_MODEL_ID === 'bruma';
+                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma) { mesh.position.y += 12; }
                 if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
                 group.add(mesh);
             } else { const box = new THREE.Mesh(new THREE.BoxGeometry(totalWidth, 45, depth), new THREE.MeshStandardMaterial({color:0x999999})); box.position.y = 34.5; group.add(box); }
@@ -982,57 +446,42 @@
             return group;
         }
 
-        window.addModule = function(moduleId, silent = false, startRelax = false) {
+        function addModule(moduleId, silent = false, startRelax = false) {
             const modelData = DB_MODELS[CURRENT_MODEL_ID];
-            if (modelData.modules && !modelData.modules.includes(moduleId)) { if (!silent) console.warn(`Módulo ${moduleId} ignorado`); return; }
-            const mesh = createModuleMesh(moduleId); scene.add(mesh);
-            const data = mesh.userData; data.hasRelax = startRelax; data.relaxFactor = startRelax ? 1 : 0;
+            if (modelData.modules && !modelData.modules.includes(moduleId)) { 
+                if (!silent) console.warn(`Módulo ${moduleId} ignorado`); 
+                return; 
+            }
+            const mesh = createModuleMesh(moduleId); 
+            scene.add(mesh);
+            
+            const data = mesh.userData; 
+            data.hasRelax = startRelax; 
+            data.relaxFactor = startRelax ? 1 : 0;
+            
             addedModules.push({ mesh: mesh, data: data.def, ...data });
-            mesh.traverse((node) => { if (node.isMesh) { const lowerName = node.name.toLowerCase(); const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw)); if (!isLeg && node.name !== 'shadow_plane' && currentFabricMaterial) { node.material = currentFabricMaterial; } if (isLeg && currentLegMaterial) { node.material = currentLegMaterial; } } });
-            repositionModules(); if(!silent) showFeedback("Módulo Adicionado", "success");
+            
+            mesh.traverse((node) => { 
+                if (node.isMesh) { 
+                    const lowerName = node.name.toLowerCase(); 
+                    const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw)); 
+                    if (!isLeg && node.name !== 'shadow_plane' && currentFabricMaterial) { 
+                        node.material = currentFabricMaterial; 
+                    } 
+                    if (isLeg && currentLegMaterial) { 
+                        node.material = currentLegMaterial; 
+                    } 
+                } 
+            });
+            
+            repositionModules(); 
+            if(!silent) showFeedback("Módulo Adicionado", "success");
         }
 
-        function repositionModules() {
-            let cornerIdx = -1; for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIdx = i; break; }
-            let cornerPos = { x:0, z:0, depth: 0 }; const modelData = DB_MODELS[CURRENT_MODEL_ID];
-            const gapCorrection = (CURRENT_MODEL_ID === 'dayma') ? -2 : 0;
-            addedModules.forEach((mod, i) => {
-                const mesh = mod.mesh;
-                if(cornerIdx === -1 || i <= cornerIdx) {
-                    mod.isCornerLine = false; mesh.rotation.y = 0;
-                    if(i === 0) mesh.position.x = 0; else { const prev = addedModules[i-1]; mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2) + gapCorrection; }
-                    mesh.position.z = ((mod.depth - modelData.depth) / 2); if(mod.data.type === 'corner') cornerPos = { x: mesh.position.x, z: mesh.position.z, depth: mod.depth };
-                } else {
-                    mod.isCornerLine = true; mesh.rotation.y = -Math.PI / 2; 
-                    if(i === cornerIdx + 1) { mesh.position.z = cornerPos.z + (cornerPos.depth/2) + (mod.width/2) + gapCorrection; } else { const prev = addedModules[i-1]; mesh.position.z = prev.mesh.position.z + (prev.width/2) + (mod.width/2) + gapCorrection; }
-                    mesh.position.x = cornerPos.x + (cornerPos.depth/2) - (mod.depth/2);
-                }
-            });
-            let totalW = 0;
-            if (addedModules.length > 0) { const first = addedModules[0]; let lastInLine1 = addedModules.length - 1; if (cornerIdx !== -1) lastInLine1 = cornerIdx; const startX = first.mesh.position.x - first.width/2; const endX = addedModules[lastInLine1].mesh.position.x + addedModules[lastInLine1].width/2; totalW = endX - startX; }
-            document.getElementById('total-width-display').innerText = Math.round(totalW) + " cm";
-            updateDimensionLabels();
-        }
-
-        function animate() {
-            requestAnimationFrame(animate); controls.update();
-            const btnRecenter = document.getElementById('btn-recenter');
-            if (btnRecenter) { const distTarget = controls.target.length(); const distCam = camera.position.distanceTo(controls.target); if (distTarget > 300 || distCam > 2000) { if(btnRecenter.classList.contains('hidden')) btnRecenter.classList.remove('hidden'); } else { if(!btnRecenter.classList.contains('hidden')) btnRecenter.classList.add('hidden'); } }
-            const modelType = DB_MODELS[CURRENT_MODEL_ID].type;
-            addedModules.forEach(mod => {
-                const target = mod.hasRelax ? 1 : 0; mod.relaxFactor += (target - mod.relaxFactor) * 0.08;
-                if (Math.abs(target - mod.relaxFactor) < 0.001 && (target === 0 || target === 1)) {}
-                if (modelType === 'relax') {
-                    const foot = mod.mesh.getObjectByName('footrest_anim') || mod.mesh.getObjectByName('recliner'); const back = mod.mesh.getObjectByName('back_anim') || mod.mesh.getObjectByName('backrest');
-                    if (foot) { foot.rotation.x = -Math.PI / 2.5 * mod.relaxFactor; foot.position.y = mod.relaxFactor * 30 + 12; foot.position.z = mod.relaxFactor * 40; }
-                    if (back) back.rotation.x = -0.2 * mod.relaxFactor;
-                } else if (modelType === 'slide') {
-                    let internalScale = 1; if (mod.mesh.children.length > 0) { internalScale = mod.mesh.children[0].scale.z; }
-                    const slideDistance = 50 / internalScale;
-                    if (mod.sliderParts && mod.sliderParts.length > 0) { mod.sliderParts.forEach(part => { if (part.userData.origZ === undefined) part.userData.origZ = part.position.z; part.position.z = part.userData.origZ + (mod.relaxFactor * slideDistance); }); } else if (mod.sliderGroup) { mod.sliderGroup.position.z = mod.sliderGroup.userData.origZ + (mod.relaxFactor * slideDistance); }
-                }
-            });
-            if (scene) renderer.render(scene, camera);
+        function addDefaultConfiguration() {
+            addModule('seat_arm_l', true);
+            addModule('seat_no_arm', true);
+            addModule('seat_arm_r', true);
         }
 
         function findSlideParts(mod) {
@@ -1052,6 +501,29 @@
             return false;
         }
 
+        function animate() {
+            if(!scene || !camera || !renderer) return;
+            requestAnimationFrame(animate); controls.update();
+            const btnRecenter = document.getElementById('btn-recenter');
+            if (btnRecenter) { const distTarget = controls.target.length(); const distCam = camera.position.distanceTo(controls.target); if (distTarget > 300 || distCam > 2000) { if(btnRecenter.classList.contains('hidden')) btnRecenter.classList.remove('hidden'); } else { if(!btnRecenter.classList.contains('hidden')) btnRecenter.classList.add('hidden'); } }
+            const modelType = DB_MODELS[CURRENT_MODEL_ID].type;
+            addedModules.forEach(mod => {
+                const target = mod.hasRelax ? 1 : 0; mod.relaxFactor += (target - mod.relaxFactor) * 0.08;
+                if (Math.abs(target - mod.relaxFactor) < 0.001 && (target === 0 || target === 1)) {}
+                if (modelType === 'relax') {
+                    const foot = mod.mesh.getObjectByName('footrest_anim') || mod.mesh.getObjectByName('recliner'); const back = mod.mesh.getObjectByName('back_anim') || mod.mesh.getObjectByName('backrest');
+                    if (foot) { foot.rotation.x = -Math.PI / 2.5 * mod.relaxFactor; foot.position.y = mod.relaxFactor * 30 + 12; foot.position.z = mod.relaxFactor * 40; }
+                    if (back) back.rotation.x = -0.2 * mod.relaxFactor;
+                } else if (modelType === 'slide') {
+                    let internalScale = 1; if (mod.mesh.children.length > 0) { internalScale = mod.mesh.children[0].scale.z; }
+                    const slideDistance = 50 / internalScale;
+                    if (mod.sliderParts && mod.sliderParts.length > 0) { mod.sliderParts.forEach(part => { if (part.userData.origZ === undefined) part.userData.origZ = part.position.z; part.position.z = part.userData.origZ + (mod.relaxFactor * slideDistance); }); } else if (mod.sliderGroup) { mod.sliderGroup.position.z = mod.sliderGroup.userData.origZ + (mod.relaxFactor * slideDistance); }
+                }
+            });
+            renderer.render(scene, camera);
+        }
+
+        // --- INTERACTION ---
         function interactWithScene(x, y) {
             const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((x - rect.left) / rect.width) * 2 - 1; mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(scene.children, true);
@@ -1078,79 +550,155 @@
             hoverMenu.classList.remove('visible'); return false;
         }
 
+        function onTouchStart(e) { if (e.touches.length === 1) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; } }
+        function onTouchEnd(e) { if (e.changedTouches.length === 1) { const dx = e.changedTouches[0].clientX - touchStartX; const dy = e.changedTouches[0].clientY - touchStartY; if (Math.abs(dx) < 10 && Math.abs(dy) < 10) { interactWithScene(e.changedTouches[0].clientX, e.changedTouches[0].clientY); } } }
         function onMouseMove(e) { interactWithScene(e.clientX, e.clientY); }
         function onMouseClick(e) { interactWithScene(e.clientX, e.clientY); }
 
-        function updateDimensionLabels() {
-             while(dimensionLinesGroup.children.length > 0){ const obj = dimensionLinesGroup.children[0]; if(obj.material && obj.material.map) obj.material.map.dispose(); dimensionLinesGroup.remove(obj); }
-            if(!showDimensions || addedModules.length === 0) return;
-            let leg1Length = 0; let leg2Length = 0; let cornerIndex = -1; for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIndex = i; break; }
-            const endLeg1Index = cornerIndex === -1 ? addedModules.length - 1 : cornerIndex; let startX = 0; let endX = 0;
-            if(addedModules.length > 0) {
-                const first = addedModules[0]; const lastLeg1 = addedModules[endLeg1Index]; endX = lastLeg1.mesh.position.x + lastLeg1.width/2; startX = -first.width/2; leg1Length = endX - startX;
-                const lineY = 110; const linePoints = [new THREE.Vector3(startX, lineY, 0), new THREE.Vector3(endX, lineY, 0)]; const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePoints), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 })); dimensionLinesGroup.add(line);
-                const sprite = createTextSprite(Math.round(leg1Length) + " cm"); sprite.position.set((startX + endX)/2, lineY + 15, 0); dimensionLinesGroup.add(sprite);
-            }
-            if(cornerIndex !== -1 && cornerIndex < addedModules.length - 1) {
-                const corner = addedModules[cornerIndex]; const lastLeg2 = addedModules[addedModules.length - 1]; const startZ = corner.mesh.position.z - corner.depth/2; const endZ = lastLeg2.mesh.position.z + lastLeg2.width/2; leg2Length = endZ - startZ;
-                const lineX = corner.mesh.position.x + corner.width/2 + 20; const lineY = 110; const linePointsZ = [new THREE.Vector3(lineX, lineY, startZ), new THREE.Vector3(lineX, lineY, endZ)]; const lineZ = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePointsZ), new THREE.LineBasicMaterial({ color: 0xffffff })); dimensionLinesGroup.add(lineZ);
-                const spriteZ = createTextSprite(Math.round(leg2Length) + " cm"); spriteZ.position.set(lineX + 10, lineY + 15, (startZ + endZ)/2); dimensionLinesGroup.add(spriteZ);
-            }
-        }
-        function createTextSprite(message) {
-            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); const fontSize = 64; ctx.font = "Bold " + fontSize + "px Arial"; const textWidth = ctx.measureText(message).width; canvas.width = textWidth + 40; canvas.height = fontSize + 40;
-            ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, canvas.width, canvas.height, 20); ctx.fill(); } else { ctx.fillRect(0, 0, canvas.width, canvas.height); }
-            ctx.fillStyle = "white"; ctx.font = "Bold " + fontSize + "px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(message, canvas.width/2, canvas.height/2);
-            const texture = new THREE.CanvasTexture(canvas); const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false })); sprite.scale.set(canvas.width * 0.15, canvas.height * 0.15, 1); sprite.renderOrder = 999; return sprite;
-        }
-
-        function showFeedback(msg, type) {
-            const el = document.getElementById('feedback-message'); if(!el) return; el.textContent = msg;
-            let className = "fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-5 py-2 rounded-full text-white font-bold shadow-lg transition-opacity duration-300 pointer-events-none opacity-100 show-feedback flex items-center gap-2 ";
-            className += type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-gray-800'); el.className = className;
-            if (el.timeout) clearTimeout(el.timeout); el.timeout = setTimeout(() => { el.classList.remove('opacity-100'); el.classList.add('opacity-0'); }, 2000);
-        }
+        function showFeedback(msg, type) { const el = document.getElementById('feedback-message'); if(!el) return; el.textContent = msg; let className = "fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-5 py-2 rounded-full text-white font-bold shadow-lg transition-opacity duration-300 pointer-events-none opacity-100 show-feedback flex items-center gap-2 "; className += type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-gray-800'); el.className = className; if (el.timeout) clearTimeout(el.timeout); el.timeout = setTimeout(() => { el.classList.remove('opacity-100'); el.classList.add('opacity-0'); }, 2000); }
         function uiSet(id, prop, val) { const el = document.getElementById(id); if(el) el.style[prop] = val; }
         function uiText(id, text) { const el = document.getElementById(id); if(el) el.innerText = text; }
         function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
-        function enterRoomMode(imgUrl) {
-            const bgDiv = document.getElementById('room-background'); const controls = document.getElementById('room-controls');
-            bgDiv.style.backgroundImage = `url(${imgUrl})`; bgDiv.style.display = 'block'; controls.style.display = 'flex';
-            renderer.setClearColor(0x000000, 0); scene.background = null; scene.fog = null;
-            const gVis = scene.getObjectByName('env_ground_visual'); if(gVis) gVis.visible = false; const gShadow = scene.getObjectByName('env_ground_shadow'); if(gShadow) gShadow.material.opacity = 0.5;
-            const grid = scene.getObjectByName('env_grid'); if(grid) grid.visible = false;
-            camera.position.set(0, 100, 400); camera.lookAt(0, 50, 0); showFeedback("Modo Sala Ativo! Ajuste o sofá.", "success");
+        
+        // --- CORE TEXTURE FUNCTIONS ---
+        function manageTextureCache(newCollectionKey) { const idx = loadedCollectionsQueue.indexOf(newCollectionKey); if(idx !== -1) { loadedCollectionsQueue.splice(idx, 1); loadedCollectionsQueue.push(newCollectionKey); return; } loadedCollectionsQueue.push(newCollectionKey); if(loadedCollectionsQueue.length > 3) { const toRemove = loadedCollectionsQueue.shift(); unloadCollection(toRemove); } }
+        function unloadCollection(key) { if(IMAGES[key]) { IMAGES[key].front = null; IMAGES[key].back = null; IMAGES[key].loaded = false; } }
+
+        function renderFabricLibrary(category) { const container = document.getElementById('fabric-library-container'); if(!container) return; container.innerHTML = ''; container.scrollTop = 0; renderedCount = 0; activeCategoryList = category === 'all' ? FABRIC_LIBRARY : FABRIC_LIBRARY.filter(f => f.type === category); loadMoreFabrics(); }
+        function loadMoreFabrics() {
+            const container = document.getElementById('fabric-library-container'); if(!container) return;
+            if (renderedCount >= activeCategoryList.length) return;
+            const batch = activeCategoryList.slice(renderedCount, renderedCount + BATCH_SIZE);
+            const thumbBase = 'https://stoffus-pt.github.io/configurador-eleganza/assets/compressedtextures/';
+            batch.forEach(fab => { 
+                const el = document.createElement('div'); el.className = `fabric-item ${fab.id === activeFabricId ? 'active' : ''}`;
+                const placeholderUrl = getFabricThumbnailDataUrl(fab.type, fab.color); el.style.backgroundImage = `url(${placeholderUrl})`; el.style.backgroundSize = 'cover';
+                const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type); const colName = col ? col.name : fab.collection; const mapType = fab.map; const coords = TEXTURE_LAYOUTS[mapType];
+                let targetSuffix = '1'; if (coords && coords.src === 'back') { targetSuffix = '2'; }
+                const candidates = [ `${thumbBase}${colName} ${targetSuffix}.webp`, `${thumbBase}${colName.toLowerCase()} ${targetSuffix}.webp`, `${thumbBase}${colName}_${targetSuffix}.webp`, `${thumbBase}${colName.toLowerCase()}_${targetSuffix}.webp` ];
+                const tryLoad = (index) => { if (index >= candidates.length) { if (targetSuffix === '2') { const fallbackUrl = `${thumbBase}${colName} 1.webp`; const imgFallback = new Image(); imgFallback.onload = () => { if(coords) applyThumbnailCrop(el, imgFallback.src, coords); else el.style.backgroundImage = `url('${imgFallback.src}')`; }; imgFallback.src = fallbackUrl; } return; } const img = new Image(); img.onload = () => { if (coords) { applyThumbnailCrop(el, img.src, coords); } else { el.style.backgroundImage = `url('${img.src}')`; el.style.backgroundSize = 'cover'; } }; img.onerror = () => { tryLoad(index + 1); }; img.src = candidates[index]; };
+                tryLoad(0);
+                el.innerHTML = `<div class="fabric-name">${fab.name}</div>`; el.onclick = () => setFabricFromLibrary(fab.id); container.appendChild(el); 
+            });
+            renderedCount += batch.length;
+            setTimeout(() => { if (container.scrollHeight <= container.clientHeight && renderedCount < activeCategoryList.length) { loadMoreFabrics(); } }, 50);
         }
-        function exitRoomMode() {
-            document.getElementById('room-background').style.display = 'none'; document.getElementById('room-controls').style.display = 'none'; document.getElementById('ai-room-analysis').classList.add('hidden');
-            const bgColor = 0xffffff; renderer.setClearColor(bgColor, 1); scene.background = new THREE.Color(bgColor); scene.fog = new THREE.Fog(bgColor, 800, 2500);
-            const gVis = scene.getObjectByName('env_ground_visual'); if(gVis) gVis.visible = true; const gShadow = scene.getObjectByName('env_ground_shadow'); if(gShadow) gShadow.material.opacity = 0.3;
-            const grid = scene.getObjectByName('env_grid'); if(grid) grid.visible = true;
-        }
+
+        function applyThumbnailCrop(element, imageSrc, coords) { const sizeX = (1 / coords.w) * 100; const sizeY = (1 / coords.h) * 100; const posX = coords.w === 1 ? 0 : (coords.x / (1 - coords.w)) * 100; const posY = coords.h === 1 ? 0 : (coords.y / (1 - coords.h)) * 100; element.style.backgroundImage = `url('${imageSrc}')`; element.style.backgroundSize = `${sizeX}% ${sizeY}%`; element.style.backgroundPosition = `${posX}% ${posY}%`; }
+        function getFabricThumbnailDataUrl(type, color) { const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128; const ctx = canvas.getContext('2d'); ctx.fillStyle = color; ctx.fillRect(0, 0, 128, 128); return canvas.toDataURL('image/jpeg', 0.8); }
+        function setFabricFromLibrary(id) { const fab = FABRIC_LIBRARY.find(f => f.id === id); if(!fab) return; activeFabricId = id; const items = document.querySelectorAll('.fabric-item'); items.forEach(el => { if(el.textContent.includes(fab.name)) el.classList.add('active'); else el.classList.remove('active'); }); const tempMat = createProceduralFabricTexture(fab.type, fab.color); currentFabricMaterial = tempMat; updateAllModulesMaterial(); const store = IMAGES[fab.type]; if (store && store.loaded) { manageTextureCache(fab.type); applyHighResTexture(fab, store); } else { showFeedback("A carregar textura...", "info"); loadCollectionImages(fab.type, (newStore) => { if(newStore && newStore.loaded) { applyHighResTexture(fab, newStore); } }); } }
+        function applyHighResTexture(fab, store) { const coords = TEXTURE_LAYOUTS[fab.map]; const sourceImg = (coords.src === 'front') ? store.front : store.back; if(sourceImg) { currentFabricMaterial = cropTextureFromImage(sourceImg, coords, fab.type); updateAllModulesMaterial(); showFeedback(fab.name, "success"); } }
+        function loadCollectionImages(collectionKey, callback) { manageTextureCache(collectionKey); if(IMAGES[collectionKey] && IMAGES[collectionKey].loaded) { callback(IMAGES[collectionKey]); return; } const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === collectionKey); if(!col) return; const texLoader = new THREE.TextureLoader(); texLoader.setCrossOrigin('anonymous'); let BASE = 'https://stoffus-pt.github.io/configurador-eleganza/assets/textures/'; let loadedCount = 0; const target = 2; if(!IMAGES[collectionKey]) IMAGES[collectionKey] = { front: null, back: null, loaded: false }; const tryLoadVariant = (suffix, targetSlot) => { const candidates = [ `${col.name} ${suffix}.jpg`, `${col.name.toLowerCase()} ${suffix}.jpg`, `${col.name}_${suffix}.jpg`, `${col.name.toLowerCase()}_${suffix}.jpg` ]; let attempt = 0; const tryNext = () => { if (attempt >= candidates.length) { checkDone(); return; } const url = `${BASE}${candidates[attempt]}`; texLoader.load(url, (tex) => { if(targetSlot === 'front') IMAGES[collectionKey].front = tex.image; else IMAGES[collectionKey].back = tex.image; checkDone(); }, undefined, () => { attempt++; tryNext(); }); }; tryNext(); }; const checkDone = () => { loadedCount++; if(loadedCount >= target) { IMAGES[collectionKey].loaded = true; callback(IMAGES[collectionKey]); } }; tryLoadVariant('1', 'front'); tryLoadVariant('2', 'back'); }
+        function initFabricData() { DB_COLLECTIONS.forEach(col => { const key = col.name.toLowerCase().replace(/\s/g, ''); IMAGES[key] = { front: null, back: null, loaded: false }; FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start}`, name: `${col.name} ${col.prefix}${col.start}`, color: '#dcdcdc', type: key, map: 'front', collection: col.name }); for (let i = 1; i <= 6; i++) { FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${col.start + i}`, name: `${col.name} ${col.prefix}${col.start + i}`, color: '#b0b0b0', type: key, map: `back_${i}`, collection: col.name }); } }); }
+        function initFabricSystem() { initFabricData(); const catContainer = document.getElementById('fabric-categories'); let btnAll = document.createElement('button'); btnAll.className = 'cat-btn active'; btnAll.textContent = 'Todos'; btnAll.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btnAll.classList.add('active'); renderFabricLibrary('all'); }; catContainer.appendChild(btnAll); DB_COLLECTIONS.forEach(col => { const key = col.name.toLowerCase().replace(/\s/g, ''); const btn = document.createElement('button'); btn.className = 'cat-btn'; btn.textContent = col.name; btn.onclick = () => { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderFabricLibrary(key); }; catContainer.appendChild(btn); }); renderFabricLibrary('all'); const scrollContainer = document.getElementById('fabric-library-container'); if (scrollContainer) { scrollContainer.addEventListener('scroll', () => { if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 100) { loadMoreFabrics(); } }); } }
+        function applyTextureRepeat(texture, rapportCm) { if(!texture) return; const referenceSizeCm = 90; const repeatFactor = referenceSizeCm / rapportCm; texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(repeatFactor, repeatFactor); texture.needsUpdate = true; }
+        function cropTextureFromImage(sourceImg, crop, type) { if(!sourceImg) return null; const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 512; canvas.height = 512; ctx.drawImage(sourceImg, sourceImg.width * crop.x, sourceImg.height * crop.y, sourceImg.width * crop.w, sourceImg.height * crop.h, 0, 0, 512, 512); const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; applyTextureRepeat(tex, currentRapport); let params = { map: tex, color: 0xffffff, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.02 }; return new THREE.MeshStandardMaterial(params); }
+        function createProceduralFabricTexture(type, colorHex) { const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size); const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; applyTextureRepeat(tex, currentRapport); return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.01 }); }
+        function updateAllModulesMaterial() { addedModules.forEach(mod => { if(!mod.mesh) return; mod.mesh.traverse((node) => { if (node.isMesh) { const lowerName = node.name.toLowerCase(); const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw)); if (!isLeg && node.name !== 'shadow_plane') node.material = currentFabricMaterial; if (isLeg) node.material = currentLegMaterial; } }); }); }
+        function updateFabricRapport() { if(currentFabricMaterial && currentFabricMaterial.map) { applyTextureRepeat(currentFabricMaterial.map, currentRapport); if(currentFabricMaterial.bumpMap) applyTextureRepeat(currentFabricMaterial.bumpMap, currentRapport); } }
+        function renderModuleButtons() { const container = document.getElementById('module-list'); if(!container) return; container.innerHTML = ''; const modelData = DB_MODELS[CURRENT_MODEL_ID]; DB_MODULES.forEach(def => { if (modelData.modules && !modelData.modules.includes(def.id)) return; const btn = document.createElement('button'); btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16"; btn.onclick = () => addModule(def.id); btn.innerHTML = `<i class="fas ${def.icon} text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i><span class="text-[9px] font-bold text-gray-600 leading-tight text-center">${def.name}</span>`; container.appendChild(btn); }); }
+        function initUIListeners() { const resetBtn = document.getElementById('reset-btn'); if(resetBtn) resetBtn.addEventListener('click', () => { addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; repositionModules(); showFeedback("Cena limpa", "success"); }); const editorBtn = document.getElementById('toggle-editor-btn'); if(editorBtn) editorBtn.addEventListener('click', () => { document.getElementById('editor-panel').classList.toggle('hidden'); }); const dimsBtn = document.getElementById('toggle-dims-btn'); if(dimsBtn) dimsBtn.addEventListener('click', () => { showDimensions = !showDimensions; updateDimensionLabels(); }); const rapportSlider = document.getElementById('rapport-slider'); if(rapportSlider) { rapportSlider.addEventListener('input', (e) => { currentRapport = parseInt(e.target.value); document.getElementById('rapport-display').innerText = currentRapport + " cm"; updateFabricRapport(); }); } }
+        function initModelSelector() { updateModelButtonUI(); const container = document.getElementById('model-grid-container'); if(!container) return; container.innerHTML = ''; Object.keys(DB_MODELS).forEach(key => { const model = DB_MODELS[key]; const card = document.createElement('div'); const isActive = key === CURRENT_MODEL_ID; let badgeClass = 'badge-fixed'; let typeLabel = 'Fixo'; if (model.type === 'relax') { badgeClass = 'badge-relax'; typeLabel = 'Relax'; } if (model.type === 'slide') { badgeClass = 'badge-slide'; typeLabel = 'Deslizante'; } card.className = `model-card ${isActive ? 'active' : ''}`; card.onclick = () => { changeModel(key); uiSet('model-modal', 'display', 'none'); }; const cleanName = model.name.split('(')[0].trim(); const keyLower = key.toLowerCase(); const imgUrlWebP = `${GITHUB_REPO_URL}assets/icons/${keyLower}.webp`; const imgUrlPng = `${GITHUB_REPO_URL}assets/icons/${keyLower}.png`; const placeholder = `https://placehold.co/150x100?text=${cleanName}`; card.innerHTML = `<img src="${imgUrlWebP}" class="model-card-img" alt="${cleanName}" onerror="this.onerror=null; this.src='${imgUrlPng}'; this.onerror=function(){this.src='${placeholder}'; this.style.objectFit='cover';};"><div class="model-card-name">${cleanName}</div><span class="model-badge ${badgeClass}">${typeLabel}</span>`; container.appendChild(card); }); }
+        function updateModelButtonUI() { const nameEl = document.getElementById('current-model-name'); if(!nameEl) return; const modelName = DB_MODELS[CURRENT_MODEL_ID].name.split('(')[0].trim(); nameEl.textContent = modelName; const cards = document.querySelectorAll('.model-card'); cards.forEach(c => { if(c.innerText.includes(modelName)) c.classList.add('active'); else c.classList.remove('active'); }); }
+        window.openModelSelector = function() { uiSet('model-modal', 'display', 'flex'); }
+        function initSizeSelector() { const container = document.getElementById('size-selector-container'); if(!container) return; container.innerHTML = ''; const modelSizes = DB_MODELS[CURRENT_MODEL_ID].sizes; Object.keys(modelSizes).forEach(size => { const btn = document.createElement('button'); btn.className = `flex-1 py-1.5 text-xs font-bold rounded-md transition ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`; btn.innerText = size; btn.onclick = () => changeSize(size); container.appendChild(btn); }); updateSizePreview(); }
+        window.changeModel = function(modelId) { if (!DB_MODELS[modelId]) return; pendingConfiguration = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax })); CURRENT_MODEL_ID = modelId; const modelData = DB_MODELS[modelId]; if (!modelData.sizes[CURRENT_SIZE_KEY]) { CURRENT_SIZE_KEY = 'M'; } updateModelButtonUI(); initSizeSelector(); addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; loadModelAssets(modelId); updateSizePreview(); };
+        window.changeSize = function(sizeKey) { if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && sizeKey === 'XXL') { const hasValidModule = addedModules.some(m => m.data.id === '2seats_2arms'); if (!hasValidModule) { showFeedback("Tamanho XXL exclusivo para o módulo '2 Lug. 2 Braços'. Adicione-o primeiro.", "error"); initSizeSelector(); return; } } if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && sizeKey === 'XXL') { showFeedback("Tamanho XXL aplicado ao módulo '2 Lug. 2 Braços'.", "success"); } CURRENT_SIZE_KEY = sizeKey; initSizeSelector(); const currentModules = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax })); addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; currentModules.forEach(m => addModule(m.id, true, m.hasRelax)); repositionModules(); };
+        function updateSizePreview() { document.getElementById('size-preview').innerText = `${DB_MODELS[CURRENT_MODEL_ID].sizes[CURRENT_SIZE_KEY]} cm`; }
+        function loadModelAssets(modelId) { const modelData = DB_MODELS[modelId]; modelLibrary = {}; const loader = new THREE.GLTFLoader(manager); const dracoLoader = new THREE.DRACOLoader(); dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/'); dracoLoader.setDecoderConfig({ type: 'js' }); loader.setDRACOLoader(dracoLoader); loader.setCrossOrigin('anonymous'); const cacheBuster = `?v=${Date.now()}`; const partsToLoad = ['seat', 'arm', 'corner', 'chaise', 'meridien', 'meiple', '2arm2seats', 'arm2seats']; partsToLoad.forEach(part => { const folderName = modelData.folder; const partCap = part.charAt(0).toUpperCase() + part.slice(1); const folderCap = folderName.charAt(0).toUpperCase() + folderName.slice(1).toLowerCase(); const folderLower = folderName.toLowerCase(); const paths = [ `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderLower}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderName}/${partCap}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderLower}/${partCap}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderCap}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/bartini/${part}.glb${cacheBuster}` ]; const tryLoadPath = (index) => { if (index >= paths.length) { if (modelId === 'athena') { loader.load(`${GITHUB_REPO_URL}assets/models/${part}.glb`, (gltf) => processLoadedModel(gltf.scene, part), undefined, () => {}); } return; } loader.load(paths[index], (gltf) => { processLoadedModel(gltf.scene, part); }, undefined, (err) => { tryLoadPath(index + 1); }); }; tryLoadPath(0); }); }
+        function processLoadedModel(sceneObj, partKey) { const box = new THREE.Box3().setFromObject(sceneObj); const size = new THREE.Vector3(); box.getSize(size); if (size.x < 20) { sceneObj.scale.set(100, 100, 100); sceneObj.updateMatrixWorld(true); } sceneObj.traverse(n => { if (n.isMesh) { if(n.name === 'shadow_plane') { n.visible = false; n.castShadow = false; n.receiveShadow = false; } else { n.castShadow = true; n.receiveShadow = true; } } }); modelLibrary[partKey] = sceneObj; }
+
+        function enterRoomMode(imgUrl) { const bgDiv = document.getElementById('room-background'); const controls = document.getElementById('room-controls'); bgDiv.style.backgroundImage = `url(${imgUrl})`; bgDiv.style.display = 'block'; controls.style.display = 'flex'; renderer.setClearColor(0x000000, 0); scene.background = null; scene.fog = null; const gVis = scene.getObjectByName('env_ground_visual'); if(gVis) gVis.visible = false; const gShadow = scene.getObjectByName('env_ground_shadow'); if(gShadow) gShadow.material.opacity = 0.5; const grid = scene.getObjectByName('env_grid'); if(grid) grid.visible = false; camera.position.set(0, 100, 400); camera.lookAt(0, 50, 0); showFeedback("Modo Sala Ativo! Ajuste o sofá.", "success"); }
+        function exitRoomMode() { document.getElementById('room-background').style.display = 'none'; document.getElementById('room-controls').style.display = 'none'; document.getElementById('ai-room-analysis').classList.add('hidden'); const bgColor = 0xffffff; renderer.setClearColor(bgColor, 1); scene.background = new THREE.Color(bgColor); scene.fog = new THREE.Fog(bgColor, 800, 2500); const gVis = scene.getObjectByName('env_ground_visual'); if(gVis) gVis.visible = true; const gShadow = scene.getObjectByName('env_ground_shadow'); if(gShadow) gShadow.material.opacity = 0.3; const grid = scene.getObjectByName('env_grid'); if(grid) grid.visible = true; }
         window.exitRoomMode = exitRoomMode;
 
-        // Upload/AR handlers
-        function uploadToHost(blob) {
-            const formData = new FormData(); formData.append('file', blob, 'sofa-eleganza.glb');
-            uiSet('ar-loading', 'display', 'block'); uiText('ar-status-text', "A enviar...");
-            fetch('https://file.io/?expires=1d', { method: 'POST', body: formData }).then(r => r.json()).then(d => { if(d.success) { uiSet('ar-loading', 'display', 'none'); uiSet('ar-success', 'display', 'block'); const qr = document.getElementById('qrcode'); if(qr) { qr.innerHTML = ""; new QRCode(qr, { text: d.link, width: 200, height: 200 }); } } else throw new Error('Upload failed'); }).catch(() => { uiSet('ar-loading', 'display', 'none'); uiSet('ar-fallback', 'display', 'block'); });
-        }
+        function uploadToHost(blob) { const formData = new FormData(); formData.append('file', blob, 'sofa-eleganza.glb'); uiSet('ar-loading', 'display', 'block'); uiText('ar-status-text', "A enviar..."); fetch('https://file.io/?expires=1d', { method: 'POST', body: formData }).then(r => r.json()).then(d => { if(d.success) { uiSet('ar-loading', 'display', 'none'); uiSet('ar-success', 'display', 'block'); const qr = document.getElementById('qrcode'); if(qr) { qr.innerHTML = ""; new QRCode(qr, { text: d.link, width: 200, height: 200 }); } } else throw new Error('Upload failed'); }).catch(() => { uiSet('ar-loading', 'display', 'none'); uiSet('ar-fallback', 'display', 'block'); }); }
+        function exportToAR() { if(addedModules.length === 0) { showFeedback("Adicione módulos primeiro!", "error"); return; } const exporter = new THREE.GLTFExporter(); const sceneClone = new THREE.Group(); addedModules.forEach(mod => sceneClone.add(mod.mesh.clone())); sceneClone.traverse(child => { if(child.name === 'shadow_plane' || child.name === 'debug_pivot' || child.name === 'footrest_anim') child.visible = false; }); uiSet('ar-modal', 'display', 'flex'); uiSet('ar-loading', 'display', 'block'); uiSet('ar-success', 'display', 'none'); uiSet('ar-fallback', 'display', 'none'); exporter.parse(sceneClone, function (result) { if (result instanceof ArrayBuffer) { const blob = new Blob([result], { type: 'application/octet-stream' }); const url = URL.createObjectURL(blob); const dlBtn = document.getElementById('download-glb-btn'); if(dlBtn) dlBtn.onclick = () => { const link = document.createElement('a'); link.href = url; link.download = 'sofa-eleganza.glb'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }; const viewer = document.getElementById('sofa-viewer'); const loader = document.getElementById('mv-loader'); if(viewer) { viewer.src = url; viewer.addEventListener('load', () => { if(loader) loader.style.display = 'none'; }); } uploadToHost(blob); } }, { binary: true }); }
         
-        function exportToAR() {
-            if(addedModules.length === 0) { showFeedback("Adicione módulos primeiro!", "error"); return; }
-            const exporter = new THREE.GLTFExporter(); const sceneClone = new THREE.Group();
-            addedModules.forEach(mod => sceneClone.add(mod.mesh.clone()));
-            sceneClone.traverse(child => { if(child.name === 'shadow_plane' || child.name === 'debug_pivot' || child.name === 'footrest_anim') child.visible = false; });
-            uiSet('ar-modal', 'display', 'flex'); uiSet('ar-loading', 'display', 'block'); uiSet('ar-success', 'display', 'none'); uiSet('ar-fallback', 'display', 'none');
-            exporter.parse(sceneClone, function (result) { if (result instanceof ArrayBuffer) { const blob = new Blob([result], { type: 'application/octet-stream' }); const url = URL.createObjectURL(blob); const dlBtn = document.getElementById('download-glb-btn'); if(dlBtn) dlBtn.onclick = () => { const link = document.createElement('a'); link.href = url; link.download = 'sofa-eleganza.glb'; document.body.appendChild(link); link.click(); document.body.removeChild(link); }; const viewer = document.getElementById('sofa-viewer'); const loader = document.getElementById('mv-loader'); if(viewer) { viewer.src = url; viewer.addEventListener('load', () => { if(loader) loader.style.display = 'none'; }); } uploadToHost(blob); } }, { binary: true });
-        }
+        window.openOrderSummary = function() { const summaryModel = document.getElementById('summary-model'); const summaryFabric = document.getElementById('summary-fabric'); const summaryWidth = document.getElementById('summary-width'); const itemsBody = document.getElementById('order-items-body'); if(!addedModules.length) { showFeedback("Adicione módulos primeiro!", "error"); return; } summaryModel.innerText = DB_MODELS[CURRENT_MODEL_ID].name; summaryFabric.innerText = activeFabricId ? FABRIC_LIBRARY.find(f => f.id === activeFabricId).name : "Padrão / Não Selecionado"; summaryWidth.innerText = document.getElementById('total-width-display').innerText; itemsBody.innerHTML = ''; addedModules.forEach((mod, index) => { const row = document.createElement('tr'); let sizeStr = CURRENT_SIZE_KEY; if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && CURRENT_SIZE_KEY === 'XXL' && mod.data.id !== '2seats_2arms') { sizeStr = 'XL (Restrição Infinity)'; } else if (mod.data.fixed) { sizeStr = 'Fixo (Canto/Meridien)'; } const modelType = DB_MODELS[CURRENT_MODEL_ID].type; let mechStr = '<span class="text-gray-400">Fixo (Sem Mecanismo)</span>'; if ((modelType === 'relax' || modelType === 'slide') && mod.hasRelax) { const mechName = modelType === 'slide' ? 'Assento Deslizante' : 'Relax Elétrico'; mechStr = `<span class="text-emerald-600 font-bold"><i class="fas fa-check-circle mr-1"></i> ${mechName}</span>`; } else if (mod.data.fixed) { mechStr = '<span class="text-gray-400">N/A (Módulo Fixo)</span>'; } row.innerHTML = `<td class="font-medium">${mod.data.name}</td><td>${sizeStr}</td><td>${mechStr}</td>`; itemsBody.appendChild(row); }); uiSet('order-modal', 'display', 'flex'); };
+        window.confirmAndGeneratePDF = function() { uiSet('order-modal', 'display', 'none'); showFeedback("A gerar nota de encomenda...", "success"); setTimeout(generateOrderPDF, 500); };
+        async function generateOrderPDF() { const { jsPDF } = window.jspdf; const doc = new jsPDF(); renderer.render(scene, camera); const imgData = renderer.domElement.toDataURL("image/jpeg", 0.9); doc.setFontSize(18); doc.setTextColor(232, 76, 38); doc.text("NOTA DE ENCOMENDA - STOFFUS", 20, 20); doc.setFontSize(10); doc.setTextColor(100); const dateStr = new Date().toLocaleString('pt-PT'); doc.text(`Data: ${dateStr}`, 20, 28); const imgProps = doc.getImageProperties(imgData); const pdfWidth = doc.internal.pageSize.getWidth(); const targetHeight = 80; const targetWidth = (imgProps.width * targetHeight) / imgProps.height; const x = (pdfWidth - targetWidth) / 2; doc.addImage(imgData, 'JPEG', x, 35, targetWidth, targetHeight); let y = 125; doc.setFontSize(11); doc.setTextColor(0, 0, 0); const modelName = DB_MODELS[CURRENT_MODEL_ID].name; const fabricName = activeFabricId ? FABRIC_LIBRARY.find(f => f.id === activeFabricId).name : "Padrão / Não Selecionado"; const totalWidth = document.getElementById('total-width-display').innerText; doc.setFont("helvetica", "bold"); doc.text("DETALHES GERAIS:", 20, y); y += 7; doc.setFont("helvetica", "normal"); doc.text(`Modelo: ${modelName}`, 20, y); y += 6; doc.text(`Tecido: ${fabricName}`, 20, y); y += 6; doc.text(`Largura Total (Estimada): ${totalWidth}`, 20, y); y += 10; const tableBody = addedModules.map((mod, index) => { let sizeStr = CURRENT_SIZE_KEY; if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && CURRENT_SIZE_KEY === 'XXL' && mod.data.id !== '2seats_2arms') { sizeStr = 'XL'; } else if (mod.data.fixed) { sizeStr = '-'; } const modelType = DB_MODELS[CURRENT_MODEL_ID].type; let mechStr = "Fixo"; if ((modelType === 'relax' || modelType === 'slide') && mod.hasRelax) { mechStr = modelType === 'slide' ? "Com Deslizante" : "Com Relax"; } else if (mod.data.fixed) { mechStr = "-"; } return [index + 1, mod.data.name, sizeStr, mechStr]; }); doc.autoTable({ startY: y, head: [['#', 'Módulo', 'Tamanho', 'Tipo de Mecanismo']], body: tableBody, theme: 'grid', headStyles: { fillColor: [232, 76, 38], textColor: 255, fontStyle: 'bold' }, styles: { fontSize: 10, cellPadding: 4 }, columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 'auto' }, 2: { cellWidth: 30 }, 3: { cellWidth: 40, fontStyle: 'bold' } } }); const finalY = doc.lastAutoTable.finalY + 20; doc.setFontSize(8); doc.setTextColor(150); doc.text("Este documento serve como nota de encomenda técnica.", 20, finalY); doc.text("Verifique todas as medidas e acabamentos antes de enviar para produção.", 20, finalY + 5); doc.save(`encomenda_${modelName.toLowerCase().replace(/\s/g, '_')}.pdf`); }
 
-        document.addEventListener('DOMContentLoaded', () => {
-             document.getElementById('room-upload').addEventListener('change', (e) => { if(e.target.files[0]) { const r = new FileReader(); r.onload = (evt) => enterRoomMode(evt.target.result); r.readAsDataURL(e.target.files[0]); } });
-             const arBtn = document.getElementById('btn-ar-open'); if(arBtn) arBtn.addEventListener('click', exportToAR);
-             const closeAr = document.getElementById('close-ar-btn'); if(closeAr) closeAr.addEventListener('click', () => uiSet('ar-modal', 'display', 'none'));
-             const closeAi = document.getElementById('close-ai-btn'); if(closeAi) closeAi.addEventListener('click', () => uiSet('ai-modal', 'display', 'none'));
-        });
+        // ======================== BOOTSTRAP ========================
+        function init() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene(); window.scene = scene;
+            const bgColor = 0xffffff; 
+            scene.background = new THREE.Color(bgColor); 
+            scene.fog = new THREE.Fog(bgColor, 800, 2500);
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 1, 5000); camera.position.set(0, 450, 750);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
+            renderer.shadowMap.enabled = true; 
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.toneMapping = THREE.NoToneMapping; 
+            container.appendChild(renderer.domElement);
+            
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.65); 
+            hemiLight.position.set(0, 200, 0);
+            scene.add(hemiLight);
+            
+            const dir = new THREE.DirectionalLight(0xffffff, 0.6); 
+            dir.position.set(100, 250, 100); 
+            dir.castShadow = true; 
+            const shadowRes = isMobile ? 2048 : 4096;
+            dir.shadow.mapSize.width = shadowRes; dir.shadow.mapSize.height = shadowRes; 
+            const d = 250;
+            dir.shadow.camera.left = -d; dir.shadow.camera.right = d; dir.shadow.camera.top = d; dir.shadow.camera.bottom = -d;
+            dir.shadow.camera.near = 0.5; dir.shadow.camera.far = 1000;
+            dir.shadow.bias = -0.0001; dir.shadow.normalBias = 0.02;
+            scene.add(dir);
+            
+            const textureLoader = new THREE.TextureLoader();
+            const floorUrl = 'https://stoffus-pt.github.io/configurador-eleganza/assets/textures/floor.jpg';
+            const floorTexture = textureLoader.load(floorUrl, (tex) => { tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(6, 6); tex.anisotropy = 16; tex.encoding = THREE.sRGBEncoding; });
+            const groundGeo = new THREE.PlaneGeometry(4000, 4000);
+            const groundVisual = new THREE.Mesh(groundGeo, new THREE.MeshBasicMaterial({ map: floorTexture, color: 0xffffff }));
+            groundVisual.name = "env_ground_visual"; groundVisual.rotation.x = -Math.PI / 2; groundVisual.position.y = -0.2; 
+            scene.add(groundVisual);
+            const groundShadow = new THREE.Mesh(groundGeo, new THREE.ShadowMaterial({ opacity: 0.35, color: 0x000000 }));
+            groundShadow.name = "env_ground_shadow"; groundShadow.rotation.x = -Math.PI / 2; groundShadow.position.y = -0.1; groundShadow.receiveShadow = true;
+            scene.add(groundShadow);
+            const grid = new THREE.GridHelper(3000, 60, 0x000000, 0x000000); grid.material.opacity = 0.1; grid.material.transparent = true; grid.name = "env_grid"; scene.add(grid);
+            dimensionLinesGroup = new THREE.Group(); scene.add(dimensionLinesGroup);
+            controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
+            raycaster = new THREE.Raycaster(); mouse = new THREE.Vector2();
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            renderer.domElement.addEventListener('click', onMouseClick);
+            
+            renderer.domElement.addEventListener('touchstart', onTouchStart, {passive: false});
+            renderer.domElement.addEventListener('touchend', onTouchEnd, {passive: false});
+
+            manager = new THREE.LoadingManager();
+            manager.onStart = () => document.getElementById('app-loader').style.display = 'flex';
+            manager.onLoad = () => { 
+                document.getElementById('app-loader').style.display = 'none'; 
+                renderModuleButtons(); 
+                if (pendingConfiguration && pendingConfiguration.length > 0) {
+                    pendingConfiguration.forEach(conf => {
+                         const modelData = DB_MODELS[CURRENT_MODEL_ID];
+                         const isValid = !modelData.modules || modelData.modules.includes(conf.id);
+                         if(isValid) addModule(conf.id, true, conf.hasRelax);
+                    });
+                    pendingConfiguration = null; 
+                    repositionModules();
+                } else if (addedModules.length === 0) { addDefaultConfiguration(); }
+            };
+
+            initModelSelector(); 
+            initSizeSelector(); 
+            initFabricSystem(); 
+            initUIListeners();
+            loadModelAssets(CURRENT_MODEL_ID);
+            
+            document.getElementById('btn-recenter').addEventListener('click', resetCamera);
+            
+            animate();
+        }
 
         window.onload = init;
     </script>
