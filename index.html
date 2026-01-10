@@ -282,13 +282,14 @@
     <div id="main-sidebar" class="ui-panel absolute transition-all duration-300 z-10 flex flex-col gap-4 overflow-y-auto
         md:top-16 md:left-0 md:bottom-36 md:w-64 md:border-r md:border-t-0 md:h-auto
         bottom-0 left-0 w-full h-[35vh] border-t border-gray-200 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]
+        p-4
     ">
         <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex-shrink-0">
             <div class="flex justify-between items-end mb-2"><label class="text-[10px] font-bold text-gray-500 uppercase">Largura Assento</label><span id="size-preview" class="text-xs font-mono text-stoffus-primary bg-orange-50 px-1 rounded">-- cm</span></div>
             <div class="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar" id="size-selector-container"></div>
         </div>
         <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-2 pl-1">Módulos Disponíveis</label><div class="grid grid-cols-3 md:grid-cols-2 gap-2 pb-2" id="module-list"></div></div>
-        <div class="mt-auto flex flex-col gap-2 pb-2 sticky bottom-0 bg-white/95 backdrop-blur pt-2 border-t border-gray-100 md:static md:bg-transparent md:border-t-0 md:pt-0">
+        <div class="mt-auto flex flex-col gap-2 sticky bottom-0 bg-white/95 backdrop-blur pt-2 border-t border-gray-100 md:static md:bg-transparent md:border-t-0 md:pt-0 -mx-4 px-4 -mb-4 pb-4">
             <div id="total-width-display" class="bg-gray-800 text-white p-3 rounded-lg text-center font-bold text-sm">0 cm</div>
             <button onclick="openOrderSummary()" class="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-lg font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 group"><i class="fas fa-file-pdf group-hover:scale-110 transition-transform"></i> Encomendar</button>
         </div>
