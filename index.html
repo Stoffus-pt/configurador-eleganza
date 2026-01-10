@@ -126,14 +126,6 @@
         .dock-circle { width: 70px; height: 70px; border-radius: 50%; border: 2px solid #e5e7eb; background-size: cover; background-position: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.2s; }
         .dock-item.active .dock-circle { border-color: #e84c26; box-shadow: 0 0 0 4px rgba(232, 76, 38, 0.2); transform: scale(1.05); }
         .dock-label { font-size: 11px; font-weight: 700; color: #4b5563; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-        
-        /* ROOM CONFIG */
-        #room-config-panel { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); padding: 16px; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); display: none; flex-direction: column; gap: 12px; width: 320px; z-index: 30; border: 1px solid rgba(255,255,255,0.6); }
-        @media (max-width: 768px) {
-            #room-config-panel { bottom: 100px; width: 90%; }
-        }
-        .room-control-row { display: flex; flex-direction: column; gap: 4px; }
-        .room-control-label { font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
@@ -209,6 +201,12 @@
                     <tbody id="order-items-body"></tbody>
                 </table>
             </div>
+
+            <!-- OBSERVATIONS FIELD -->
+            <div class="mt-4">
+                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Observações</label>
+                <textarea id="order-observations" class="w-full p-2 border border-gray-300 rounded-lg text-xs bg-gray-50 focus:border-stoffus-primary focus:ring-1 focus:ring-stoffus-primary outline-none transition" rows="2" placeholder="Ex: Informação sobre entrega, detalhes adicionais..."></textarea>
+            </div>
             
             <div class="mt-6 flex gap-3">
                 <button onclick="uiSet('order-modal','display','none')" class="flex-1 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-bold text-sm hover:bg-gray-50">Cancelar</button>
@@ -236,7 +234,6 @@
     <div class="ui-panel absolute top-0 left-0 w-full h-16 md:h-16 h-14 border-b border-gray-200 flex items-center justify-between px-2 sm:px-6 shadow-sm z-10">
         <div class="flex items-center flex-shrink-0 mr-2"><div class="font-bold text-lg sm:text-2xl text-gray-800 tracking-tight"><span class="text-stoffus-primary">Stoffus</span> 3D</div><div class="ml-4 pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.64</span></div></div>
         <div class="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto justify-start md:justify-end pb-1 md:pb-0">
-             <button id="btn-room-view" onclick="toggle3DRoom()" class="whitespace-nowrap bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-md transform hover:scale-105"><i class="fas fa-home mr-2"></i> <span>Ver em Sala 3D</span></button>
              <button id="btn-ar-open" class="whitespace-nowrap bg-[#e84c26] text-white hover:bg-[#cf401e] px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-md transform hover:scale-105"><i class="fas fa-cube mr-2"></i> <span>Visualizar AR</span></button>
              <button id="toggle-editor-btn" class="whitespace-nowrap bg-gray-800 text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-bold shadow-md hover:bg-gray-700 transition transform hover:scale-105 flex items-center"><i class="fas fa-layer-group mr-2"></i> <span class="hidden sm:inline">Acabamentos</span></button>
              <button id="toggle-dims-btn" class="whitespace-nowrap bg-white border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-bold shadow-sm" title="Mostrar Medidas"><i class="fas fa-ruler-combined"></i></button>
@@ -247,42 +244,6 @@
 
     <div id="btn-recenter" class="fixed bottom-32 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg cursor-pointer hidden z-50 flex items-center gap-2 hover:bg-gray-700 transition-all border border-gray-600">
         <i class="fas fa-compress-arrows-alt"></i> <span class="text-xs font-bold">Recentrar Câmara</span>
-    </div>
-
-    <!-- PAINEL CONFIGURAÇÃO SALA -->
-    <div id="room-config-panel">
-        <div class="flex justify-between items-center border-b pb-2 mb-2">
-            <span class="font-bold text-gray-800 text-sm"><i class="fas fa-sliders-h mr-2"></i> Configurar Sala</span>
-            <button onclick="toggle3DRoom()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
-        </div>
-        
-        <div class="room-control-row">
-            <div class="room-control-label"><span>Largura (cm)</span><span id="room-w-val" class="text-stoffus-primary">500</span></div>
-            <input type="range" id="room-width" min="300" max="1000" value="500" step="10">
-        </div>
-        
-        <div class="room-control-row">
-            <div class="room-control-label"><span>Profundidade (cm)</span><span id="room-d-val" class="text-stoffus-primary">400</span></div>
-            <input type="range" id="room-depth" min="300" max="1000" value="400" step="10">
-        </div>
-
-        <div class="h-px bg-gray-200 my-1"></div>
-        <p class="text-[9px] font-bold text-gray-400 uppercase">Posição do Sofá</p>
-
-        <div class="room-control-row">
-            <div class="room-control-label"><span>Esquerda / Direita</span></div>
-            <input type="range" id="room-shift-x" min="-300" max="300" value="0" step="10">
-        </div>
-        
-        <div class="room-control-row">
-            <div class="room-control-label"><span>Frente / Trás</span></div>
-            <input type="range" id="room-shift-z" min="-300" max="300" value="0" step="10">
-        </div>
-        
-        <div class="room-control-row">
-            <div class="room-control-label"><span>Rodar Sala</span></div>
-            <input type="range" id="room-rot" min="0" max="360" value="0" step="90">
-        </div>
     </div>
 
     <!-- PAINEL EDITOR -->
@@ -428,8 +389,10 @@
         let touchStartX = 0;
         let touchStartY = 0;
         let isRoomModeActive = false;
-        let roomGroup = null;
-        let roomSettings = { width: 500, depth: 400, shiftX: 0, shiftZ: 0, rot: 0 };
+        
+        // REMOVED roomGroup and roomSettings variables as they are no longer needed
+        // let roomGroup = null;
+        // let roomSettings = { width: 500, depth: 400, shiftX: 0, shiftZ: 0, rot: 0 };
 
         function detectEnvironment() {
             const h = window.location.hostname;
@@ -964,7 +927,16 @@
 
         function initUIListeners() { 
             const resetBtn = document.getElementById('reset-btn'); 
-            if(resetBtn) resetBtn.addEventListener('click', () => { addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; repositionModules(); showFeedback("Cena limpa", "success"); hasLithiumBattery = false; updateBatteryUI(); }); 
+            if(resetBtn) resetBtn.addEventListener('click', () => { 
+                addedModules.forEach(m => scene.remove(m.mesh)); 
+                addedModules = []; 
+                repositionModules(); 
+                showFeedback("Cena limpa", "success"); 
+                hasLithiumBattery = false; 
+                updateBatteryUI();
+                const obs = document.getElementById('order-observations');
+                if(obs) obs.value = '';
+            }); 
             const editorBtn = document.getElementById('toggle-editor-btn'); 
             if(editorBtn) editorBtn.addEventListener('click', () => { document.getElementById('editor-panel').classList.toggle('hidden'); }); 
             const dimsBtn = document.getElementById('toggle-dims-btn'); 
@@ -982,19 +954,6 @@
                     else showFeedback("Bateria Removida", "info");
                 });
             }
-
-            // ROOM CONFIG LISTENERS
-            const roomW = document.getElementById('room-width');
-            const roomD = document.getElementById('room-depth');
-            const roomSX = document.getElementById('room-shift-x');
-            const roomSZ = document.getElementById('room-shift-z');
-            const roomR = document.getElementById('room-rot');
-
-            if(roomW) roomW.addEventListener('input', (e) => { roomSettings.width = e.target.value; document.getElementById('room-w-val').innerText = e.target.value; updateRoomHelper(); });
-            if(roomD) roomD.addEventListener('input', (e) => { roomSettings.depth = e.target.value; document.getElementById('room-d-val').innerText = e.target.value; updateRoomHelper(); });
-            if(roomSX) roomSX.addEventListener('input', (e) => { roomSettings.shiftX = e.target.value; updateRoomHelper(); });
-            if(roomSZ) roomSZ.addEventListener('input', (e) => { roomSettings.shiftZ = e.target.value; updateRoomHelper(); });
-            if(roomR) roomR.addEventListener('input', (e) => { roomSettings.rot = e.target.value; updateRoomHelper(); });
         }
         
         function initModelSelector() { updateModelButtonUI(); const container = document.getElementById('model-grid-container'); if(!container) return; container.innerHTML = ''; Object.keys(DB_MODELS).forEach(key => { const model = DB_MODELS[key]; const card = document.createElement('div'); const isActive = key === CURRENT_MODEL_ID; let badgeClass = 'badge-fixed'; let typeLabel = 'Fixo'; if (model.type === 'relax') { badgeClass = 'badge-relax'; typeLabel = 'Relax'; } if (model.type === 'slide') { badgeClass = 'badge-slide'; typeLabel = 'Deslizante'; } card.className = `model-card ${isActive ? 'active' : ''}`; card.onclick = () => { changeModel(key); uiSet('model-modal', 'display', 'none'); }; const cleanName = model.name.split('(')[0].trim(); const keyLower = key.toLowerCase(); const imgUrlWebP = `${GITHUB_REPO_URL}assets/icons/${keyLower}.webp`; const imgUrlPng = `${GITHUB_REPO_URL}assets/icons/${keyLower}.png`; const placeholder = `https://placehold.co/150x100?text=${cleanName}`; card.innerHTML = `<img src="${imgUrlWebP}" class="model-card-img" alt="${cleanName}" onerror="this.onerror=null; this.src='${imgUrlPng}'; this.onerror=function(){this.src='${placeholder}'; this.style.objectFit='cover';};"><div class="model-card-name">${cleanName}</div><span class="model-badge ${badgeClass}">${typeLabel}</span>`; container.appendChild(card); }); }
@@ -1269,6 +1228,22 @@
                 theme: 'grid',
                 headStyles: { fillColor: [232, 76, 38] }
             });
+            
+            let finalY = doc.lastAutoTable.finalY || yPos;
+
+            // Add Observations
+            const obs = document.getElementById('order-observations').value;
+            if (obs && obs.trim() !== "") {
+                doc.setFontSize(11);
+                doc.setTextColor(0);
+                doc.text("Observações:", 14, finalY + 15);
+                
+                doc.setFontSize(10);
+                doc.setTextColor(60);
+                
+                const splitObs = doc.splitTextToSize(obs, 180);
+                doc.text(splitObs, 14, finalY + 22);
+            }
             
             doc.save(`encomenda_${modelName}.pdf`);
             showFeedback("PDF gerado com sucesso!", "success");
