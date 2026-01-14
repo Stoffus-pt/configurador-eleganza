@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V4.64 (Mobile Friendly)</title>
+    <title>Configurador 3D Eleganza - V4.64 (Stable)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -39,20 +39,16 @@
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         #room-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background-size: cover; background-position: center bottom; display: none; transition: background-image 0.5s ease-in-out; }
         
-        /* Positioning logic handled via classes mostly, but fine-tuning here for responsive layout */
         #model-selector-bar { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); z-index: 20; width: 90%; max-width: fit-content; }
         #fabric-selector-bar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 20; width: 90%; max-width: fit-content; transition: bottom 0.3s; }
 
-        /* Mobile specific adjustments */
         @media (max-width: 768px) {
             #model-selector-bar { top: 70px; }
-            /* Push fabric selector up to avoid the bottom sheet */
             #fabric-selector-bar { bottom: 36vh; margin-bottom: 15px; } 
             
             .trigger-pill-btn { min-width: auto; width: 100%; padding: 8px 16px; justify-content: space-between;}
             .pill-content { max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             
-            /* Hide scrollbar in header buttons */
             .no-scrollbar::-webkit-scrollbar { display: none; }
             .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         }
@@ -105,7 +101,6 @@
         .btn-relax.active { background: #e84c26; color: white; border-color: #e84c26; }
         .custom-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 60; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-content { background: white; padding: 30px; border-radius: 20px; text-align: center; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; }
-        #room-controls { display: none; position: absolute; bottom: 180px; left: 50%; transform: translateX(-50%); z-index: 20; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); gap: 10px; align-items: center; }
         .hidden { display: none !important; }
         #asset-warning { display: none; position: absolute; top: 130px; left: 50%; transform: translateX(-50%); background: #fff7ed; border: 1px solid #fed7aa; color: #c2410c; padding: 8px 16px; border-radius: 20px; font-size: 11px; z-index: 40; box-shadow: 0 4px 6px rgba(0,0,0,0.05); align-items: center; gap: 8px; }
         .cat-btn { padding: 6px 12px; background: #f3f4f6; border-radius: 8px; cursor: pointer; transition: all 0.2s; white-space: nowrap; border: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; color: #4b5563; }
@@ -126,6 +121,13 @@
         .dock-circle { width: 70px; height: 70px; border-radius: 50%; border: 2px solid #e5e7eb; background-size: cover; background-position: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.2s; }
         .dock-item.active .dock-circle { border-color: #e84c26; box-shadow: 0 0 0 4px rgba(232, 76, 38, 0.2); transform: scale(1.05); }
         .dock-label { font-size: 11px; font-weight: 700; color: #4b5563; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+        
+        /* Input Number override */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+          -webkit-appearance: none; 
+          margin: 0; 
+        }
     </style>
 </head>
 <body>
@@ -191,13 +193,19 @@
                     <div><span class="text-gray-500 font-bold">Tecido:</span> <span id="summary-fabric" class="font-semibold text-gray-800">--</span></div>
                     <div><span class="text-gray-500 font-bold">Largura:</span> <span id="summary-width" class="font-semibold text-gray-800">--</span></div>
                     <div id="summary-battery-container" class="hidden col-span-2 border-t pt-2 mt-1"><span class="text-gray-500 font-bold"><i class="fas fa-battery-full text-green-600 mr-1"></i> Bateria de Lítio:</span> <span class="font-semibold text-gray-800">Incluída</span></div>
+                    
+                    <!-- PRICE DISPLAY -->
+                    <div class="col-span-2 border-t pt-2 mt-1 flex justify-between items-center bg-gray-100 p-2 rounded">
+                        <span class="text-gray-600 font-bold text-xs uppercase">Valor Total:</span> 
+                        <span id="summary-points" class="font-bold text-xl text-stoffus-primary">0</span>
+                    </div>
                 </div>
             </div>
             
             <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Lista de Módulos</h4>
             <div class="overflow-x-auto max-h-40 overflow-y-auto border border-gray-100 rounded-lg">
                 <table class="order-table w-full">
-                    <thead><tr><th>Módulo</th><th>Tamanho</th><th>Mecanismo</th></tr></thead>
+                    <thead><tr><th>Módulo</th><th>Tamanho</th><th>Pts</th></tr></thead>
                     <tbody id="order-items-body"></tbody>
                 </table>
             </div>
@@ -232,8 +240,19 @@
 
     <!-- UI HEADER -->
     <div class="ui-panel absolute top-0 left-0 w-full h-16 md:h-16 h-14 border-b border-gray-200 flex items-center justify-between px-2 sm:px-6 shadow-sm z-10">
-        <div class="flex items-center flex-shrink-0 mr-2"><div class="font-bold text-lg sm:text-2xl text-gray-800 tracking-tight"><span class="text-stoffus-primary">Stoffus</span> 3D</div><div class="ml-4 pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.64</span></div></div>
+        <div class="flex items-center flex-shrink-0 mr-2 gap-3 sm:gap-6">
+            <div class="font-bold text-lg sm:text-2xl text-gray-800 tracking-tight"><span class="text-stoffus-primary">Stoffus</span> 3D</div>
+            
+            <!-- INPUT DE PONTO (UNIVERSAL) -->
+            <div class="flex items-center bg-white rounded-lg px-2 py-1 border border-gray-300 shadow-sm hover:border-stoffus-primary transition-colors">
+                <span class="text-[10px] font-bold text-gray-500 mr-1 sm:mr-2 uppercase select-none"><span class="hidden sm:inline">Ponto</span><span class="sm:hidden">Pt</span></span>
+                <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-10 sm:w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
+            </div>
+
+            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.65</span></div>
+        </div>
         <div class="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto justify-start md:justify-end pb-1 md:pb-0">
+             
              <button id="btn-ar-open" class="whitespace-nowrap bg-[#e84c26] text-white hover:bg-[#cf401e] px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-md transform hover:scale-105"><i class="fas fa-cube mr-2"></i> <span>Visualizar AR</span></button>
              <button id="toggle-editor-btn" class="whitespace-nowrap bg-gray-800 text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-bold shadow-md hover:bg-gray-700 transition transform hover:scale-105 flex items-center"><i class="fas fa-layer-group mr-2"></i> <span class="hidden sm:inline">Acabamentos</span></button>
              <button id="toggle-dims-btn" class="whitespace-nowrap bg-white border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-bold shadow-sm" title="Mostrar Medidas"><i class="fas fa-ruler-combined"></i></button>
@@ -289,7 +308,12 @@
             <div class="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar" id="size-selector-container"></div>
         </div>
         <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-2 pl-1">Módulos Disponíveis</label><div class="grid grid-cols-3 md:grid-cols-2 gap-2 pb-2" id="module-list"></div></div>
+        
         <div class="mt-auto flex flex-col gap-2 sticky bottom-0 bg-white/95 backdrop-blur pt-2 border-t border-gray-100 md:static md:bg-transparent md:border-t-0 md:pt-0 -mx-4 px-4 -mb-4 pb-4">
+             <div class="flex justify-between items-center px-2">
+                 <span id="lbl-total" class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
+                 <span id="sidebar-points" class="font-bold text-lg text-stoffus-primary">0</span>
+             </div>
             <div id="total-width-display" class="bg-gray-800 text-white p-3 rounded-lg text-center font-bold text-sm">0 cm</div>
             <button onclick="openOrderSummary()" class="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-lg font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 group"><i class="fas fa-file-pdf group-hover:scale-110 transition-transform"></i> Encomendar</button>
         </div>
@@ -314,6 +338,78 @@
             'bruma': { name: 'Bruma (Fixo)', type: 'fixed', folder: 'bruma', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
             'kindia': { name: 'Kindia', type: 'relax', folder: 'kindia', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 0, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'chaise_l', 'chaise_r'] },
             'sting': { name: 'Sting', type: 'relax', folder: 'sting', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] }
+        };
+
+        const DB_PRICES = {
+             "athena": {
+                "seat_no_arm": {
+                    "S": { "cliente": 18, "bliss": 20, "delta": 21, "fashion": 25, "pele_extra": 34, "pele_platina": 37 },
+                    "M": { "cliente": 18, "bliss": 20, "delta": 21, "fashion": 25, "pele_extra": 34, "pele_platina": 37 },
+                    "L": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 40 },
+                    "XL": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 40 }
+                },
+                "seat_arm_l": {
+                    "S": { "cliente": 23, "bliss": 24, "delta": 26, "fashion": 31, "pele_extra": 43, "pele_platina": 48 },
+                    "M": { "cliente": 23, "bliss": 24, "delta": 26, "fashion": 31, "pele_extra": 43, "pele_platina": 48 },
+                    "L": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 33, "pele_extra": 46, "pele_platina": 51 },
+                    "XL": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 33, "pele_extra": 46, "pele_platina": 51 }
+                },
+                "seat_arm_r": {
+                    "S": { "cliente": 23, "bliss": 24, "delta": 26, "fashion": 31, "pele_extra": 43, "pele_platina": 48 },
+                    "M": { "cliente": 23, "bliss": 24, "delta": 26, "fashion": 31, "pele_extra": 43, "pele_platina": 48 },
+                    "L": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 33, "pele_extra": 46, "pele_platina": 51 },
+                    "XL": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 33, "pele_extra": 46, "pele_platina": 51 }
+                },
+                "2seats_arm_l": {
+                    "S": { "cliente": 33, "bliss": 36, "delta": 39, "fashion": 49, "pele_extra": 70, "pele_platina": 78 },
+                    "M": { "cliente": 33, "bliss": 36, "delta": 39, "fashion": 49, "pele_extra": 70, "pele_platina": 78 },
+                    "L": { "cliente": 36, "bliss": 40, "delta": 43, "fashion": 53, "pele_extra": 76, "pele_platina": 84 },
+                    "XL": { "cliente": 36, "bliss": 40, "delta": 43, "fashion": 53, "pele_extra": 76, "pele_platina": 84 }
+                },
+                "2seats_arm_r": {
+                    "S": { "cliente": 33, "bliss": 36, "delta": 39, "fashion": 49, "pele_extra": 70, "pele_platina": 78 },
+                    "M": { "cliente": 33, "bliss": 36, "delta": 39, "fashion": 49, "pele_extra": 70, "pele_platina": 78 },
+                    "L": { "cliente": 36, "bliss": 40, "delta": 43, "fashion": 53, "pele_extra": 76, "pele_platina": 84 },
+                    "XL": { "cliente": 36, "bliss": 40, "delta": 43, "fashion": 53, "pele_extra": 76, "pele_platina": 84 }
+                },
+                "2seats_2arms": {
+                    "S": { "cliente": 36, "bliss": 40, "delta": 43, "fashion": 53, "pele_extra": 77, "pele_platina": 85 },
+                    "M": { "cliente": 36, "bliss": 40, "delta": 43, "fashion": 53, "pele_extra": 77, "pele_platina": 85 },
+                    "L": { "cliente": 39, "bliss": 43, "delta": 47, "fashion": 58, "pele_extra": 82, "pele_platina": 91 },
+                    "XL": { "cliente": 39, "bliss": 43, "delta": 47, "fashion": 58, "pele_extra": 82, "pele_platina": 91 }
+                },
+                "chaise_l": {
+                    "S": { "cliente": 29, "bliss": 30, "delta": 32, "fashion": 37, "pele_extra": 49, "pele_platina": 53 },
+                    "M": { "cliente": 29, "bliss": 30, "delta": 32, "fashion": 37, "pele_extra": 49, "pele_platina": 53 },
+                    "L": { "cliente": 31, "bliss": 33, "delta": 35, "fashion": 40, "pele_extra": 53, "pele_platina": 58 },
+                    "XL": { "cliente": 31, "bliss": 33, "delta": 35, "fashion": 40, "pele_extra": 53, "pele_platina": 58 }
+                },
+                "chaise_r": {
+                    "S": { "cliente": 29, "bliss": 30, "delta": 32, "fashion": 37, "pele_extra": 49, "pele_platina": 53 },
+                    "M": { "cliente": 29, "bliss": 30, "delta": 32, "fashion": 37, "pele_extra": 49, "pele_platina": 53 },
+                    "L": { "cliente": 31, "bliss": 33, "delta": 35, "fashion": 40, "pele_extra": 53, "pele_platina": 58 },
+                    "XL": { "cliente": 31, "bliss": 33, "delta": 35, "fashion": 40, "pele_extra": 53, "pele_platina": 58 }
+                },
+                "meridien_l": {
+                    "S": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 40, "pele_extra": 53, "pele_platina": 58 },
+                    "M": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 40, "pele_extra": 53, "pele_platina": 58 },
+                    "L": { "cliente": 31, "bliss": 33, "delta": 36, "fashion": 42, "pele_extra": 56, "pele_platina": 61 },
+                    "XL": { "cliente": 31, "bliss": 33, "delta": 36, "fashion": 42, "pele_extra": 56, "pele_platina": 61 }
+                },
+                "meridien_r": {
+                    "S": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 40, "pele_extra": 53, "pele_platina": 58 },
+                    "M": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 40, "pele_extra": 53, "pele_platina": 58 },
+                    "L": { "cliente": 31, "bliss": 33, "delta": 36, "fashion": 42, "pele_extra": 56, "pele_platina": 61 },
+                    "XL": { "cliente": 31, "bliss": 33, "delta": 36, "fashion": 42, "pele_extra": 56, "pele_platina": 61 }
+                },
+                "corner": {
+                    "S": { "cliente": 26, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 },
+                    "M": { "cliente": 26, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 },
+                    "L": { "cliente": 26, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 },
+                    "XL": { "cliente": 26, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }
+                }
+             }
+             // Add other models here in the future
         };
 
         const DB_MODULES = [
@@ -371,7 +467,7 @@
 
         // NO LONGER NEEDED - TEXTURE_LAYOUTS replaced by direct file access 1-7
         const LEG_MATERIALS = { chrome: new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8, roughness: 0.2 }), black: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.0, roughness: 0.9 }), moka: new THREE.MeshStandardMaterial({ color: 0x5D4037, metalness: 0.1, roughness: 0.6 }), wood: new THREE.MeshStandardMaterial({ color: 0x8b5a2b, metalness: 0.0, roughness: 0.8 }) };
-
+        
         let CURRENT_MODEL_ID = 'athena', CURRENT_SIZE_KEY = 'M', GITHUB_REPO_URL = 'https://stoffus-pt.github.io/configurador-eleganza/', USE_ONLINE_ASSETS = true; 
         const apiKey = ""; 
         let scene, camera, renderer, controls, manager, raycaster, mouse;
@@ -391,9 +487,9 @@
         let touchStartY = 0;
         let isRoomModeActive = false;
         
-        // REMOVED roomGroup and roomSettings variables as they are no longer needed
-        // let roomGroup = null;
-        // let roomSettings = { width: 500, depth: 400, shiftX: 0, shiftZ: 0, rot: 0 };
+        // Costs in Points
+        const RELAX_COST_POINTS = 11;
+        const BATTERY_COST_POINTS = 6;
 
         function detectEnvironment() {
             const h = window.location.hostname;
@@ -401,8 +497,6 @@
             return { type: 'DEV', basePath: GITHUB_REPO_URL, useOnline: true };
         }
         const CURRENT_ENV = detectEnvironment();
-
-        // ======================== HELPER FUNCTIONS (DEFINED BEFORE INIT) ========================
         
         function showFeedback(msg, type) { 
             const el = document.getElementById('feedback-message'); 
@@ -459,7 +553,7 @@
             }
             requestAnimationFrame(animateScroll);
         }
-
+        
         function buildFloor() {
             const loader = new THREE.TextureLoader();
             loader.setCrossOrigin('anonymous');
@@ -521,6 +615,90 @@
             sprite.scale.set(40, 10, 1); sprite.renderOrder = 1000;
             return sprite;
         }
+        
+        function getFabricClass(collectionName) {
+            if (!collectionName) return 'bliss'; 
+            const name = collectionName.trim();
+            if (['Fumiko', 'Madoka'].includes(name)) return 'delta';
+            if (name === 'River') return 'pele_extra';
+            if (name === 'Siza') return 'pele_platina';
+            return 'bliss'; 
+        }
+
+        function calculateTotalPoints() {
+            let total = 0;
+            let currentClass = 'bliss';
+            if (activeFabricId) {
+                const fab = FABRIC_LIBRARY.find(f => f.id === activeFabricId);
+                if (fab) {
+                    currentClass = getFabricClass(fab.collection);
+                }
+            }
+            addedModules.forEach(mod => {
+                const modelPrices = DB_PRICES[CURRENT_MODEL_ID] || {};
+                if (modelPrices && modelPrices[mod.data.id]) {
+                    const sizeKey = CURRENT_SIZE_KEY;
+                    const sizePrices = modelPrices[mod.data.id][sizeKey];
+                    
+                    if (sizePrices) {
+                        const pts = sizePrices[currentClass];
+                        if (pts) total += pts;
+                        
+                        // Add Cost for Relax Mechanism
+                        if (mod.hasRelax) {
+                             total += RELAX_COST_POINTS;
+                        }
+                        
+                        // Add Cost for Battery (if relax enabled)
+                        if (mod.hasRelax && hasLithiumBattery) {
+                             total += BATTERY_COST_POINTS;
+                        }
+                    }
+                }
+            });
+            return total;
+        }
+        
+        function getMultiplier() {
+             const input = document.getElementById('price-multiplier');
+             
+             let val = 23.5;
+             if(input) val = parseFloat(input.value);
+             
+             if(isNaN(val)) return 0;
+             
+             // Enforce limits for calculation safety
+             if(val < 10) return 10;
+             if(val > 30) return 30;
+             
+             return val;
+        }
+
+        function getFinalPrice() {
+            const points = calculateTotalPoints();
+            const coefficient = getMultiplier();
+            return points * coefficient;
+        }
+
+        function updatePriceUI() {
+            const price = getFinalPrice();
+            const priceStr = price.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
+            
+            const sidebarEl = document.getElementById('sidebar-points');
+            const summaryEl = document.getElementById('summary-points');
+            
+            // Atualizar labels
+            // Sidebar
+            const sidebarLabel = document.getElementById('lbl-total');
+            if(sidebarLabel) sidebarLabel.innerText = "TOTAL"; // Alterado para "TOTAL" apenas
+
+            // Summary Modal
+            const summaryLabel = document.querySelector('#summary-points')?.previousElementSibling;
+            if(summaryLabel) summaryLabel.innerText = "TOTAL:"; // Alterado para "TOTAL:"
+            
+            if(sidebarEl) sidebarEl.innerText = priceStr;
+            if(summaryEl) summaryEl.innerText = priceStr;
+        }
 
         function updateDimensionLabels() {
             if (!dimensionLinesGroup) return;
@@ -565,12 +743,10 @@
             for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIdx = i; break; }
             let cornerPos = { x:0, z:0, depth: 0 }; 
             const modelData = DB_MODELS[CURRENT_MODEL_ID];
-            
-            // FIX: Ajuste de gap (espaço entre módulos)
             let gapCorrection = 0;
             if (CURRENT_MODEL_ID === 'dayma') gapCorrection = -2;
-            if (CURRENT_MODEL_ID === 'brittany') gapCorrection = -4; // Junta os assentos do Brittany
-            if (CURRENT_MODEL_ID === 'fiori') gapCorrection = -2; // Junta os assentos do Fiori
+            if (CURRENT_MODEL_ID === 'brittany') gapCorrection = -4; 
+            if (CURRENT_MODEL_ID === 'fiori') gapCorrection = -2; 
 
             addedModules.forEach((mod, i) => {
                 const mesh = mod.mesh;
@@ -596,7 +772,9 @@
             }
             const widthDisplay = document.getElementById('total-width-display');
             if (widthDisplay) widthDisplay.innerText = Math.round(totalW) + " cm";
+            
             updateDimensionLabels();
+            updatePriceUI(); 
         }
 
         function createModuleMesh(moduleId) {
@@ -622,16 +800,8 @@
                 const isInfinity = CURRENT_MODEL_ID === 'infinity'; const isMagic = CURRENT_MODEL_ID === 'magic'; const isBruma = CURRENT_MODEL_ID === 'bruma';
                 if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma) { mesh.position.y += 12; }
                 if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
-                
-                // FIX: Avançar assento sem braços do Athena (Total 4cm: 2 iniciais + 2 extra)
-                if (CURRENT_MODEL_ID === 'athena' && def.id === 'seat_no_arm') {
-                    mesh.position.z += 4;
-                }
-
-                // FIX: Avançar Canto do Athena 4cm
-                if (CURRENT_MODEL_ID === 'athena' && def.id === 'corner') {
-                    mesh.position.z += 4;
-                }
+                if (CURRENT_MODEL_ID === 'athena' && def.id === 'seat_no_arm') { mesh.position.z += 4; }
+                if (CURRENT_MODEL_ID === 'athena' && def.id === 'corner') { mesh.position.z += 4; }
 
                 group.add(mesh);
                 
@@ -729,7 +899,6 @@
             renderer.render(scene, camera);
         }
 
-        // --- INTERACTION ---
         function interactWithScene(x, y) {
             const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((x - rect.left) / rect.width) * 2 - 1; mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(scene.children, true);
@@ -746,7 +915,7 @@
                     if (DB_MODELS[CURRENT_MODEL_ID].type === 'fixed') btnRelax.style.display = 'none';
                     else { 
                         btnRelax.style.display = 'flex'; const isSlide = DB_MODELS[CURRENT_MODEL_ID].type === 'slide'; document.getElementById('relax-text').innerText = isSlide ? 'Deslizar' : 'Relax'; 
-                        btnRelax.onclick = () => { if (isSlide) { const found = findSlideParts(mod); if (!found) { showFeedback("ERRO: Peça 'assento' não encontrada.", "error"); return; } } mod.hasRelax = !mod.hasRelax; if (isSlide) showFeedback(mod.hasRelax ? "A deslizar..." : "A recolher...", "success"); }; 
+                        btnRelax.onclick = () => { if (isSlide) { const found = findSlideParts(mod); if (!found) { showFeedback("ERRO: Peça 'assento' não encontrada.", "error"); return; } } mod.hasRelax = !mod.hasRelax; if (isSlide) showFeedback(mod.hasRelax ? "A deslizar..." : "A recolher...", "success"); updatePriceUI(); }; 
                         if (mod.hasRelax) btnRelax.classList.add('active'); else btnRelax.classList.remove('active');
                     }
                     btnRemove.onclick = () => { scene.remove(mod.mesh); addedModules.splice(idx, 1); repositionModules(); hoverMenu.classList.remove('visible'); };
@@ -765,7 +934,6 @@
             const list = document.getElementById('fabric-modal-content-list'); const title = document.getElementById('fabric-modal-title'); const backBtn = document.getElementById('fabric-back-btn'); const btnName = document.getElementById('current-fabric-name');
             if(!list) return; list.innerHTML = '';
             
-            // CORRECTION: Point to compressed thumbnails for UI speed
             const thumbBase = 'https://stoffus-pt.github.io/configurador-eleganza/assets/compressedtextures/';
             
             if (mode === 'collections') {
@@ -773,30 +941,24 @@
                 DB_COLLECTIONS.forEach(col => {
                     const key = col.name.toLowerCase().replace(/\s/g, ''); 
                     
-                    // Use optimized webp for thumbnail
                     const imgUrl = `${thumbBase}${col.name} 1.webp`;
-                    
-                    // Determine Colors based on Gamma
                     let c1, c2;
                     if (['Fumiko', 'Madoka'].includes(col.name)) {
-                        c1 = '#64a8e4'; c2 = '#2b5a87'; // Gama Delta
+                        c1 = '#64a8e4'; c2 = '#2b5a87'; 
                     } else if (col.name === 'River') {
-                        c1 = '#ed7629'; c2 = '#db362c'; // Gama Pele Extra
+                        c1 = '#ed7629'; c2 = '#db362c';
                     } else if (col.name === 'Siza') {
-                        c1 = '#da3012'; c2 = '#bc2e1a'; // Gama Pele Platina
+                        c1 = '#da3012'; c2 = '#bc2e1a';
                     } else {
-                        c1 = '#91c73b'; c2 = '#88b741'; // Gama Bliss
+                        c1 = '#91c73b'; c2 = '#88b741';
                     }
 
-                    // CSS for gradient border (more of first color than second)
-                    // Uses 45% midpoint to keep first color dominant before transitioning
                     const gradStyle = `linear-gradient(135deg, ${c1} 0%, ${c1} 45%, ${c2} 100%)`;
                     
                     const item = document.createElement('div'); 
                     item.className = 'dock-item'; 
                     item.onclick = () => renderFabricDock('colors', key);
                     
-                    // Combine background image (padding-box) with gradient border (border-box)
                     const style = `
                         background-image: url('${imgUrl}'), ${gradStyle};
                         background-origin: padding-box, border-box;
@@ -819,8 +981,6 @@
                     item.onclick = () => { setFabricFromLibrary(fab.id); uiSet('fabric-modal', 'display', 'none'); btnName.innerText = fab.name; };
                     
                     const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type); const colN = col ? col.name : fab.collection;
-                    
-                    // Use optimized webp for thumbnail
                     const imgUrl = `${thumbBase}${colN} ${fab.fileIndex}.webp`;
                     
                     item.innerHTML = `<div class="dock-circle" style="background-image: url('${imgUrl}'); background-size: cover;"></div><span class="dock-label">${fab.name}</span>`; list.appendChild(item);
@@ -828,24 +988,19 @@
             }
         }
 
-        // --- CORE TEXTURE FUNCTIONS (UPDATED FOR 7 IMAGES) ---
-        
         function initFabricData() { 
             DB_COLLECTIONS.forEach(col => { 
                 const key = col.name.toLowerCase().replace(/\s/g, ''); 
-                IMAGES[key] = {}; // Initialize object to hold 1-7 images
-                
-                // Iterate 0 to 6 (7 items)
+                IMAGES[key] = {}; 
                 for (let i = 0; i < 7; i++) {
                     const suffix = i + 1;
                     const idCode = col.start + i;
-                    
                     FABRIC_LIBRARY.push({ 
                         id: `${key}_${col.prefix}${idCode}`, 
                         name: `${col.name} ${col.prefix}${idCode}`, 
-                        color: '#dcdcdc', // Placeholder color
+                        color: '#dcdcdc', 
                         type: key, 
-                        fileIndex: suffix, // 1 to 7
+                        fileIndex: suffix, 
                         collection: col.name 
                     });
                 }
@@ -868,7 +1023,6 @@
             tex.needsUpdate = true;
             applyTextureRepeat(tex, currentRapport); 
             
-            // Standard material with bump map
             let params = { 
                 map: tex, 
                 color: 0xffffff, 
@@ -885,7 +1039,6 @@
         function updateFabricRapport() { if(currentFabricMaterial && currentFabricMaterial.map) { applyTextureRepeat(currentFabricMaterial.map, currentRapport); if(currentFabricMaterial.bumpMap) applyTextureRepeat(currentFabricMaterial.bumpMap, currentRapport); } }
         function renderModuleButtons() { const container = document.getElementById('module-list'); if(!container) return; container.innerHTML = ''; const modelData = DB_MODELS[CURRENT_MODEL_ID]; DB_MODULES.forEach(def => { if (modelData.modules && !modelData.modules.includes(def.id)) return; const btn = document.createElement('button'); btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16"; btn.onclick = () => addModule(def.id); btn.innerHTML = `<i class="fas ${def.icon} text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i><span class="text-[9px] font-bold text-gray-600 leading-tight text-center">${def.name}</span>`; container.appendChild(btn); }); }
         
-        // --- BATTERY & UI LISTENERS ---
         function updateBatteryUI() {
             const btn = document.getElementById('battery-btn');
             const icon = document.getElementById('battery-icon');
@@ -894,19 +1047,13 @@
             const summaryRow = document.getElementById('summary-battery-container');
             
             if (hasLithiumBattery) {
-                if(btn) {
-                    btn.classList.replace('border-gray-300', 'border-green-500');
-                    btn.classList.add('bg-green-50');
-                }
+                if(btn) { btn.classList.replace('border-gray-300', 'border-green-500'); btn.classList.add('bg-green-50'); }
                 if(icon) icon.className = 'fas fa-battery-full text-lg text-green-500 transition-colors';
                 if(bg) bg.className = 'w-8 h-4 bg-green-500 rounded-full relative transition-colors';
                 if(dot) dot.className = 'w-3 h-3 bg-white rounded-full absolute top-0.5 left-0.5 shadow transition-transform transform translate-x-4';
                 if(summaryRow) summaryRow.classList.remove('hidden');
             } else {
-                if(btn) {
-                    btn.classList.replace('border-green-500', 'border-gray-300');
-                    btn.classList.remove('bg-green-50');
-                }
+                if(btn) { btn.classList.replace('border-green-500', 'border-gray-300'); btn.classList.remove('bg-green-50'); }
                 if(icon) icon.className = 'fas fa-battery-full text-lg text-gray-400 group-hover:text-green-500 transition-colors';
                 if(bg) bg.className = 'w-8 h-4 bg-gray-200 rounded-full relative transition-colors';
                 if(dot) dot.className = 'w-3 h-3 bg-white rounded-full absolute top-0.5 left-0.5 shadow transition-transform';
@@ -921,7 +1068,7 @@
                 if(container) container.classList.remove('hidden');
             } else {
                 if(container) container.classList.add('hidden');
-                hasLithiumBattery = false; // Reset if switching to fixed model
+                hasLithiumBattery = false; 
                 updateBatteryUI();
             }
         }
@@ -945,15 +1092,35 @@
             const rapportSlider = document.getElementById('rapport-slider'); 
             if(rapportSlider) { rapportSlider.addEventListener('input', (e) => { currentRapport = parseInt(e.target.value); document.getElementById('rapport-display').innerText = currentRapport + " cm"; updateFabricRapport(); }); } 
             
-            // Battery Listener
             const batteryBtn = document.getElementById('battery-btn');
             if (batteryBtn) {
                 batteryBtn.addEventListener('click', () => {
                     hasLithiumBattery = !hasLithiumBattery;
                     updateBatteryUI();
+                    updatePriceUI();
                     if(hasLithiumBattery) showFeedback("Bateria Adicionada", "success");
                     else showFeedback("Bateria Removida", "info");
                 });
+            }
+
+            // Price Multiplier Listener (Simplified)
+            const multiplierInput = document.getElementById('price-multiplier');
+            
+            const validateInput = (e) => {
+                let val = parseFloat(e.target.value);
+                
+                // Only clamp on 'change' (when user presses enter or leaves field) to allow typing
+                if (e.type === 'change') {
+                    if (isNaN(val) || val < 10) val = 10;
+                    if (val > 30) val = 30;
+                    e.target.value = val; 
+                }
+                updatePriceUI();
+            };
+            
+            if (multiplierInput) {
+                multiplierInput.addEventListener('input', updatePriceUI); // Live update calculation
+                multiplierInput.addEventListener('change', validateInput); // Validate limits on finish
             }
         }
         
@@ -966,31 +1133,26 @@
         function loadModelAssets(modelId) { const modelData = DB_MODELS[modelId]; modelLibrary = {}; const loader = new THREE.GLTFLoader(manager); const dracoLoader = new THREE.DRACOLoader(); dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/'); dracoLoader.setDecoderConfig({ type: 'js' }); loader.setDRACOLoader(dracoLoader); loader.setCrossOrigin('anonymous'); const cacheBuster = `?v=${Date.now()}`; const partsToLoad = ['seat', 'arm', 'corner', 'chaise', 'meridien', 'meiple', '2arm2seats', 'arm2seats']; partsToLoad.forEach(part => { const folderName = modelData.folder; const partCap = part.charAt(0).toUpperCase() + part.slice(1); const folderCap = folderName.charAt(0).toUpperCase() + folderName.slice(1).toLowerCase(); const folderLower = folderName.toLowerCase(); const paths = [ `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderLower}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderName}/${partCap}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderLower}/${partCap}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderCap}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/bartini/${part}.glb${cacheBuster}` ]; const tryLoadPath = (index) => { if (index >= paths.length) { if (modelId === 'athena') { loader.load(`${GITHUB_REPO_URL}assets/models/${part}.glb`, (gltf) => processLoadedModel(gltf.scene, part), undefined, () => {}); } return; } loader.load(paths[index], (gltf) => { processLoadedModel(gltf.scene, part); }, undefined, (err) => { tryLoadPath(index + 1); }); }; tryLoadPath(0); }); }
         function processLoadedModel(sceneObj, partKey) { const box = new THREE.Box3().setFromObject(sceneObj); const size = new THREE.Vector3(); box.getSize(size); if (size.x < 20) { sceneObj.scale.set(100, 100, 100); sceneObj.updateMatrixWorld(true); } sceneObj.traverse(n => { if (n.isMesh) { if(n.name === 'shadow_plane') { n.visible = false; n.castShadow = false; n.receiveShadow = false; } else { n.castShadow = true; n.receiveShadow = true; } } }); modelLibrary[partKey] = sceneObj; }
         
-        // No longer needed: function getFabricThumbnailDataUrl(type, color)
-        
         function setFabricFromLibrary(id) { 
             const fab = FABRIC_LIBRARY.find(f => f.id === id); 
             if(!fab) return; 
             
             activeFabricId = id; 
             
-            // Update UI Selection
             const items = document.querySelectorAll('.dock-item'); 
             items.forEach(el => { if(el.innerText.includes(fab.name)) el.classList.add('active'); else el.classList.remove('active'); }); 
             
-            // Show feedback
+            updatePriceUI(); // Atualiza o preço ao mudar o tecido (classe de preço pode mudar)
+
             showFeedback(`A aplicar ${fab.name}...`, "info");
             
-            // Check cache
             const cacheKey = fab.type;
             const fileIdx = fab.fileIndex;
             
             if (IMAGES[cacheKey] && IMAGES[cacheKey][fileIdx]) {
-                // Apply immediately
                 applyHighResTexture(IMAGES[cacheKey][fileIdx]);
                 showFeedback(fab.name, "success");
             } else {
-                // Load specific image
                 loadSpecificFabricImage(fab, (img) => {
                     applyHighResTexture(img);
                     showFeedback(fab.name, "success");
@@ -1013,11 +1175,9 @@
             texLoader.setCrossOrigin('anonymous'); 
             let BASE = 'https://stoffus-pt.github.io/configurador-eleganza/assets/textures/';
             
-            // Construct URL: "Karma 1.jpg"
             const url = `${BASE}${fab.collection} ${fileIdx}.jpg`;
             
             texLoader.load(url, (tex) => {
-                // Cache it
                 if (!IMAGES[collectionKey]) IMAGES[collectionKey] = {};
                 IMAGES[collectionKey][fileIdx] = tex.image;
                 
@@ -1025,15 +1185,11 @@
             }, undefined, (err) => {
                 console.warn("Erro a carregar textura", url, "- A usar fallback.");
                 
-                // Fallback Logic:
-                // 1. Try loading the 1st image of the collection if we are not already trying it
-                // 2. If that fails, generate a procedural grey texture
-                
                 if(fileIdx !== 1) {
                     const urlFallback = `${BASE}${fab.collection} 1.jpg`;
                     texLoader.load(urlFallback, (texFal) => {
                          if (!IMAGES[collectionKey]) IMAGES[collectionKey] = {};
-                         IMAGES[collectionKey][fileIdx] = texFal.image; // Save as the requested index to prevent re-fetching
+                         IMAGES[collectionKey][fileIdx] = texFal.image;
                          callback(texFal.image);
                          showFeedback("Textura alternativa carregada", "info");
                     }, undefined, () => {
@@ -1053,7 +1209,6 @@
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#cccccc';
             ctx.fillRect(0, 0, 512, 512);
-            // Add some noise or pattern
             ctx.fillStyle = '#bbbbbb';
             for(let i=0; i<50; i++) {
                 ctx.fillRect(Math.random()*512, Math.random()*512, 10, 10);
@@ -1061,11 +1216,7 @@
             callback(canvas);
         }
 
-        // Renamed/Simplified from loadCollectionImages since we now load on demand
-        // Keeping structure valid but unused for mass loading
         function manageTextureCache(newCollectionKey) { 
-             // Simple LRU or similar logic if needed, but browser cache handles individual files well.
-             // We can just keep IMAGES growing or limit keys if memory is an issue.
         }
 
         function openFabricSelector() { 
@@ -1083,15 +1234,12 @@
         }
 
         function openOrderSummary() {
-            // 1. Center and Frame Logic
             const oldPos = camera.position.clone();
             const oldTarget = controls.target.clone();
 
             if(addedModules.length > 0) {
-                // Calculate bounding box
                 const box = new THREE.Box3();
                 addedModules.forEach(mod => {
-                    // Use the mesh inside the group
                     box.expandByObject(mod.mesh);
                 });
 
@@ -1100,34 +1248,28 @@
                 const size = new THREE.Vector3();
                 box.getSize(size);
 
-                // Determine best fit distance
                 const maxDim = Math.max(size.x, size.y, size.z);
                 const dist = maxDim * 2.0 + 200; 
                 
-                // Set target to center of model and move camera
                 controls.target.copy(center);
                 camera.position.set(center.x, center.y + dist * 0.5, center.z + dist);
                 camera.lookAt(center);
                 camera.updateProjectionMatrix();
-                controls.update(); // Update controls to ensure camera matrix is correct
+                controls.update(); 
             }
 
-            // 2. Render Snapshot
             renderer.render(scene, camera);
             const imgData = renderer.domElement.toDataURL('image/jpeg', 0.8);
             const imgEl = document.getElementById('order-preview-img');
             if(imgEl) imgEl.src = imgData;
 
-            // 3. Restore Camera
             if(addedModules.length > 0) {
                 camera.position.copy(oldPos);
                 controls.target.copy(oldTarget);
-                // Re-orient controls
                 controls.update();
-                renderer.render(scene, camera); // Re-render original view to avoid flicker perception
+                renderer.render(scene, camera);
             }
 
-            // ... table generation code ...
             const tbody = document.getElementById('order-items-body');
             tbody.innerHTML = '';
             let totalWidth = 0;
@@ -1146,7 +1288,33 @@
             addedModules.forEach(mod => {
                 const tr = document.createElement('tr');
                 const mech = mod.hasRelax ? (DB_MODELS[CURRENT_MODEL_ID].type === 'slide' ? 'Deslizante' : 'Relax') : 'Fixo';
-                tr.innerHTML = `<td>${mod.data.name}</td><td>${Math.round(mod.width)} cm</td><td>${mech}</td>`;
+                
+                let pointsDisplay = 0; // Default to 0 for safety
+                const modelPrices = DB_PRICES[CURRENT_MODEL_ID] || {}; // Added Safety Check
+                if (modelPrices && modelPrices[mod.data.id]) {
+                    const sizeKey = CURRENT_SIZE_KEY;
+                    const sizePrices = modelPrices[mod.data.id][sizeKey];
+                    let currentClass = 'bliss';
+                    if (activeFabricId) {
+                        const fab = FABRIC_LIBRARY.find(f => f.id === activeFabricId);
+                        if (fab) currentClass = getFabricClass(fab.collection);
+                    }
+                    if (sizePrices && sizePrices[currentClass]) {
+                        pointsDisplay = sizePrices[currentClass];
+                    }
+                }
+
+                // Add costs logic for display in table
+                let extraPts = 0;
+                let extraText = "";
+                if(mod.hasRelax) { extraPts += RELAX_COST_POINTS; extraText += " (+Relax)"; }
+                if(mod.hasRelax && hasLithiumBattery) { extraPts += BATTERY_COST_POINTS; extraText += " (+Bat)"; }
+                
+                let basePts = parseInt(pointsDisplay);
+                if(isNaN(basePts)) basePts = 0;
+                let finalItemPts = basePts + extraPts;
+
+                tr.innerHTML = `<td>${mod.data.name} <span class="text-[10px] text-gray-400">${extraText}</span></td><td>${Math.round(mod.width)} cm</td><td class="font-bold text-gray-500">${finalItemPts} pts</td>`;
                 tbody.appendChild(tr);
             });
 
@@ -1155,108 +1323,42 @@
             document.getElementById('summary-fabric').innerText = fabName === 'Escolher Tecido' ? 'N/A' : fabName;
             document.getElementById('summary-width').innerText = totalWidth + " cm";
             
-            updateBatteryUI(); // Ensure summary shows battery status
+            updateBatteryUI();
+            updatePriceUI();
 
-            // FIX: Use 'flex' instead of 'block' to respect CSS centering
             uiSet('order-modal', 'display', 'flex');
-        }
-
-        function confirmAndGeneratePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            // Add Header
-            doc.setFontSize(20);
-            doc.setTextColor(40);
-            doc.text("Encomenda - Stoffus 3D", 14, 20);
-            
-            // Add Date
-            doc.setFontSize(10);
-            doc.setTextColor(100);
-            const dateStr = new Date().toLocaleDateString('pt-PT');
-            doc.text(`Data: ${dateStr}`, 180, 20, { align: 'right' });
-
-            let yPos = 30;
-
-            // Add Image if available
-            const imgEl = document.getElementById('order-preview-img');
-            if (imgEl && imgEl.src) {
-                try {
-                    doc.addImage(imgEl.src, 'JPEG', 14, yPos, 180, 100);
-                    yPos += 110;
-                } catch (e) {
-                    console.warn("Could not add image to PDF", e);
-                }
-            }
-
-            // Product Details
-            doc.setFontSize(12);
-            doc.setTextColor(0);
-            doc.text("Detalhes do Produto", 14, yPos);
-            yPos += 8;
-
-            const modelName = DB_MODELS[CURRENT_MODEL_ID].name;
-            const fabricName = document.getElementById('summary-fabric').innerText;
-            const width = document.getElementById('summary-width').innerText;
-
-            doc.setFontSize(10);
-            doc.setTextColor(60);
-            doc.text(`Modelo: ${modelName}`, 14, yPos);
-            doc.text(`Tecido: ${fabricName}`, 14, yPos + 6);
-            doc.text(`Dimensão Total (Aprox): ${width}`, 14, yPos + 12);
-            
-            // Add Battery Info to PDF if selected
-            if(hasLithiumBattery) {
-                doc.setTextColor(0, 128, 0); // Green color
-                doc.text(`+ Bateria de Lítio Incluída`, 14, yPos + 18);
-                doc.setTextColor(60); // Reset color
-                yPos += 24;
-            } else {
-                yPos += 18;
-            }
-
-            // Table
-            const tableData = addedModules.map(mod => [
-                mod.data.name,
-                Math.round(mod.width) + " cm",
-                mod.hasRelax ? (DB_MODELS[CURRENT_MODEL_ID].type === 'slide' ? 'Deslizante' : 'Relax') : 'Fixo'
-            ]);
-
-            doc.autoTable({
-                head: [['Módulo', 'Largura', 'Mecanismo']],
-                body: tableData,
-                startY: yPos,
-                theme: 'grid',
-                headStyles: { fillColor: [232, 76, 38] }
-            });
-            
-            let finalY = doc.lastAutoTable.finalY || yPos;
-
-            // Add Observations
-            const obs = document.getElementById('order-observations').value;
-            if (obs && obs.trim() !== "") {
-                doc.setFontSize(11);
-                doc.setTextColor(0);
-                doc.text("Observações:", 14, finalY + 15);
-                
-                doc.setFontSize(10);
-                doc.setTextColor(60);
-                
-                const splitObs = doc.splitTextToSize(obs, 180);
-                doc.text(splitObs, 14, finalY + 22);
-            }
-            
-            doc.save(`encomenda_${modelName}.pdf`);
-            showFeedback("PDF gerado com sucesso!", "success");
-            uiSet('order-modal', 'display', 'none');
         }
 
         function exitRoomMode() {
             if(isRoomModeActive) toggle3DRoom();
         }
+        
+        // Define buildFloor globally so it's accessible
+        function buildFloor() {
+            const loader = new THREE.TextureLoader();
+            loader.setCrossOrigin('anonymous');
+            const floorTex = loader.load('https://stoffus-pt.github.io/configurador-eleganza/assets/textures/floor.jpg');
+            floorTex.wrapS = THREE.RepeatWrapping;
+            floorTex.wrapT = THREE.RepeatWrapping;
+            floorTex.repeat.set(10, 10); 
+            
+            const floorGeo = new THREE.PlaneGeometry(2000, 2000);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                map: floorTex, 
+                roughness: 0.8,
+                color: 0xffffff
+            });
+            
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -0.5; // Slightly below y=0
+            floor.receiveShadow = true;
+            floor.name = 'permanent_floor';
+            scene.add(floor);
+        }
 
         // ======================== INITIALIZATION ========================
-        function init() {
+        window.init = function() {
             // Scene setup
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xffffff);
@@ -1351,7 +1453,7 @@
             dimensionLinesGroup = new THREE.Group();
             scene.add(dimensionLinesGroup);
 
-            // Room Setup
+            // Room Setup - Floor
             buildFloor();
 
             // Event Listeners
@@ -1366,6 +1468,7 @@
             initModelSelector();
             renderModuleButtons();
             initUIListeners();
+            initSizeSelector();
             
             // Initial load
             loadModelAssets(CURRENT_MODEL_ID);
@@ -1377,7 +1480,7 @@
 
         window.openModelSelector = function() { uiSet('model-modal', 'display', 'flex'); }
 
-        window.onload = init;
+        window.onload = window.init;
     </script>
 </body>
 </html>
