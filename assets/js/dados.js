@@ -1,9 +1,8 @@
 // ==========================================
 // BASE DE DADOS DO CONFIGURADOR STOFFUS
 // ==========================================
-// Edite este ficheiro para alterar preços, medidas ou adicionar modelos.
+// Guardar este ficheiro em: js/dados.js
 
-// 1. Definição dos Modelos e Medidas
 window.DB_MODELS = {
     'athena': { 
         name: 'Athena', 
@@ -124,9 +123,8 @@ window.DB_MODELS = {
     'sting': { name: 'Sting', type: 'relax', folder: 'sting', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] }
 };
 
-// 2. Tabela de Preços
 window.DB_PRICES = {
-     "athena": {
+    "athena": {
         "seat_no_arm": { "S": { "cliente": 18, "bliss": 20, "delta": 21, "fashion": 25, "pele_extra": 34, "pele_platina": 37 }, "M": { "cliente": 18, "bliss": 20, "delta": 21, "fashion": 25, "pele_extra": 34, "pele_platina": 37 }, "L": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 40 }, "XL": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 40 } },
         "seat_arm_l": { "S": { "cliente": 23, "bliss": 24, "delta": 26, "fashion": 31, "pele_extra": 43, "pele_platina": 48 }, "M": { "cliente": 23, "bliss": 24, "delta": 26, "fashion": 31, "pele_extra": 43, "pele_platina": 48 }, "L": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 33, "pele_extra": 46, "pele_platina": 51 }, "XL": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 33, "pele_extra": 46, "pele_platina": 51 } },
         "seat_arm_r": { "S": { "cliente": 23, "bliss": 24, "delta": 26, "fashion": 31, "pele_extra": 43, "pele_platina": 48 }, "M": { "cliente": 23, "bliss": 24, "delta": 26, "fashion": 31, "pele_extra": 43, "pele_platina": 48 }, "L": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 33, "pele_extra": 46, "pele_platina": 51 }, "XL": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 33, "pele_extra": 46, "pele_platina": 51 } },
@@ -138,8 +136,8 @@ window.DB_PRICES = {
         "meridien_l": { "S": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 40, "pele_extra": 53, "pele_platina": 58 }, "M": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 40, "pele_extra": 53, "pele_platina": 58 }, "L": { "cliente": 31, "bliss": 33, "delta": 36, "fashion": 42, "pele_extra": 56, "pele_platina": 61 }, "XL": { "cliente": 31, "bliss": 33, "delta": 36, "fashion": 42, "pele_extra": 56, "pele_platina": 61 } },
         "meridien_r": { "S": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 40, "pele_extra": 53, "pele_platina": 58 }, "M": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 40, "pele_extra": 53, "pele_platina": 58 }, "L": { "cliente": 31, "bliss": 33, "delta": 36, "fashion": 42, "pele_extra": 56, "pele_platina": 61 }, "XL": { "cliente": 31, "bliss": 33, "delta": 36, "fashion": 42, "pele_extra": 56, "pele_platina": 61 } },
         "corner": { "S": { "cliente": 26, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "M": { "cliente": 26, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "L": { "cliente": 26, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "XL": { "cliente": 26, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 } }
-     },
-     "bartini": {
+    },
+    "bartini": {
         "seat_no_arm": { "S": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 39 }, "M": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 39 }, "L": { "cliente": 22, "bliss": 23, "delta": 25, "fashion": 29, "pele_extra": 39, "pele_platina": 43 }, "XL": { "cliente": 22, "bliss": 23, "delta": 25, "fashion": 29, "pele_extra": 39, "pele_platina": 43 } },
         "seat_arm_l": { "S": { "cliente": 24, "bliss": 26, "delta": 27, "fashion": 32, "pele_extra": 42, "pele_platina": 45 }, "M": { "cliente": 24, "bliss": 26, "delta": 27, "fashion": 32, "pele_extra": 42, "pele_platina": 45 }, "L": { "cliente": 27, "bliss": 28, "delta": 30, "fashion": 36, "pele_extra": 48, "pele_platina": 52 }, "XL": { "cliente": 27, "bliss": 28, "delta": 30, "fashion": 36, "pele_extra": 48, "pele_platina": 52 } },
         "seat_arm_r": { "S": { "cliente": 24, "bliss": 26, "delta": 27, "fashion": 32, "pele_extra": 42, "pele_platina": 45 }, "M": { "cliente": 24, "bliss": 26, "delta": 27, "fashion": 32, "pele_extra": 42, "pele_platina": 45 }, "L": { "cliente": 27, "bliss": 28, "delta": 30, "fashion": 36, "pele_extra": 48, "pele_platina": 52 }, "XL": { "cliente": 27, "bliss": 28, "delta": 30, "fashion": 36, "pele_extra": 48, "pele_platina": 52 } },
@@ -151,8 +149,8 @@ window.DB_PRICES = {
         "meridien_l": { "S": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "M": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "L": { "cliente": 28, "bliss": 30, "delta": 33, "fashion": 38, "pele_extra": 52, "pele_platina": 57 }, "XL": { "cliente": 28, "bliss": 30, "delta": 33, "fashion": 38, "pele_extra": 52, "pele_platina": 57 } },
         "meridien_r": { "S": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "M": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "L": { "cliente": 28, "bliss": 30, "delta": 33, "fashion": 38, "pele_extra": 52, "pele_platina": 57 }, "XL": { "cliente": 28, "bliss": 30, "delta": 33, "fashion": 38, "pele_extra": 52, "pele_platina": 57 } },
         "corner": { "S": { "cliente": 28, "bliss": 30, "delta": 32, "fashion": 38, "pele_extra": 51, "pele_platina": 56 }, "M": { "cliente": 28, "bliss": 30, "delta": 32, "fashion": 38, "pele_extra": 51, "pele_platina": 56 }, "L": { "cliente": 28, "bliss": 30, "delta": 32, "fashion": 38, "pele_extra": 51, "pele_platina": 56 }, "XL": { "cliente": 28, "bliss": 30, "delta": 32, "fashion": 38, "pele_extra": 51, "pele_platina": 56 } }
-     },
-     "brittany": {
+    },
+    "brittany": {
         "seat_no_arm": { "S": { "cliente": 18, "bliss": 20, "delta": 21, "fashion": 25, "pele_extra": 34, "pele_platina": 37 }, "M": { "cliente": 18, "bliss": 20, "delta": 21, "fashion": 25, "pele_extra": 34, "pele_platina": 37 }, "L": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 40 }, "XL": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 40 } },
         "seat_arm_l": { "S": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "M": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "L": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 }, "XL": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 } },
         "seat_arm_r": { "S": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "M": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "L": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 }, "XL": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 } },
@@ -164,8 +162,8 @@ window.DB_PRICES = {
         "meridien_l": { "S": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 39, "pele_extra": 53, "pele_platina": 58 }, "M": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 39, "pele_extra": 53, "pele_platina": 58 }, "L": { "cliente": 30, "bliss": 33, "delta": 35, "fashion": 41, "pele_extra": 55, "pele_platina": 61 }, "XL": { "cliente": 30, "bliss": 33, "delta": 35, "fashion": 41, "pele_extra": 55, "pele_platina": 61 } },
         "meridien_r": { "S": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 39, "pele_extra": 53, "pele_platina": 58 }, "M": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 39, "pele_extra": 53, "pele_platina": 58 }, "L": { "cliente": 30, "bliss": 33, "delta": 35, "fashion": 41, "pele_extra": 55, "pele_platina": 61 }, "XL": { "cliente": 30, "bliss": 33, "delta": 35, "fashion": 41, "pele_extra": 55, "pele_platina": 61 } },
         "corner": { "S": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "M": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "L": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "XL": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 } }
-     },
-     "dayma": {
+    },
+    "dayma": {
         "seat_no_arm": { "S": { "cliente": 18, "bliss": 20, "delta": 21, "fashion": 25, "pele_extra": 34, "pele_platina": 37 }, "M": { "cliente": 18, "bliss": 20, "delta": 21, "fashion": 25, "pele_extra": 34, "pele_platina": 37 }, "L": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 40 }, "XL": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 40 } },
         "seat_arm_l": { "S": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "M": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "L": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 }, "XL": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 } },
         "seat_arm_r": { "S": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "M": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "L": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 }, "XL": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 } },
@@ -177,8 +175,8 @@ window.DB_PRICES = {
         "meridien_l": { "S": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 39, "pele_extra": 53, "pele_platina": 58 }, "M": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 39, "pele_extra": 53, "pele_platina": 58 }, "L": { "cliente": 30, "bliss": 33, "delta": 35, "fashion": 41, "pele_extra": 55, "pele_platina": 61 }, "XL": { "cliente": 30, "bliss": 33, "delta": 35, "fashion": 41, "pele_extra": 55, "pele_platina": 61 } },
         "meridien_r": { "S": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 39, "pele_extra": 53, "pele_platina": 58 }, "M": { "cliente": 30, "bliss": 32, "delta": 34, "fashion": 39, "pele_extra": 53, "pele_platina": 58 }, "L": { "cliente": 30, "bliss": 33, "delta": 35, "fashion": 41, "pele_extra": 55, "pele_platina": 61 }, "XL": { "cliente": 30, "bliss": 33, "delta": 35, "fashion": 41, "pele_extra": 55, "pele_platina": 61 } },
         "corner": { "S": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "M": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "L": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 }, "XL": { "cliente": 25, "bliss": 27, "delta": 29, "fashion": 34, "pele_extra": 45, "pele_platina": 49 } }
-     },
-     "enzo": {
+    },
+    "enzo": {
         "seat_no_arm": { "S": { "cliente": 19, "bliss": 20, "delta": 22, "fashion": 26, "pele_extra": 36, "pele_platina": 40 }, "M": { "cliente": 19, "bliss": 20, "delta": 22, "fashion": 26, "pele_extra": 36, "pele_platina": 40 }, "L": { "cliente": 21, "bliss": 23, "delta": 24, "fashion": 29, "pele_extra": 40, "pele_platina": 44 }, "XL": { "cliente": 21, "bliss": 23, "delta": 24, "fashion": 29, "pele_extra": 40, "pele_platina": 44 } },
         "seat_arm_l": { "S": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "M": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "L": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 }, "XL": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 } },
         "seat_arm_r": { "S": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "M": { "cliente": 22, "bliss": 24, "delta": 25, "fashion": 30, "pele_extra": 41, "pele_platina": 45 }, "L": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 }, "XL": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 32, "pele_extra": 44, "pele_platina": 48 } },
@@ -346,13 +344,10 @@ window.changeSize = function(sizeKey) {
 };
 
 window.openOrderSummary = function() {
-    // ... (Logic from previous steps, simplified for brevity but functional)
-    // Recalculate and show modal
     const tbody = document.getElementById('order-items-body');
     tbody.innerHTML = '';
     let totalWidth = 0;
     if(addedModules.length > 0) {
-         // Simplified total width calculation
          const widthDisplay = document.getElementById('total-width-display');
          totalWidth = widthDisplay ? widthDisplay.innerText : "0 cm";
     }
@@ -372,14 +367,13 @@ window.openOrderSummary = function() {
 };
 
 // --- 3. VARIABLES & CORE LOGIC ---
-
 let CURRENT_MODEL_ID = 'athena';
 let CURRENT_SIZE_KEY = 'M';
-let GITHUB_REPO_URL = 'https://stoffus-pt.github.io/configurador-eleganza/';
+const GITHUB_REPO_URL = 'https://stoffus-pt.github.io/configurador-eleganza/';
 let scene, camera, renderer, controls, manager, raycaster, mouse;
 let addedModules = [], modelLibrary = {}, FABRIC_LIBRARY = [], IMAGES = {};
 let currentFabricMaterial = null;
-let currentLegMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+const currentLegMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
 let showDimensions = false;
 let dimensionLinesGroup = null;
 let activeFabricId = null;
@@ -439,10 +433,10 @@ function loadModelAssets(modelId) {
         ['seat', 'arm', 'corner', 'chaise'].forEach(k => neededKeys.add(k));
     }
 
-    Array.from(neededKeys).forEach(part => {
+    const partsToLoad = Array.from(neededKeys);
+    partsToLoad.forEach(part => {
         const folderName = modelData.folder;
         const path = `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb`;
-        // Try lowercase folder first as standard
          loader.load(path, (gltf) => {
              const box = new THREE.Box3().setFromObject(gltf.scene);
              const size = new THREE.Vector3(); box.getSize(size);
@@ -457,28 +451,36 @@ function createModuleMesh(moduleId) {
     const def = DB_MODULES.find(m => m.id === moduleId); 
     const modelData = DB_MODELS[CURRENT_MODEL_ID]; 
     const group = new THREE.Group();
-    
-    // Logic for dimensions (simplified for robustness)
-    let width = 70; // Default
+    let width = 70; 
     if (def.fixed) {
         if (def.id === 'pouff' && modelData.pouffSize) width = modelData.pouffSize;
         else if (def.id === 'triangle' && modelData.triangleSize) width = modelData.triangleSize;
         else width = modelData.cornerSize || 100;
+    } else if (def.type === 'meridien' && modelData.meridienSizes) {
+        width = modelData.meridienSizes[CURRENT_SIZE_KEY] || 100;
+    } else if (def.type === 'chaise' && modelData.chaiseSizes) {
+        width = modelData.chaiseSizes[CURRENT_SIZE_KEY] || 80;
+    } else if ((def.id === 'seat_arm_l' || def.id === 'seat_arm_r') && modelData.oneSeatArmSizes) {
+        width = modelData.oneSeatArmSizes[CURRENT_SIZE_KEY];
+    } else if (def.id === 'meiple' && modelData.oneSeatArmSizes) {
+        width = modelData.oneSeatArmSizes[CURRENT_SIZE_KEY];
+    } else if (def.id.startsWith('2seats') && modelData.twoSeatSizes) {
+        width = modelData.twoSeatSizes[CURRENT_SIZE_KEY];
     } else {
         width = modelData.sizes[CURRENT_SIZE_KEY] || 70;
     }
     if (def.id.startsWith('2seats') && !modelData.twoSeatSizes) width *= 2;
-
     let totalWidth = width + (def.hasArm ? modelData.armWidth : 0);
     if (def.hasArm === 'both') totalWidth = width + (modelData.armWidth * 2);
-    
     let depth = modelData.depth || 100;
     if (def.type === 'chaise') depth = modelData.chaiseDepth || 160;
+    if (def.type === 'meridien' && modelData.chaiseDepth) depth = modelData.chaiseDepth; 
+    if (CURRENT_MODEL_ID === 'athena' && def.type === 'meridien') depth = modelData.depth;
+    if (def.type === 'corner') depth = modelData.cornerSize;
     
     const asset = modelLibrary[def.fileKey];
     if (asset) {
         const mesh = asset.clone();
-        // Scaling logic
         const box = new THREE.Box3().setFromObject(mesh);
         const size = new THREE.Vector3(); box.getSize(size);
         if (size.x > 1) {
@@ -488,16 +490,20 @@ function createModuleMesh(moduleId) {
         let flip = def.hasArm === 'right'; 
         if (def.type === 'meridien') { flip = def.hasArm === 'left'; }
         if (def.type === 'chaise') { if (CURRENT_MODEL_ID === 'athena') { flip = def.hasArm === 'right'; } else { flip = def.hasArm === 'left'; } }
+        if (CURRENT_MODEL_ID === 'kindia' && def.id.includes('seat_arm')) { flip = !flip; }
         if (flip) { mesh.scale.x *= -1; mesh.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); }
         
+        const finalBox = new THREE.Box3().setFromObject(mesh);
+        const center = new THREE.Vector3(); finalBox.getCenter(center); 
+        mesh.position.sub(center); 
+        mesh.position.y += (finalBox.max.y - finalBox.min.y) / 2;
+        if (CURRENT_MODEL_ID === 'kindia' && def.id === 'seat_no_arm') { mesh.position.y += 4; }
         group.add(mesh);
     } else {
-        // Fallback box
         const mesh = new THREE.Mesh(new THREE.BoxGeometry(totalWidth, 40, depth), new THREE.MeshStandardMaterial({color:0xcccccc}));
         mesh.position.y = 20;
         group.add(mesh);
     }
-
     group.userData = { def: def, width: totalWidth, depth: depth, hasRelax: false, relaxFactor: 0 };
     return group;
 }
@@ -506,15 +512,12 @@ function addModule(moduleId, silent = false) {
      const mesh = createModuleMesh(moduleId);
      scene.add(mesh);
      addedModules.push({ mesh: mesh, data: mesh.userData.def, ...mesh.userData });
-     
-     // Update materials
      mesh.traverse((node) => { 
         if (node.isMesh) { 
             if (node.name.toLowerCase().includes('leg')) node.material = currentLegMaterial;
-            else if (currentFabricMaterial) node.material = currentFabricMaterial;
+            else if (currentFabricMaterial && node.name !== 'shadow_plane') node.material = currentFabricMaterial;
         }
      });
-     
      repositionModules();
 }
 
@@ -524,6 +527,7 @@ function repositionModules() {
     let cornerPos = { x:0, z:0, depth: 0 }; 
     const modelData = DB_MODELS[CURRENT_MODEL_ID];
     let gapCorrection = -2;
+    if (CURRENT_MODEL_ID === 'brittany') gapCorrection = -4;
 
     addedModules.forEach((mod, i) => {
         const mesh = mod.mesh;
@@ -531,7 +535,7 @@ function repositionModules() {
             mod.isCornerLine = false; mesh.rotation.y = 0;
             if(i === 0) mesh.position.x = 0; 
             else { const prev = addedModules[i-1]; mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2) + gapCorrection; }
-            mesh.position.z = 0; 
+            mesh.position.z = ((mod.depth - modelData.depth) / 2); 
             if(mod.data.type === 'corner') cornerPos = { x: mesh.position.x, z: mesh.position.z, depth: mod.depth };
         } else {
             mod.isCornerLine = true; mesh.rotation.y = -Math.PI / 2; 
@@ -541,7 +545,6 @@ function repositionModules() {
         }
     });
     
-    // Calc Total Width
      let totalW = 0;
     if (addedModules.length > 0) { 
         const first = addedModules[0]; let lastInLine1 = addedModules.length - 1; 
@@ -551,20 +554,30 @@ function repositionModules() {
     }
     const widthDisplay = document.getElementById('total-width-display');
     if (widthDisplay) widthDisplay.innerText = Math.round(totalW) + " cm";
-    
     updatePriceUI();
 }
 
 function updatePriceUI() {
-     // Simplified price logic for display
      const sidebarEl = document.getElementById('sidebar-points');
      const summaryEl = document.getElementById('summary-points');
      let total = 0;
-     // Calculate dummy points for visual feedback
-     total = addedModules.length * 20; 
-     const price = total * 23.5; // Multiplier
+     let currentClass = 'bliss'; 
+     addedModules.forEach(mod => {
+        const modelPrices = DB_PRICES[CURRENT_MODEL_ID] || {};
+        if (modelPrices && modelPrices[mod.data.id]) {
+            const sizeKey = CURRENT_SIZE_KEY;
+            const sizePrices = modelPrices[mod.data.id][sizeKey];
+            if (sizePrices && sizePrices[currentClass]) {
+                let pts = sizePrices[currentClass];
+                if (mod.hasRelax) pts += RELAX_COST_POINTS;
+                if (mod.hasRelax && hasLithiumBattery) pts += BATTERY_COST_POINTS;
+                total += pts;
+            }
+        }
+     });
+     const multiplier = parseFloat(document.getElementById('price-multiplier').value) || 23.5;
+     const price = total * multiplier; 
      const priceStr = price.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
-     
      if(sidebarEl) sidebarEl.innerText = priceStr;
      if(summaryEl) summaryEl.innerText = priceStr;
 }
@@ -607,16 +620,75 @@ function updateBatteryVisibility() {
      }
 }
 
+function initFabricData() {
+    FABRIC_LIBRARY = [];
+    DB_COLLECTIONS.forEach(col => {
+         const key = col.name.toLowerCase().replace(/\s/g, ''); 
+         for(let i=0; i<7; i++) {
+             FABRIC_LIBRARY.push({
+                 id: `${key}_${col.prefix}${col.start+i}`,
+                 name: `${col.name} ${col.prefix}${col.start+i}`,
+                 type: key,
+                 fileIndex: i+1,
+                 collection: col.name
+             });
+         }
+    });
+}
+
+function renderFabricDock(mode, collectionKey) {
+     const list = document.getElementById('fabric-modal-content-list'); 
+     if(!list) return; 
+     list.innerHTML = '';
+     if (mode === 'collections') {
+        DB_COLLECTIONS.forEach(col => {
+            const item = document.createElement('div');
+            item.className = 'dock-item';
+            const imgUrl = `https://stoffus-pt.github.io/configurador-eleganza/assets/compressedtextures/${col.name} 1.webp`;
+            item.innerHTML = `<div class="dock-circle" style="background-image: url('${imgUrl}'); background-size: cover;"></div><span class="dock-label">${col.name}</span>`;
+            item.onclick = () => renderFabricDock('colors', col.name.toLowerCase().replace(/\s/g, ''));
+            list.appendChild(item);
+        });
+     } else {
+         const fabrics = FABRIC_LIBRARY.filter(f => f.type === collectionKey);
+         fabrics.forEach(fab => {
+            const item = document.createElement('div');
+            item.className = `dock-item ${fab.id === activeFabricId ? 'active' : ''}`;
+            const imgUrl = `https://stoffus-pt.github.io/configurador-eleganza/assets/compressedtextures/${fab.collection} ${fab.fileIndex}.webp`;
+            item.innerHTML = `<div class="dock-circle" style="background-image: url('${imgUrl}'); background-size: cover;"></div><span class="dock-label">${fab.name}</span>`;
+            item.onclick = () => setFabricFromLibrary(fab.id);
+            list.appendChild(item);
+         });
+     }
+}
+
+function initUIListeners() {
+    const resetBtn = document.getElementById('reset-btn');
+    if(resetBtn) resetBtn.addEventListener('click', () => {
+        addedModules.forEach(m => scene.remove(m.mesh));
+        addedModules = [];
+        repositionModules();
+    });
+    const battBtn = document.getElementById('battery-btn');
+    if(battBtn) battBtn.addEventListener('click', () => {
+        hasLithiumBattery = !hasLithiumBattery;
+        updateBatteryVisibility();
+        updatePriceUI();
+    });
+     const priceInput = document.getElementById('price-multiplier');
+    if(priceInput) priceInput.addEventListener('input', updatePriceUI);
+}
+
 // --- INIT ---
 window.onload = function() {
-    // Failsafe
-    setTimeout(() => { document.getElementById('app-loader').style.display='none'; }, 5000);
+    setTimeout(() => { 
+        const l = document.getElementById('app-loader');
+        if(l) l.style.display='none'; 
+    }, 3000);
 
-    // Fabric System
     initFabricData();
     renderFabricDock('collections');
 
-    // Three JS
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xffffff);
     
@@ -631,7 +703,6 @@ window.onload = function() {
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 0, 0);
 
-    // Lights
     scene.add(new THREE.AmbientLight(0xffffff, 0.5));
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
     dirLight.position.set(300, 500, 300);
@@ -639,11 +710,13 @@ window.onload = function() {
     scene.add(dirLight);
 
     manager = new THREE.LoadingManager();
-    manager.onLoad = function() { document.getElementById('app-loader').style.display = 'none'; };
+    manager.onLoad = function() { 
+        const l = document.getElementById('app-loader');
+        if(l) l.style.display = 'none'; 
+    };
     
     buildFloor();
 
-    // Init Logic
     initModelSelector();
     renderModuleButtons();
     initSizeSelector();
@@ -651,13 +724,16 @@ window.onload = function() {
     loadModelAssets(CURRENT_MODEL_ID);
     updateBatteryVisibility();
 
-    // Animate
     function animate() {
         requestAnimationFrame(animate);
         controls.update();
         renderer.render(scene, camera);
     }
     animate();
+    
+    window.addEventListener('resize', onWindowResize);
+    renderer.domElement.addEventListener('mousemove', interactWithScene); 
+    renderer.domElement.addEventListener('click', interactWithScene);
 };
     </script>
 </body>
