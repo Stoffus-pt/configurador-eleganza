@@ -71,15 +71,10 @@ window.openFabricSelector = function() {
 };
 
 window.confirmAndGeneratePDF = function() {
-    // Verifica se a biblioteca foi carregada
-    if (!window.jspdf) {
-        showFeedback("Erro: Biblioteca PDF não carregada.", "error");
-        return;
-    }
-    
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
+    // Aceder aos dados globais carregados pelo dados.js
     const modelName = window.DB_MODELS[CURRENT_MODEL_ID].name;
     const fabricName = document.getElementById('current-fabric-name').innerText;
     const totalWidth = document.getElementById('summary-width').innerText;
@@ -242,16 +237,17 @@ function loadModelAssets(modelId) {
 
     Array.from(neededKeys).forEach(part => {
         const folderName = modelData.folder;
-        // Caminhos possíveis para carregar (para lidar com maiúsculas/minúsculas)
+        // Tenta carregar o modelo GLB
         const path = `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`;
         
          loader.load(path, (gltf) => {
              const box = new THREE.Box3().setFromObject(gltf.scene);
              const size = new THREE.Vector3(); box.getSize(size);
+             // Correção de escala para modelos que vêm muito pequenos (unidades erradas)
              if (size.x < 20) { gltf.scene.scale.set(100, 100, 100); }
              gltf.scene.traverse(n => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } });
              modelLibrary[part] = gltf.scene;
-         }, undefined, (err) => { console.warn(`Failed to load ${part} for ${modelId}`, err); });
+         }, undefined, (err) => { console.warn(`Falha ao carregar ${part} para ${modelId}`, err); });
     });
 }
 
@@ -260,7 +256,7 @@ function createModuleMesh(moduleId) {
     const modelData = window.DB_MODELS[CURRENT_MODEL_ID]; 
     const group = new THREE.Group();
     
-    // Logic for dimensions (simplified for robustness)
+    // Lógica de Dimensões (Simplificada e Robusta)
     let width = 70; // Default
     if (def.fixed) {
         if (def.id === 'pouff' && modelData.pouffSize) width = modelData.pouffSize;
@@ -287,13 +283,13 @@ function createModuleMesh(moduleId) {
     
     let depth = modelData.depth || 100;
     if (def.type === 'chaise') depth = modelData.chaiseDepth || 160;
-    if (def.type === 'meridien' && modelData.chaiseDepth) depth = modelData.chaiseDepth; // Meridien usually deep
-    if (CURRENT_MODEL_ID === 'athena' && def.type === 'meridien') depth = modelData.depth; // Exception for Athena
+    if (def.type === 'meridien' && modelData.chaiseDepth) depth = modelData.chaiseDepth; 
+    if (CURRENT_MODEL_ID === 'athena' && def.type === 'meridien') depth = modelData.depth;
 
     const asset = modelLibrary[def.fileKey];
     if (asset) {
         const mesh = asset.clone();
-        // Scaling logic
+        // Lógica de Escala (Esticar o modelo para caber na medida)
         const box = new THREE.Box3().setFromObject(mesh);
         const size = new THREE.Vector3(); box.getSize(size);
         if (size.x > 1) {
@@ -307,19 +303,18 @@ function createModuleMesh(moduleId) {
 
         if (flip) { mesh.scale.x *= -1; mesh.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); }
         
-        // Recenter
+        // Recentrar
         const finalBox = new THREE.Box3().setFromObject(mesh);
         const center = new THREE.Vector3(); finalBox.getCenter(center); 
         mesh.position.sub(center); 
         mesh.position.y += (finalBox.max.y - finalBox.min.y) / 2;
 
-        // Height adjustments
-        const isKindia = CURRENT_MODEL_ID === 'kindia';
-        if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
+        // Ajustes de altura específicos
+        if (CURRENT_MODEL_ID === 'kindia' && def.id === 'seat_no_arm') { mesh.position.y += 4; }
         
         group.add(mesh);
     } else {
-        // Fallback box
+        // Fallback (Caixa cinzenta se o modelo 3D falhar)
         const mesh = new THREE.Mesh(new THREE.BoxGeometry(totalWidth, 40, depth), new THREE.MeshStandardMaterial({color:0xcccccc}));
         mesh.position.y = 20;
         group.add(mesh);
@@ -334,7 +329,7 @@ function addModule(moduleId, silent = false) {
      scene.add(mesh);
      addedModules.push({ mesh: mesh, data: mesh.userData.def, ...mesh.userData });
      
-     // Update materials
+     // Atualizar materiais
      mesh.traverse((node) => { 
         if (node.isMesh) { 
             if (node.name.toLowerCase().includes('leg')) node.material = currentLegMaterial;
@@ -351,7 +346,7 @@ function repositionModules() {
     for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIdx = i; break; }
     let cornerPos = { x:0, z:0, depth: 0 }; 
     const modelData = window.DB_MODELS[CURRENT_MODEL_ID];
-    let gapCorrection = -2; // Standard gap correction
+    let gapCorrection = -2; // Correção padrão para colmatar falhas visuais entre módulos
     if (CURRENT_MODEL_ID === 'brittany') gapCorrection = -4;
 
     addedModules.forEach((mod, i) => {
@@ -360,7 +355,7 @@ function repositionModules() {
             mod.isCornerLine = false; mesh.rotation.y = 0;
             if(i === 0) mesh.position.x = 0; 
             else { const prev = addedModules[i-1]; mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2) + gapCorrection; }
-            mesh.position.z = ((mod.depth - modelData.depth) / 2); // Center depth alignment
+            mesh.position.z = ((mod.depth - modelData.depth) / 2); // Alinhamento pela traseira/centro
             if(mod.data.type === 'corner') cornerPos = { x: mesh.position.x, z: mesh.position.z, depth: mod.depth };
         } else {
             mod.isCornerLine = true; mesh.rotation.y = -Math.PI / 2; 
@@ -370,7 +365,6 @@ function repositionModules() {
         }
     });
     
-    // Calc Total Width
      let totalW = 0;
     if (addedModules.length > 0) { 
         const first = addedModules[0]; let lastInLine1 = addedModules.length - 1; 
@@ -390,14 +384,8 @@ function updatePriceUI() {
      const summaryEl = document.getElementById('summary-points');
      
      let total = 0;
-     let currentClass = 'bliss'; // Default
+     let currentClass = 'bliss'; // Preço padrão se não for detetado tecido
      
-     // Detect fabric class
-     if (activeFabricId && window.DB_COLLECTIONS) {
-         // Logic to find fabric class based on collection would go here
-         // For now, defaulting to 'bliss'
-     }
-
      addedModules.forEach(mod => {
         const modelPrices = window.DB_PRICES[CURRENT_MODEL_ID] || {};
         if (modelPrices && modelPrices[mod.data.id]) {
@@ -458,18 +446,65 @@ function updateBatteryVisibility() {
      }
 }
 
-// ... (Rest of UI helper functions like updateDimensionLabels, renderFabricDock, etc are assumed present or can be copied from previous versions if missing) ...
-// Including essential ones for start-up:
+// --- Funções Auxiliares (Sprites, Labels, etc.) ---
 
 function createStatusSprite(label) {
-    // ... (Sprite creation logic)
-    return new THREE.Mesh(); // Dummy return if canvas fails
+    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); 
+    const w = 256; const h = 64; canvas.width = w; canvas.height = h;
+    ctx.fillStyle = "#e84c26"; 
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, w, h, 30); ctx.fill(); } 
+    else { ctx.fillRect(0, 0, w, h); }
+    ctx.fillStyle = "white"; ctx.font = "bold 30px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+    ctx.fillText(label.toUpperCase(), w/2, h/2);
+    const texture = new THREE.CanvasTexture(canvas); 
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false })); 
+    sprite.scale.set(40, 10, 1);
+    return sprite;
 }
-function createTextSprite(msg) { return new THREE.Mesh(); } 
-function updateDimensionLabels() { /* Implementation */ }
+
+function createTextSprite(message) {
+    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); 
+    const fontSize = 64; ctx.font = "Bold " + fontSize + "px Arial"; 
+    const textWidth = ctx.measureText(message).width; canvas.width = textWidth + 40; canvas.height = fontSize + 40;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; 
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, canvas.width, canvas.height, 20); ctx.fill(); } 
+    else { ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    ctx.fillStyle = "white"; ctx.font = "Bold " + fontSize + "px Arial"; 
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+    ctx.fillText(message, canvas.width/2, canvas.height/2);
+    const texture = new THREE.CanvasTexture(canvas); 
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false })); 
+    sprite.scale.set(canvas.width * 0.15, canvas.height * 0.15, 1);
+    return sprite;
+}
+
+function updateDimensionLabels() {
+    if (!dimensionLinesGroup) return;
+    while(dimensionLinesGroup.children.length > 0){ 
+        const obj = dimensionLinesGroup.children[0]; 
+        if(obj.material && obj.material.map) obj.material.map.dispose(); 
+        dimensionLinesGroup.remove(obj); 
+    }
+    if(!showDimensions || addedModules.length === 0) return;
+    
+    // Simple Length Calc
+    let startX = 0; let endX = 0;
+    if(addedModules.length > 0) {
+        const first = addedModules[0]; 
+        const last = addedModules[addedModules.length - 1]; 
+        endX = last.mesh.position.x + last.width/2; 
+        startX = first.mesh.position.x - first.width/2;
+        const lineY = 110; 
+        const linePoints = [new THREE.Vector3(startX, lineY, 0), new THREE.Vector3(endX, lineY, 0)]; 
+        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePoints), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 })); 
+        dimensionLinesGroup.add(line);
+        const sprite = createTextSprite(Math.round(endX - startX) + " cm"); 
+        sprite.position.set((startX + endX)/2, lineY + 15, 0); 
+        dimensionLinesGroup.add(sprite);
+    }
+}
 
 function initFabricData() {
-    // Basic init from window.DB_COLLECTIONS
     window.FABRIC_LIBRARY = [];
     window.DB_COLLECTIONS.forEach(col => {
          const key = col.name.toLowerCase().replace(/\s/g, ''); 
@@ -484,32 +519,69 @@ function initFabricData() {
          }
     });
 }
+
 function renderFabricDock(mode, collectionKey) {
-     // Implementation for dock rendering
+     const list = document.getElementById('fabric-modal-content-list'); 
+     if(!list) return; 
+     list.innerHTML = '';
+     if (mode === 'collections') {
+        window.DB_COLLECTIONS.forEach(col => {
+            const item = document.createElement('div');
+            item.className = 'dock-item';
+            const imgUrl = `${GITHUB_REPO_URL}assets/compressedtextures/${col.name} 1.webp`;
+            item.innerHTML = `<div class="dock-circle" style="background-image: url('${imgUrl}'); background-size: cover;"></div><span class="dock-label">${col.name}</span>`;
+            item.onclick = () => renderFabricDock('colors', col.name.toLowerCase().replace(/\s/g, ''));
+            list.appendChild(item);
+        });
+     } else {
+         const fabrics = window.FABRIC_LIBRARY.filter(f => f.type === collectionKey);
+         fabrics.forEach(fab => {
+            const item = document.createElement('div');
+            item.className = `dock-item ${fab.id === activeFabricId ? 'active' : ''}`;
+            const imgUrl = `${GITHUB_REPO_URL}assets/compressedtextures/${fab.collection} ${fab.fileIndex}.webp`;
+            item.innerHTML = `<div class="dock-circle" style="background-image: url('${imgUrl}'); background-size: cover;"></div><span class="dock-label">${fab.name}</span>`;
+            item.onclick = () => {
+                setFabricFromLibrary(fab.id);
+                uiSet('fabric-modal', 'display', 'none');
+                document.getElementById('current-fabric-name').innerText = fab.name;
+            };
+            list.appendChild(item);
+         });
+     }
 }
 
-function initModelSelector() {
-    updateModelButtonUI(); 
-    const container = document.getElementById('model-grid-container'); 
-    if(!container) return; 
-    container.innerHTML = ''; 
-    Object.keys(window.DB_MODELS).forEach(key => { 
-        const model = window.DB_MODELS[key]; 
-        const card = document.createElement('div'); 
-        const isActive = key === CURRENT_MODEL_ID; 
-        let badgeClass = 'badge-fixed'; let typeLabel = 'Fixo'; 
-        if (model.type === 'relax') { badgeClass = 'badge-relax'; typeLabel = 'Relax'; } 
-        if (model.type === 'slide') { badgeClass = 'badge-slide'; typeLabel = 'Deslizante'; } 
-        card.className = `model-card ${isActive ? 'active' : ''}`; 
-        card.onclick = () => { window.changeModel(key); window.uiSet('model-modal', 'display', 'none'); }; 
-        const cleanName = model.name.split('(')[0].trim(); 
-        const keyLower = key.toLowerCase(); 
-        const imgUrlWebP = `${GITHUB_REPO_URL}assets/icons/${keyLower}.webp`; 
-        const imgUrlPng = `${GITHUB_REPO_URL}assets/icons/${keyLower}.png`; 
-        const placeholder = `https://placehold.co/150x100?text=${cleanName}`; 
-        card.innerHTML = `<img src="${imgUrlWebP}" class="model-card-img" alt="${cleanName}" onerror="this.onerror=null; this.src='${imgUrlPng}'; this.onerror=function(){this.src='${placeholder}'; this.style.objectFit='cover';};"><div class="model-card-name">${cleanName}</div><span class="model-badge ${badgeClass}">${typeLabel}</span>`; 
-        container.appendChild(card); 
-    }); 
+function setFabricFromLibrary(id) {
+    const fab = window.FABRIC_LIBRARY.find(f => f.id === id);
+    if (!fab) return;
+    activeFabricId = id;
+    
+    // Load Texture
+    const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin('anonymous');
+    const url = `${GITHUB_REPO_URL}assets/textures/${fab.collection} ${fab.fileIndex}.jpg`;
+    
+    showFeedback(`A carregar ${fab.name}...`, "info");
+    
+    loader.load(url, (tex) => {
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(2, 2);
+        currentFabricMaterial = new THREE.MeshStandardMaterial({ map: tex });
+        
+        // Apply to all
+        addedModules.forEach(mod => {
+            mod.mesh.traverse(n => {
+                if (n.isMesh && !n.name.toLowerCase().includes('leg') && n.name !== 'shadow_plane') {
+                    n.material = currentFabricMaterial;
+                }
+            });
+        });
+        showFeedback("Tecido aplicado", "success");
+        updatePriceUI();
+    }, undefined, (err) => {
+        showFeedback("Erro ao carregar textura", "error");
+        console.error(err);
+    });
 }
 
 function initUIListeners() {
@@ -523,27 +595,30 @@ function initUIListeners() {
     const battBtn = document.getElementById('battery-btn');
     if(battBtn) battBtn.addEventListener('click', () => {
         hasLithiumBattery = !hasLithiumBattery;
-        updateBatteryUI();
+        updateBatteryVisibility();
         updatePriceUI();
     });
 
     const priceInput = document.getElementById('price-multiplier');
     if(priceInput) priceInput.addEventListener('input', updatePriceUI);
+    
+    const dimsBtn = document.getElementById('toggle-dims-btn');
+    if(dimsBtn) dimsBtn.addEventListener('click', () => {
+        showDimensions = !showDimensions;
+        updateDimensionLabels();
+    });
 }
 
 // --- INIT ---
 window.onload = function() {
-    // Failsafe
     setTimeout(() => { 
         const l = document.getElementById('app-loader');
         if(l) l.style.display='none'; 
     }, 5000);
 
-    // Fabric System
     initFabricData();
     renderFabricDock('collections');
 
-    // Three JS
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xffffff);
     
@@ -558,7 +633,6 @@ window.onload = function() {
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 0, 0);
 
-    // Lights
     scene.add(new THREE.AmbientLight(0xffffff, 0.5));
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
     dirLight.position.set(300, 500, 300);
@@ -571,9 +645,12 @@ window.onload = function() {
         if(l) l.style.display = 'none'; 
     };
     
+    // Add Dimensions Group
+    dimensionLinesGroup = new THREE.Group();
+    scene.add(dimensionLinesGroup);
+    
     buildFloor();
 
-    // Init Logic
     initModelSelector();
     renderModuleButtons();
     initSizeSelector();
@@ -581,7 +658,6 @@ window.onload = function() {
     loadModelAssets(CURRENT_MODEL_ID);
     updateBatteryVisibility();
 
-    // Animate
     function animate() {
         requestAnimationFrame(animate);
         controls.update();
@@ -589,10 +665,9 @@ window.onload = function() {
     }
     animate();
     
-    // Listeners extras
     window.addEventListener('resize', onWindowResize);
-    renderer.domElement.addEventListener('mousemove', onMouseMove);
-    renderer.domElement.addEventListener('click', onMouseClick);
+    renderer.domElement.addEventListener('mousemove', interactWithScene); 
+    renderer.domElement.addEventListener('click', interactWithScene);
     renderer.domElement.addEventListener('touchstart', onTouchStart, {passive: false});
     renderer.domElement.addEventListener('touchend', onTouchEnd, {passive: false});
 };
