@@ -1,4 +1,4 @@
-window.DB_PRICES = {
+window.DB_PRICES_EXTERNAL= {
      "athena": {
         "seat_no_arm": { "S": { "cliente": 18, "bliss": 20, "delta": 21, "fashion": 25, "pele_extra": 34, "pele_platina": 37 }, "M": { "cliente": 18, "bliss": 20, "delta": 21, "fashion": 25, "pele_extra": 34, "pele_platina": 37 }, "L": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 40 }, "XL": { "cliente": 20, "bliss": 22, "delta": 23, "fashion": 27, "pele_extra": 36, "pele_platina": 40 } },
         "seat_arm_l": { "S": { "cliente": 23, "bliss": 24, "delta": 26, "fashion": 31, "pele_extra": 43, "pele_platina": 48 }, "M": { "cliente": 23, "bliss": 24, "delta": 26, "fashion": 31, "pele_extra": 43, "pele_platina": 48 }, "L": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 33, "pele_extra": 46, "pele_platina": 51 }, "XL": { "cliente": 23, "bliss": 25, "delta": 27, "fashion": 33, "pele_extra": 46, "pele_platina": 51 } },
