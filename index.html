@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V4.88 (Stable)</title>
+    <title>Configurador 3D Eleganza - V4.91 (Custom Icons)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -249,7 +249,7 @@
                 <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-10 sm:w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
             </div>
 
-            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.88</span></div>
+            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.91</span></div>
         </div>
         <div class="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto justify-start md:justify-end pb-1 md:pb-0">
              
@@ -452,7 +452,7 @@
                 depth: 105,
                 chaiseDepth: 165,
                 cornerSize: 113,
-                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r']
+                modules: ['seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner']
             },
             'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
             'magic': { name: 'Magic (Deslizante)', type: 'slide', folder: 'magic', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
@@ -483,25 +483,37 @@
                 cornerSize: 0, 
                 modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'meiple'] 
             },
-            'sting': { name: 'Sting', type: 'relax', folder: 'sting', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] }
+            'sting': { name: 'Sting', type: 'relax', folder: 'sting', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
+            'kaori': { 
+                name: 'Kaori', 
+                type: 'fixed', 
+                folder: 'kaori', 
+                sizes: { S: 62, M: 72, L: 82, XL: 92 }, 
+                chaiseSizes: { S: 60, M: 70, L: 80, XL: 90 },
+                armWidth: 20, 
+                depth: 105, 
+                chaiseDepth: 165, 
+                cornerSize: 113, 
+                modules: ['meiple', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner'] 
+            }
         };
 
         const DB_MODULES = [
-            { id: 'seat_no_arm', name: 'Centro', icon: 'fa-couch', type: 'seat', fileKey: 'seat', hasArm: false },
-            { id: '2seats_no_arm', name: '2 Costas', icon: 'fa-couch', type: 'seat', fileKey: '2seats', hasArm: false },
-            { id: 'seat_arm_l', name: 'Braço Esq.', icon: 'fa-cube', type: 'seat', fileKey: 'arm', hasArm: 'left' },
-            { id: 'seat_arm_r', name: 'Braço Dir.', icon: 'fa-cube', type: 'seat', fileKey: 'arm', hasArm: 'right' },
-            { id: '2seats_2arms', name: '2 Lug. 2 Braços', icon: 'fa-couch', type: 'seat', fileKey: '2arm2seats', hasArm: 'both' },
-            { id: '2seats_arm_l', name: '2 Lug. Braço Esq.', icon: 'fa-couch', type: 'seat', fileKey: 'arm2seats', hasArm: 'left' },
-            { id: '2seats_arm_r', name: '2 Lug. Braço Dir.', icon: 'fa-couch', type: 'seat', fileKey: 'arm2seats', hasArm: 'right' },
-            { id: 'corner', name: 'Canto', icon: 'fa-border-all', type: 'corner', fileKey: 'corner', hasArm: false, fixed: true },
-            { id: 'chaise_l', name: 'Chaise Esq.', icon: 'fa-l', type: 'chaise', fileKey: 'chaise', hasArm: 'left' },
-            { id: 'chaise_r', name: 'Chaise Dir.', icon: 'fa-l', type: 'chaise', fileKey: 'chaise', hasArm: 'right' },
-            { id: 'meridien_l', name: 'Meridien Esq.', icon: 'fa-layer-group', type: 'meridien', fileKey: 'meridien', hasArm: 'left' },
-            { id: 'meridien_r', name: 'Meridien Dir.', icon: 'fa-layer-group', type: 'meridien', fileKey: 'meridien', hasArm: 'right' },
-            { id: 'meiple', name: '1 Lug. 2 Braços', icon: 'fa-chair', type: 'standalone', fileKey: 'meiple', hasArm: true },
-            { id: 'pouff', name: 'Pouff Quadrado', icon: 'fa-vector-square', type: 'standalone', fileKey: 'pouff', hasArm: false, fixed: true },
-            { id: 'triangle', name: 'Triângulo', icon: 'fa-play', type: 'corner', fileKey: 'triangle', hasArm: false, fixed: true }
+            { id: 'seat_no_arm', name: 'Centro', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/seatrelax.svg`, type: 'seat', fileKey: 'seat', hasArm: false },
+            { id: '2seats_no_arm', name: '2 Costas', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/2backs.svg`, type: 'seat', fileKey: '2seats', hasArm: false },
+            { id: 'seat_arm_l', name: 'Braço Esq.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/arm.svg`, type: 'seat', fileKey: 'arm', hasArm: 'left' },
+            { id: 'seat_arm_r', name: 'Braço Dir.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/arm.svg`, type: 'seat', fileKey: 'arm', hasArm: 'right' },
+            { id: '2seats_2arms', name: '2 Lug. 2 Braços', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/2arm2seats.svg`, type: 'seat', fileKey: '2arm2seats', hasArm: 'both' },
+            { id: '2seats_arm_l', name: '2 Lug. Braço Esq.', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/arm2seats.svg`, type: 'seat', fileKey: 'arm2seats', hasArm: 'left' },
+            { id: '2seats_arm_r', name: '2 Lug. Braço Dir.', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/arm2seats.svg`, type: 'seat', fileKey: 'arm2seats', hasArm: 'right' },
+            { id: 'corner', name: 'Canto', icon: 'fa-border-all', imgUrl: `${GITHUB_REPO_URL}assets/icons/corner.svg`, type: 'corner', fileKey: 'corner', hasArm: false, fixed: true },
+            { id: 'chaise_l', name: 'Chaise Esq.', icon: 'fa-l', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'chaise', hasArm: 'left' },
+            { id: 'chaise_r', name: 'Chaise Dir.', icon: 'fa-l', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'chaise', hasArm: 'right' },
+            { id: 'meridien_l', name: 'Meridien Esq.', icon: 'fa-layer-group', imgUrl: `${GITHUB_REPO_URL}assets/icons/meridien.svg`, type: 'meridien', fileKey: 'meridien', hasArm: 'left' },
+            { id: 'meridien_r', name: 'Meridien Dir.', icon: 'fa-layer-group', imgUrl: `${GITHUB_REPO_URL}assets/icons/meridien.svg`, type: 'meridien', fileKey: 'meridien', hasArm: 'right' },
+            { id: 'meiple', name: '1 Lug. 2 Braços', icon: 'fa-chair', imgUrl: `${GITHUB_REPO_URL}assets/icons/meiplerelax.svg`, type: 'standalone', fileKey: 'meiple', hasArm: true },
+            { id: 'pouff', name: 'Pouff Quadrado', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/pouff.svg`, type: 'standalone', fileKey: 'pouff', hasArm: false, fixed: true },
+            { id: 'triangle', name: 'Triângulo', icon: 'fa-play', imgUrl: `${GITHUB_REPO_URL}assets/icons/triangle.svg`, type: 'corner', fileKey: 'triangle', hasArm: false, fixed: true }
         ];
 
         const DB_COLLECTIONS = [ 
@@ -944,9 +956,9 @@
                 const center = new THREE.Vector3(); finalBox.getCenter(center); mesh.position.sub(center); mesh.position.y += (finalBox.max.y - finalBox.min.y) / 2;
                 
                 const isArmModule = def.id.includes('seat_arm'); const isDoubleArmModule = def.id.includes('2seats_arm'); const isChaise = def.type === 'chaise'; const isMeridien = def.type === 'meridien'; const isBartini = CURRENT_MODEL_ID === 'bartini'; const isFiori = CURRENT_MODEL_ID === 'fiori'; const isKindia = CURRENT_MODEL_ID === 'kindia'; const isSting = CURRENT_MODEL_ID === 'sting'; 
-                const isInfinity = CURRENT_MODEL_ID === 'infinity'; const isMagic = CURRENT_MODEL_ID === 'magic'; const isBruma = CURRENT_MODEL_ID === 'bruma';
+                const isInfinity = CURRENT_MODEL_ID === 'infinity'; const isMagic = CURRENT_MODEL_ID === 'magic'; const isBruma = CURRENT_MODEL_ID === 'bruma'; const isKaori = CURRENT_MODEL_ID === 'kaori'; const isFienza = CURRENT_MODEL_ID === 'fienza';
                 
-                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma) { mesh.position.y += 12; }
+                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma && !isKaori && !isFienza) { mesh.position.y += 12; }
                 
                 if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
                 if (CURRENT_MODEL_ID === 'athena' && def.id === 'seat_no_arm') { mesh.position.z += 4; }
@@ -1186,7 +1198,67 @@
         function createProceduralFabricTexture(type, colorHex) { const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size); const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; applyTextureRepeat(tex, currentRapport); return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.01 }); }
         function updateAllModulesMaterial() { addedModules.forEach(mod => { if(!mod.mesh) return; mod.mesh.traverse((node) => { if (node.isMesh) { const lowerName = node.name.toLowerCase(); const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw)); if (!isLeg && node.name !== 'shadow_plane') node.material = currentFabricMaterial; if (isLeg) node.material = currentLegMaterial; } }); }); }
         function updateFabricRapport() { if(currentFabricMaterial && currentFabricMaterial.map) { applyTextureRepeat(currentFabricMaterial.map, currentRapport); if(currentFabricMaterial.bumpMap) applyTextureRepeat(currentFabricMaterial.bumpMap, currentRapport); } }
-        function renderModuleButtons() { const container = document.getElementById('module-list'); if(!container) return; container.innerHTML = ''; const modelData = DB_MODELS[CURRENT_MODEL_ID]; DB_MODULES.forEach(def => { if (modelData.modules && !modelData.modules.includes(def.id)) return; const btn = document.createElement('button'); btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16"; btn.onclick = () => addModule(def.id); btn.innerHTML = `<i class="fas ${def.icon} text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i><span class="text-[9px] font-bold text-gray-600 leading-tight text-center">${def.name}</span>`; container.appendChild(btn); }); }
+        
+        function renderModuleButtons() { 
+            const container = document.getElementById('module-list'); 
+            if(!container) return; 
+            container.innerHTML = ''; 
+            const modelData = DB_MODELS[CURRENT_MODEL_ID]; 
+            
+            DB_MODULES.forEach(def => { 
+                if (modelData.modules && !modelData.modules.includes(def.id)) return; 
+                
+                const btn = document.createElement('button'); 
+                btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-20"; 
+                btn.onclick = () => addModule(def.id); 
+                
+                // Logic to choose between Icon or Image
+                let visualContent;
+                let currentImgUrl = def.imgUrl;
+
+                // 1. Lógica para Canto Redondo (Round Corner)
+                if (def.id === 'corner') {
+                     const roundCornerModels = ['athena', 'brittany', 'dayma', 'enzo'];
+                     if (roundCornerModels.includes(CURRENT_MODEL_ID)) {
+                         currentImgUrl = `${GITHUB_REPO_URL}assets/icons/roundcorner.svg`;
+                     }
+                }
+
+                // 2. [NOVO] Lógica específica para modelos RELAX
+                if (modelData.type === 'relax') {
+                    if (def.id === 'seat_no_arm') {
+                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/seatrelax.svg`;
+                    } else if (def.id === 'seat_arm_l' || def.id === 'seat_arm_r') {
+                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/armrelax.svg`;
+                    } else if (def.id === 'meiple') {
+                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meiplerelax.svg`;
+                    } else if (def.id === 'meridien_l' || def.id === 'meridien_r') {
+                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meridienrelax.svg`;
+                    }
+                }
+
+                if(currentImgUrl) {
+                    // Check if needs flip (Right modules usually need the left-icon flipped)
+                    let needsFlip = def.hasArm === 'right' || def.id.endsWith('_r');
+                    
+                    // Lógica para corrigir inversão da Chaise e Meridien
+                    if (def.type === 'chaise' || def.type === 'meridien') {
+                        needsFlip = !needsFlip;
+                    }
+
+                    const flipClass = needsFlip ? 'scale-x-[-1]' : '';
+                    
+                    // Use Image with increased height and object-contain
+                    visualContent = `<img src="${currentImgUrl}" class="h-8 w-auto object-contain mb-1 opacity-70 group-hover:opacity-100 transition-all ${flipClass}" alt="${def.name}">`;
+                } else {
+                    // Fallback to FontAwesome
+                    visualContent = `<i class="fas ${def.icon} text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i>`;
+                }
+
+                btn.innerHTML = `${visualContent}<span class="text-[9px] font-bold text-gray-600 leading-tight text-center">${def.name}</span>`; 
+                container.appendChild(btn); 
+            }); 
+        }
         
         function updateBatteryUI() {
             const btn = document.getElementById('battery-btn');
