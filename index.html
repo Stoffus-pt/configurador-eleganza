@@ -2,8 +2,8 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurador 3D Eleganza - V4.91 (Custom Icons)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Configurador 3D Eleganza - V4.92 (Mobile UI Redesign)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -39,15 +39,21 @@
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         #room-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background-size: cover; background-position: center bottom; display: none; transition: background-image 0.5s ease-in-out; }
         
-        #model-selector-bar { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); z-index: 20; width: 90%; max-width: fit-content; }
-        #fabric-selector-bar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 20; width: 90%; max-width: fit-content; transition: bottom 0.3s; }
+        /* Mobile Specific adjustments for selectors */
+        #model-selector-bar { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 20; width: 95%; max-width: fit-content; }
+        #fabric-selector-bar { position: absolute; bottom: 240px; left: 50%; transform: translateX(-50%); z-index: 20; width: 95%; max-width: fit-content; transition: bottom 0.3s; }
+
+        @media (min-width: 768px) {
+            #model-selector-bar { top: 80px; width: 90%; }
+            #fabric-selector-bar { bottom: 30px; width: 90%; }
+        }
 
         @media (max-width: 768px) {
-            #model-selector-bar { top: 70px; }
-            #fabric-selector-bar { bottom: 36vh; margin-bottom: 15px; } 
-            
-            .trigger-pill-btn { min-width: auto; width: 100%; padding: 8px 16px; justify-content: space-between;}
-            .pill-content { max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .trigger-pill-btn { min-width: auto; width: 100%; padding: 6px 12px; justify-content: space-between; height: 44px; }
+            .pill-content { max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .pill-icon-box { width: 28px; height: 28px; font-size: 14px; }
+            .pill-label { display: none; } /* Hide label on mobile to save space */
+            .pill-value { font-size: 13px; }
             
             .no-scrollbar::-webkit-scrollbar { display: none; }
             .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -60,7 +66,7 @@
             border-radius: 50px;
             border: 1px solid rgba(255,255,255,0.5);
             box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-            display: flex; align-items: center; gap: 14px;
+            display: flex; align-items: center; gap: 10px;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-family: 'Inter', sans-serif;
@@ -77,7 +83,7 @@
 
         .ui-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); }
         .module-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-        #feedback-message { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; padding: 10px 20px; border-radius: 20px; color: white; font-weight: bold; opacity: 0; transition: opacity 0.3s; pointer-events: none; display: flex; align-items: center; gap: 8px; width: max-content; max-width: 90%; justify-content: center; }
+        #feedback-message { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 100; padding: 8px 16px; border-radius: 20px; color: white; font-weight: bold; opacity: 0; transition: opacity 0.3s; pointer-events: none; display: flex; align-items: center; gap: 8px; width: max-content; max-width: 90%; justify-content: center; font-size: 12px; }
         .show-feedback { opacity: 1 !important; }
         #app-loader { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
         .loader-bar { width: 200px; height: 4px; background: #eee; border-radius: 2px; overflow: hidden; margin-top: 15px; }
@@ -128,6 +134,10 @@
           -webkit-appearance: none; 
           margin: 0; 
         }
+        
+        /* Mobile Module List Scroll */
+        .snap-x { scroll-snap-type: x mandatory; }
+        .snap-start { scroll-snap-align: start; }
     </style>
 </head>
 <body>
@@ -239,25 +249,41 @@
     </div>
 
     <!-- UI HEADER -->
-    <div class="ui-panel absolute top-0 left-0 w-full h-16 md:h-16 h-14 border-b border-gray-200 flex items-center justify-between px-2 sm:px-6 shadow-sm z-10">
-        <div class="flex items-center flex-shrink-0 mr-2 gap-3 sm:gap-6">
-            <div class="font-bold text-lg sm:text-2xl text-gray-800 tracking-tight"><span class="text-stoffus-primary">Stoffus</span> 3D</div>
+    <div class="ui-panel absolute top-0 left-0 w-full h-14 md:h-16 border-b border-gray-200 flex items-center justify-between px-3 md:px-6 shadow-sm z-10">
+        <div class="flex items-center flex-shrink-0 mr-2 gap-2 md:gap-6">
+            <div class="font-bold text-lg md:text-2xl text-gray-800 tracking-tight"><span class="text-stoffus-primary">Stoffus</span> 3D</div>
             
             <!-- INPUT DE PONTO (UNIVERSAL) -->
-            <div class="flex items-center bg-white rounded-lg px-2 py-1 border border-gray-300 shadow-sm hover:border-stoffus-primary transition-colors">
-                <span class="text-[10px] font-bold text-gray-500 mr-1 sm:mr-2 uppercase select-none"><span class="hidden sm:inline">Ponto</span><span class="sm:hidden">Pt</span></span>
-                <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-10 sm:w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
+            <div class="flex items-center bg-white rounded-lg px-2 py-1 border border-gray-300 shadow-sm hover:border-stoffus-primary transition-colors hidden md:flex">
+                <span class="text-[10px] font-bold text-gray-500 mr-2 uppercase select-none">Ponto</span>
+                <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
             </div>
 
-            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.91</span></div>
+            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.92</span></div>
         </div>
-        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto justify-start md:justify-end pb-1 md:pb-0">
+        
+        <!-- HEADER BUTTONS (Mobile: Icons only to fit screen without scroll) -->
+        <div class="flex items-center gap-2 w-auto justify-end">
+             <button id="btn-ar-open" class="whitespace-nowrap bg-[#e84c26] text-white hover:bg-[#cf401e] px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition flex items-center shadow-md transform hover:scale-105" title="Visualizar AR">
+                 <i class="fas fa-cube md:mr-2 text-base"></i> 
+                 <span class="hidden md:inline">Visualizar AR</span>
+             </button>
              
-             <button id="btn-ar-open" class="whitespace-nowrap bg-[#e84c26] text-white hover:bg-[#cf401e] px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center shadow-md transform hover:scale-105"><i class="fas fa-cube mr-2"></i> <span>Visualizar AR</span></button>
-             <button id="toggle-editor-btn" class="whitespace-nowrap bg-gray-800 text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-bold shadow-md hover:bg-gray-700 transition transform hover:scale-105 flex items-center"><i class="fas fa-layer-group mr-2"></i> <span class="hidden sm:inline">Acabamentos</span></button>
-             <button id="toggle-dims-btn" class="whitespace-nowrap bg-white border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-bold shadow-sm" title="Mostrar Medidas"><i class="fas fa-ruler-combined"></i></button>
+             <button id="toggle-editor-btn" class="whitespace-nowrap bg-gray-800 text-white px-3 py-2 rounded-lg text-xs md:text-sm font-bold shadow-md hover:bg-gray-700 transition transform hover:scale-105 flex items-center" title="Acabamentos">
+                 <i class="fas fa-layer-group md:mr-2 text-base"></i> 
+                 <span class="hidden md:inline">Acabamentos</span>
+             </button>
+             
+             <button id="toggle-dims-btn" class="whitespace-nowrap bg-white border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-50" title="Mostrar Medidas">
+                 <i class="fas fa-ruler-combined text-base"></i>
+             </button>
+             
              <div class="h-6 w-px bg-gray-300 mx-1 flex-shrink-0"></div>
-             <button id="reset-btn" class="whitespace-nowrap bg-white border-2 border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center shadow-sm group"><i class="fas fa-trash-alt mr-2 group-hover:rotate-12 transition-transform"></i> <span>Limpar</span></button>
+             
+             <button id="reset-btn" class="whitespace-nowrap bg-white border-2 border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center shadow-sm group" title="Limpar">
+                 <i class="fas fa-trash-alt md:mr-2 text-base group-hover:rotate-12 transition-transform"></i> 
+                 <span class="hidden md:inline">Limpar</span>
+             </button>
         </div>
     </div>
 
@@ -297,25 +323,52 @@
         </div>
     </div>
 
-    <!-- SIDEBAR -->
-    <div id="main-sidebar" class="ui-panel absolute transition-all duration-300 z-10 flex flex-col gap-4 overflow-y-auto
-        md:top-16 md:left-0 md:bottom-36 md:w-64 md:border-r md:border-t-0 md:h-auto
-        bottom-0 left-0 w-full h-[35vh] border-t border-gray-200 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]
-        p-4
+    <!-- SIDEBAR / MOBILE BOTTOM SHEET -->
+    <div id="main-sidebar" class="ui-panel absolute transition-all duration-300 z-10 flex flex-col gap-3 md:gap-4 overflow-y-auto overflow-x-hidden
+        md:top-16 md:left-0 md:bottom-36 md:w-64 md:border-r md:border-t-0 md:h-auto md:rounded-none md:shadow-none
+        bottom-0 left-0 w-full h-auto bg-white/95 backdrop-blur rounded-t-2xl shadow-[0_-5px_20px_rgba(0,0,0,0.1)]
+        p-3 md:p-4
     ">
-        <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex-shrink-0">
-            <div class="flex justify-between items-end mb-2"><label class="text-[10px] font-bold text-gray-500 uppercase">Largura Assento</label><span id="size-preview" class="text-xs font-mono text-stoffus-primary bg-orange-50 px-1 rounded">-- cm</span></div>
-            <div class="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar" id="size-selector-container"></div>
+        <!-- Size Selector -->
+        <div class="bg-white p-2 md:p-3 rounded-xl border border-gray-200 shadow-sm flex-shrink-0">
+            <div class="flex justify-between items-end mb-2">
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Largura Assento</label>
+                <span id="size-preview" class="text-xs font-mono text-stoffus-primary bg-orange-50 px-1 rounded">-- cm</span>
+            </div>
+            <!-- On mobile: flex row scrollable. On desktop: wraps properly if needed via grid in JS or keeps flex -->
+            <div class="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar gap-1" id="size-selector-container"></div>
         </div>
-        <div><label class="block text-[10px] font-bold text-gray-500 uppercase mb-2 pl-1">Módulos Disponíveis</label><div class="grid grid-cols-3 md:grid-cols-2 gap-2 pb-2" id="module-list"></div></div>
+
+        <!-- Modules List -->
+        <div class="flex-shrink-0">
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2 pl-1 hidden md:block">Módulos Disponíveis</label>
+            <!-- 
+               Mobile: Horizontal Scroll Strip (Flex Row)
+               Desktop: Grid (Grid Cols) 
+            -->
+            <div id="module-list" class="
+                flex flex-row overflow-x-auto gap-3 pb-2 snap-x px-1
+                md:grid md:grid-cols-2 md:gap-2 md:overflow-visible md:pb-0 md:px-0
+            "></div>
+        </div>
         
-        <div class="mt-auto flex flex-col gap-2 sticky bottom-0 bg-white/95 backdrop-blur pt-2 border-t border-gray-100 md:static md:bg-transparent md:border-t-0 md:pt-0 -mx-4 px-4 -mb-4 pb-4">
-             <div class="flex justify-between items-center px-2">
-                 <span id="lbl-total" class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
-                 <span id="sidebar-points" class="font-bold text-lg text-stoffus-primary">0</span>
+        <!-- Footer / Action Area -->
+        <div class="mt-auto flex flex-row items-center gap-3 bg-white/50 pt-2 border-t border-gray-100 md:flex-col md:bg-transparent md:border-t-0 md:pt-0">
+             
+             <!-- Price & Dimensions (Left on Mobile) -->
+             <div class="flex flex-col items-start md:w-full md:items-stretch">
+                 <div class="flex flex-col md:flex-row md:justify-between md:items-center px-1">
+                     <span id="lbl-total" class="text-[9px] font-bold text-gray-400 uppercase leading-none mb-1 md:mb-0">Total</span>
+                     <span id="sidebar-points" class="font-bold text-lg md:text-lg text-stoffus-primary leading-none">0</span>
+                 </div>
+                 <div id="total-width-display" class="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded mt-1 md:mt-2 md:p-3 md:bg-gray-800 md:text-white md:text-center md:text-sm">0 cm</div>
              </div>
-            <div id="total-width-display" class="bg-gray-800 text-white p-3 rounded-lg text-center font-bold text-sm">0 cm</div>
-            <button onclick="openOrderSummary()" class="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-lg font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 group"><i class="fas fa-file-pdf group-hover:scale-110 transition-transform"></i> Encomendar</button>
+
+             <!-- Order Button (Right/Big on Mobile) -->
+             <button onclick="openOrderSummary()" class="flex-1 bg-gray-900 hover:bg-gray-800 text-white py-3 px-4 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 group h-12 md:w-full md:h-auto md:bg-emerald-600 md:hover:bg-emerald-700">
+                 <i class="fas fa-file-pdf md:group-hover:scale-110 transition-transform"></i> 
+                 <span>Encomendar</span>
+             </button>
         </div>
     </div>
 
@@ -1209,7 +1262,8 @@
                 if (modelData.modules && !modelData.modules.includes(def.id)) return; 
                 
                 const btn = document.createElement('button'); 
-                btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-20"; 
+                // Adjusted Classes for Mobile Horizontal Scroll vs Desktop Grid
+                btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16 md:h-20 min-w-[80px] md:min-w-0 snap-start"; 
                 btn.onclick = () => addModule(def.id); 
                 
                 // Logic to choose between Icon or Image
@@ -1224,7 +1278,7 @@
                      }
                 }
 
-                // 2. [NOVO] Lógica específica para modelos RELAX
+                // 2. Lógica específica para modelos RELAX
                 if (modelData.type === 'relax') {
                     if (def.id === 'seat_no_arm') {
                         currentImgUrl = `${GITHUB_REPO_URL}assets/icons/seatrelax.svg`;
@@ -1249,13 +1303,13 @@
                     const flipClass = needsFlip ? 'scale-x-[-1]' : '';
                     
                     // Use Image with increased height and object-contain
-                    visualContent = `<img src="${currentImgUrl}" class="h-8 w-auto object-contain mb-1 opacity-70 group-hover:opacity-100 transition-all ${flipClass}" alt="${def.name}">`;
+                    visualContent = `<img src="${currentImgUrl}" class="h-6 md:h-8 w-auto object-contain mb-1 opacity-70 group-hover:opacity-100 transition-all ${flipClass}" alt="${def.name}">`;
                 } else {
                     // Fallback to FontAwesome
-                    visualContent = `<i class="fas ${def.icon} text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i>`;
+                    visualContent = `<i class="fas ${def.icon} text-base md:text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i>`;
                 }
 
-                btn.innerHTML = `${visualContent}<span class="text-[9px] font-bold text-gray-600 leading-tight text-center">${def.name}</span>`; 
+                btn.innerHTML = `${visualContent}<span class="text-[8px] md:text-[9px] font-bold text-gray-600 leading-tight text-center line-clamp-2">${def.name}</span>`; 
                 container.appendChild(btn); 
             }); 
         }
@@ -1347,7 +1401,7 @@
         
         function initModelSelector() { updateModelButtonUI(); const container = document.getElementById('model-grid-container'); if(!container) return; container.innerHTML = ''; Object.keys(DB_MODELS).forEach(key => { const model = DB_MODELS[key]; const card = document.createElement('div'); const isActive = key === CURRENT_MODEL_ID; let badgeClass = 'badge-fixed'; let typeLabel = 'Fixo'; if (model.type === 'relax') { badgeClass = 'badge-relax'; typeLabel = 'Relax'; } if (model.type === 'slide') { badgeClass = 'badge-slide'; typeLabel = 'Deslizante'; } card.className = `model-card ${isActive ? 'active' : ''}`; card.onclick = () => { changeModel(key); uiSet('model-modal', 'display', 'none'); }; const cleanName = model.name.split('(')[0].trim(); const keyLower = key.toLowerCase(); const imgUrlWebP = `${GITHUB_REPO_URL}assets/icons/${keyLower}.webp`; const imgUrlPng = `${GITHUB_REPO_URL}assets/icons/${keyLower}.png`; const placeholder = `https://placehold.co/150x100?text=${cleanName}`; card.innerHTML = `<img src="${imgUrlWebP}" class="model-card-img" alt="${cleanName}" onerror="this.onerror=null; this.src='${imgUrlPng}'; this.onerror=function(){this.src='${placeholder}'; this.style.objectFit='cover';};"><div class="model-card-name">${cleanName}</div><span class="model-badge ${badgeClass}">${typeLabel}</span>`; container.appendChild(card); }); }
         function updateModelButtonUI() { const nameEl = document.getElementById('current-model-name'); if(!nameEl) return; const modelName = DB_MODELS[CURRENT_MODEL_ID].name.split('(')[0].trim(); nameEl.textContent = modelName; const cards = document.querySelectorAll('.model-card'); cards.forEach(c => { if(c.innerText.includes(modelName)) c.classList.add('active'); else c.classList.remove('active'); }); }
-        function initSizeSelector() { const container = document.getElementById('size-selector-container'); if(!container) return; container.innerHTML = ''; const modelSizes = DB_MODELS[CURRENT_MODEL_ID].sizes; Object.keys(modelSizes).forEach(size => { const btn = document.createElement('button'); btn.className = `flex-1 py-1.5 text-xs font-bold rounded-md transition ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`; btn.innerText = size; btn.onclick = () => changeSize(size); container.appendChild(btn); }); updateSizePreview(); }
+        function initSizeSelector() { const container = document.getElementById('size-selector-container'); if(!container) return; container.innerHTML = ''; const modelSizes = DB_MODELS[CURRENT_MODEL_ID].sizes; Object.keys(modelSizes).forEach(size => { const btn = document.createElement('button'); btn.className = `flex-1 py-1.5 px-3 text-xs font-bold rounded-md transition whitespace-nowrap min-w-[40px] snap-start ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`; btn.innerText = size; btn.onclick = () => changeSize(size); container.appendChild(btn); }); updateSizePreview(); }
         window.changeModel = function(modelId) { 
             if (!DB_MODELS[modelId]) return; 
             pendingConfiguration = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax })); 
