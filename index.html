@@ -464,7 +464,7 @@
                 folder: 'dayma', 
                 sizes: { S: 62, M: 72, L: 82, XL: 92 }, 
                 meridienSizes: { S: 112, M: 122, L: 132, XL: 142 }, 
-                chaiseSizes: { S: 86, M: 92, L: 102, XL: 112 },
+                chaiseSizes: { S: 62, M: 72, L: 82, XL: 92 },
                 armWidth: 24, 
                 depth: 100, 
                 chaiseDepth: 165, 
@@ -477,7 +477,7 @@
                 folder: 'enzo', 
                 sizes: { S: 62, M: 72, L: 82, XL: 92 }, 
                 meridienSizes: { S: 112, M: 122, L: 132, XL: 142 }, 
-                chaiseSizes: { S: 92, M: 102, L: 112, XL: 122 },
+                chaiseSizes: { S: 62, M: 72, L: 82, XL: 92 },
                 armWidth: 30, 
                 depth: 100, 
                 chaiseDepth: 165, 
@@ -490,7 +490,7 @@
                 folder: 'fiori', 
                 sizes: { S: 62, M: 68, L: 78, XL: 88 }, 
                 meridienSizes: { S: 114, M: 120, L: 130, XL: 140 }, 
-                chaiseSizes: { S: 87, M: 93, L: 103, XL: 113 },
+                chaiseSizes: { S: 62, M: 68, L: 78, XL: 88 },
                 armWidth: 25, 
                 depth: 100, 
                 chaiseDepth: 165, 
@@ -501,14 +501,14 @@
                 name: 'Fienza',
                 type: 'relax',
                 folder: 'fienza',
-                sizes: { S: 62, M: 72, L: 82, XL: 92 },
-                armWidth: 20,
-                depth: 105,
+                sizes: { S: 54, M: 64, L: 74, XL: 84 },
+                armWidth: 28,
+                depth: 97,
                 chaiseDepth: 165,
-                cornerSize: 113,
+                cornerSize: 112,
                 modules: ['seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner']
             },
-            'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
+            'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 60, M: 67, L: 75, XL: 87, XXL: 97 }, armWidth: 17, depth: 115, chaiseDepth: 162, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
             'magic': { name: 'Magic (Deslizante)', type: 'slide', folder: 'magic', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
             'bruma': { 
                 name: 'Bruma (Fixo)', 
@@ -993,7 +993,7 @@
             if (def.type === 'meridien') depth = modelData.chaiseDepth; 
             
             // Exceções para Meridiens com profundidade curta (igual ao assento)
-            if ((CURRENT_MODEL_ID === 'athena' || CURRENT_MODEL_ID === 'brittany') && def.type === 'meridien') {
+            if ((CURRENT_MODEL_ID === 'athena' || CURRENT_MODEL_ID === 'brittany' || CURRENT_MODEL_ID === 'fiori') && def.type === 'meridien') {
                 depth = modelData.depth;
             }
             
