@@ -905,15 +905,46 @@
                     mesh.position.x = cornerPos.x + (cornerPos.depth/2) - (mod.depth/2);
                 }
             });
-            let totalW = 0;
-            if (addedModules.length > 0) { 
-                const first = addedModules[0]; let lastInLine1 = addedModules.length - 1; 
-                if (cornerIdx !== -1) lastInLine1 = cornerIdx; 
-                const startX = first.mesh.position.x - first.width/2; const endX = addedModules[lastInLine1].mesh.position.x + addedModules[lastInLine1].width/2; 
-                totalW = endX - startX; 
+            
+            // Cálculo de Dimensões Totais (Comprimento x Profundidade)
+            let finalW = 0;
+            let finalD = 0;
+
+            if (addedModules.length > 0) {
+                let minX = Infinity, maxX = -Infinity;
+                let minZ = Infinity, maxZ = -Infinity;
+
+                addedModules.forEach(mod => {
+                    const pos = mod.mesh.position;
+                    let halfW_world, halfD_world;
+
+                    if (mod.isCornerLine) {
+                        // Se rodado 90 graus: Largura visual é a Profundidade do módulo, e vice-versa
+                        halfW_world = mod.depth / 2;
+                        halfD_world = mod.width / 2;
+                    } else {
+                        // Orientação normal
+                        halfW_world = mod.width / 2;
+                        halfD_world = mod.depth / 2;
+                    }
+
+                    const modMinX = pos.x - halfW_world;
+                    const modMaxX = pos.x + halfW_world;
+                    const modMinZ = pos.z - halfD_world;
+                    const modMaxZ = pos.z + halfD_world;
+
+                    if (modMinX < minX) minX = modMinX;
+                    if (modMaxX > maxX) maxX = modMaxX;
+                    if (modMinZ < minZ) minZ = modMinZ;
+                    if (modMaxZ > maxZ) maxZ = modMaxZ;
+                });
+
+                finalW = Math.round(maxX - minX);
+                finalD = Math.round(maxZ - minZ);
             }
+
             const widthDisplay = document.getElementById('total-width-display');
-            if (widthDisplay) widthDisplay.innerText = Math.round(totalW) + " cm";
+            if (widthDisplay) widthDisplay.innerText = `${finalW}cm x ${finalD}cm +/-`;
             
             updateDimensionLabels();
             updatePriceUI(); 
@@ -1288,6 +1319,19 @@
                         currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meiplerelax.svg`;
                     } else if (def.id === 'meridien_l' || def.id === 'meridien_r') {
                         currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meridienrelax.svg`;
+                    }
+                }
+
+                // 3. [NOVO] Lógica específica para modelos SLIDE (Infinity, Magic)
+                if (modelData.type === 'slide') {
+                    if (def.id === 'seat_arm_l' || def.id === 'seat_arm_r') {
+                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/armslide.svg`;
+                    } else if (def.id === '2seats_2arms') {
+                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/2arm2slide.svg`;
+                    } else if (def.id === '2seats_arm_l' || def.id === '2seats_arm_r') {
+                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/arm2slide.svg`;
+                    } else if (def.id === 'meiple') {
+                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meipleslide.svg`;
                     }
                 }
 
