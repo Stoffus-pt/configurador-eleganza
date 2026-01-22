@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Configurador 3D Eleganza - V4.92 (Mobile UI Redesign)</title>
+    <title>Configurador 3D Eleganza - V4.93 (Athena Chaise Update)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -426,7 +426,7 @@
                 folder: 'athena', 
                 sizes: { S: 62, M: 72, L: 82, XL: 92 }, 
                 meridienSizes: { S: 112, M: 122, L: 132, XL: 142 }, 
-                chaiseSizes: { S: 60, M: 70, L: 80, XL: 90 },
+                chaiseSizes: { S: 62, M: 72, L: 82, XL: 92 },
                 armWidth: 20, 
                 depth: 100, 
                 chaiseDepth: 165, 
@@ -890,6 +890,7 @@
             if (CURRENT_MODEL_ID === 'brittany') gapCorrection = -4; 
             if (CURRENT_MODEL_ID === 'fiori') gapCorrection = -2; 
 
+            // 1. Posicionamento Visual (Mantém-se para o desenho 3D)
             addedModules.forEach((mod, i) => {
                 const mesh = mod.mesh;
                 if(cornerIdx === -1 || i <= cornerIdx) {
@@ -906,45 +907,42 @@
                 }
             });
             
-            // Cálculo de Dimensões Totais (Comprimento x Profundidade)
-            let finalW = 0;
-            let finalD = 0;
+            // 2. Cálculo Lógico de Medidas (Baseado estritamente na DB)
+            let logicalW = 0;
+            let logicalD = 0;
 
             if (addedModules.length > 0) {
-                let minX = Infinity, maxX = -Infinity;
-                let minZ = Infinity, maxZ = -Infinity;
-
-                addedModules.forEach(mod => {
-                    const pos = mod.mesh.position;
-                    let halfW_world, halfD_world;
-
-                    if (mod.isCornerLine) {
-                        // Se rodado 90 graus: Largura visual é a Profundidade do módulo, e vice-versa
-                        halfW_world = mod.depth / 2;
-                        halfD_world = mod.width / 2;
-                    } else {
-                        // Orientação normal
-                        halfW_world = mod.width / 2;
-                        halfD_world = mod.depth / 2;
+                const hasCorner = cornerIdx !== -1;
+                
+                // --- Calcular Largura (Linha Principal) ---
+                // Se tem canto, soma até ao canto (inclusive). Se não, soma tudo.
+                const limitIndex = hasCorner ? cornerIdx : addedModules.length - 1;
+                
+                for(let i=0; i <= limitIndex; i++) {
+                    logicalW += addedModules[i].width;
+                }
+                
+                // --- Calcular Profundidade ---
+                if (hasCorner) {
+                    // Profundidade Base é a profundidade do módulo de canto
+                    logicalD = addedModules[cornerIdx].depth;
+                    
+                    // Soma a largura dos módulos da segunda linha (que rodam e formam comprimento)
+                    for(let i = cornerIdx + 1; i < addedModules.length; i++) {
+                        logicalD += addedModules[i].width;
                     }
-
-                    const modMinX = pos.x - halfW_world;
-                    const modMaxX = pos.x + halfW_world;
-                    const modMinZ = pos.z - halfD_world;
-                    const modMaxZ = pos.z + halfD_world;
-
-                    if (modMinX < minX) minX = modMinX;
-                    if (modMaxX > maxX) maxX = modMaxX;
-                    if (modMinZ < minZ) minZ = modMinZ;
-                    if (modMaxZ > maxZ) maxZ = modMaxZ;
-                });
-
-                finalW = Math.round(maxX - minX);
-                finalD = Math.round(maxZ - minZ);
+                } else {
+                    // Se é linear, a profundidade total é a maior profundidade encontrada (ex: chaise)
+                    let maxD = 0;
+                    addedModules.forEach(m => {
+                        if(m.depth > maxD) maxD = m.depth;
+                    });
+                    logicalD = maxD;
+                }
             }
 
             const widthDisplay = document.getElementById('total-width-display');
-            if (widthDisplay) widthDisplay.innerText = `${finalW}cm x ${finalD}cm +/-`;
+            if (widthDisplay) widthDisplay.innerText = `${Math.round(logicalW)}cm x ${Math.round(logicalD)}cm +/-`;
             
             updateDimensionLabels();
             updatePriceUI(); 
@@ -999,6 +997,11 @@
             let totalWidth = width + (def.hasArm ? modelData.armWidth : 0);
             if (def.hasArm === 'both') totalWidth = width + (modelData.armWidth * 2);
             
+            // CORREÇÃO: Meridien usa a largura definida como total, sem somar braço
+            if (def.type === 'meridien') {
+                totalWidth = width;
+            }
+            
             const asset = modelLibrary[def.fileKey];
             if (asset) {
                 const mesh = asset.clone();
@@ -1008,6 +1011,11 @@
                     
                     let targetTotalW = width + (def.hasArm ? modelData.armWidth : 0);
                     if (def.hasArm === 'both') targetTotalW = width + (modelData.armWidth * 2);
+
+                    // Aplica a mesma correção para o cálculo da escala
+                    if (def.type === 'meridien') {
+                        targetTotalW = width;
+                    }
 
                     let baseTotalW = baseRefSize + (def.hasArm ? baseArmSize : 0);
                     if (def.hasArm === 'both') baseTotalW = baseRefSize + (baseArmSize * 2);
