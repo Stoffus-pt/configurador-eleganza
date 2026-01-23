@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Configurador 3D Eleganza - V4.94 (Point Input Restored)</title>
+    <title>Configurador 3D Eleganza - V4.95 (Bruma Rules Update)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -259,7 +259,7 @@
                 <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-10 md:w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
             </div>
 
-            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.94</span></div>
+            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.95</span></div>
         </div>
         
         <!-- HEADER BUTTONS (Mobile: Icons only to fit screen without scroll) -->
@@ -508,19 +508,22 @@
                 cornerSize: 112,
                 modules: ['seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner']
             },
-            'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 60, M: 67, L: 75, XL: 87, XXL: 97 }, armWidth: 17, depth: 115, chaiseDepth: 162, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
-            'magic': { name: 'Magic (Deslizante)', type: 'slide', folder: 'magic', sizes: { S: 70, M: 80, L: 90, XL: 100, XXL: 110 }, armWidth: 25, depth: 115, chaiseDepth: 180, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
+            'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 60, M: 67, L: 75, XL: 87, XXL: 97 }, armWidth: 17, depth: 110, chaiseDepth: 162, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
+            'magic': { name: 'Magic (Deslizante)', type: 'slide', folder: 'magic', sizes: { S: 60, M: 67, L: 75, XL: 87, XXL: 97 }, armWidth: 25, depth: 102, chaiseDepth: 154, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
             'bruma': { 
                 name: 'Bruma (Fixo)', 
                 type: 'fixed', 
                 folder: 'bruma', 
-                sizes: { L: 82, XL: 92 }, 
-                pouffSize: 105,
-                triangleSize: 113,
-                armWidth: 20, 
-                depth: 105, 
-                chaiseDepth: 165, 
-                cornerSize: 113, 
+                sizes: { L: 83, XL: 111 }, 
+                twoSeatSizes: { L: 166, XL: 185 },
+                chaiseSizes: { L: 83, XL: 92 }, 
+                pouffSize: 112,
+                triangleSize: 110,
+                triangleDepth: 108,
+                armWidth: 23, 
+                depth: 112, 
+                chaiseDepth: 170, 
+                cornerSize: 120, 
                 modules: ['seat_arm_l', 'seat_arm_r', '2seats_no_arm', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'triangle', 'pouff'] 
             },
             'kindia': { 
@@ -528,27 +531,52 @@
                 type: 'relax', 
                 folder: 'kindia', 
                 sizes: { S: 58, M: 62, L: 78, XL: 90 }, 
-                oneSeatArmSizes: { S: 82, M: 86, L: 102, XL: 114 },
+                oneSeatArmSizes: { S: 58, M: 62, L: 78, XL: 90 }, 
                 twoSeatSizes: { S: 132, M: 140, L: 172, XL: 196 },
-                chaiseSizes: { S: 82, M: 86, L: 102, XL: 114 },
+                chaiseSizes: { S: 58, M: 62, L: 78, XL: 90 }, 
                 armWidth: 16, 
                 depth: 95, 
                 chaiseDepth: 175, 
                 cornerSize: 0, 
                 modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'meiple'] 
             },
-            'sting': { name: 'Sting', type: 'relax', folder: 'sting', sizes: { S: 62, M: 72, L: 82, XL: 92 }, armWidth: 20, depth: 105, chaiseDepth: 165, cornerSize: 113, modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] },
+            'sting': { 
+                name: 'Sting', 
+                type: 'relax', 
+                folder: 'sting', 
+                sizes: { S: 62, M: 68, L: 78, XL: 88 }, 
+                meridienSizes: { S: 114, M: 120, L: 130, XL: 140 },
+                armWidth: 33, 
+                depth: 100, 
+                chaiseDepth: 165, 
+                cornerSize: 108, 
+                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] 
+            },
             'kaori': { 
                 name: 'Kaori', 
                 type: 'fixed', 
                 folder: 'kaori', 
-                sizes: { S: 62, M: 72, L: 82, XL: 92 }, 
-                chaiseSizes: { S: 60, M: 70, L: 80, XL: 90 },
-                armWidth: 20, 
-                depth: 105, 
+                sizes: { S: 70, M: 80, L: 90, XL: 100 }, 
+                chaiseSizes: { S: 70, M: 80, L: 90, XL: 100 },
+                armWidth: 12, 
+                depth: 100, 
                 chaiseDepth: 165, 
-                cornerSize: 113, 
+                cornerSize: 112, 
                 modules: ['meiple', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner'] 
+            },
+            'polestar': { 
+                name: 'Polestar', 
+                type: 'fixed', 
+                folder: 'polestar', 
+                sizes: { L: 83 }, 
+                twoSeatSizes: { L: 166 }, 
+                chaiseSizes: { L: 83 }, 
+                pouffSize: 112,
+                armWidth: 23, 
+                depth: 112, 
+                chaiseDepth: 170, 
+                cornerSize: 120, 
+                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'pouff', 'meiple', 'maxxi_l', 'maxxi_r'] 
             }
         };
 
@@ -567,7 +595,9 @@
             { id: 'meridien_r', name: 'Meridien Dir.', icon: 'fa-layer-group', imgUrl: `${GITHUB_REPO_URL}assets/icons/meridien.svg`, type: 'meridien', fileKey: 'meridien', hasArm: 'right' },
             { id: 'meiple', name: '1 Lug. 2 Braços', icon: 'fa-chair', imgUrl: `${GITHUB_REPO_URL}assets/icons/meiplerelax.svg`, type: 'standalone', fileKey: 'meiple', hasArm: true },
             { id: 'pouff', name: 'Pouff Quadrado', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/pouff.svg`, type: 'standalone', fileKey: 'pouff', hasArm: false, fixed: true },
-            { id: 'triangle', name: 'Triângulo', icon: 'fa-play', imgUrl: `${GITHUB_REPO_URL}assets/icons/triangle.svg`, type: 'corner', fileKey: 'triangle', hasArm: false, fixed: true }
+            { id: 'triangle', name: 'Triângulo', icon: 'fa-play', imgUrl: `${GITHUB_REPO_URL}assets/icons/triangle.svg`, type: 'corner', fileKey: 'triangle', hasArm: false, fixed: true },
+            { id: 'maxxi_l', name: 'Maxxi Esq.', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'maxxi', hasArm: 'left' },
+            { id: 'maxxi_r', name: 'Maxxi Dir.', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'maxxi', hasArm: 'right' }
         ];
 
         const DB_COLLECTIONS = [ 
@@ -973,6 +1003,9 @@
                 else width = modelData.cornerSize;
             } else if (def.type === 'meridien' && modelData.meridienSizes) {
                 width = modelData.meridienSizes[effectiveSizeKey] || 100;
+            } else if (def.id.startsWith('maxxi')) {
+                // Largura do Maxxi (Quadrado)
+                width = modelData.maxxiSize || 170; 
             } else if (def.type === 'chaise' && modelData.chaiseSizes) {
                 width = modelData.chaiseSizes[effectiveSizeKey] || 80;
             } else if ((def.id === 'seat_arm_l' || def.id === 'seat_arm_r') && modelData.oneSeatArmSizes) {
@@ -989,7 +1022,7 @@
             
             // Lógica de Profundidade (Depth)
             let depth = modelData.depth; 
-            if (def.type === 'chaise') depth = modelData.chaiseDepth; 
+            if (def.type === 'chaise' || def.id.startsWith('maxxi')) depth = modelData.chaiseDepth; 
             if (def.type === 'meridien') depth = modelData.chaiseDepth; 
             
             // Exceções para Meridiens com profundidade curta (igual ao assento)
@@ -998,6 +1031,11 @@
             }
             
             if (def.type === 'corner') depth = modelData.cornerSize;
+            
+            // Ajuste para profundidade do triângulo, se definida
+            if (def.id === 'triangle' && modelData.triangleDepth) {
+                depth = modelData.triangleDepth;
+            }
             
             let totalWidth = width + (def.hasArm ? modelData.armWidth : 0);
             if (def.hasArm === 'both') totalWidth = width + (modelData.armWidth * 2);
@@ -1045,6 +1083,11 @@
                     if (CURRENT_MODEL_ID === 'athena') { flip = def.hasArm === 'right'; } 
                     else { flip = def.hasArm === 'left'; } 
                 }
+                // Maxxi usa a mesma lógica de flip da Chaise (standard)
+                if (def.id.startsWith('maxxi')) {
+                    flip = def.hasArm === 'left';
+                }
+
                 if (CURRENT_MODEL_ID === 'kindia' && def.id.includes('seat_arm')) { flip = !flip; }
                 
                 if (flip) { mesh.scale.x *= -1; mesh.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); }
@@ -1054,8 +1097,12 @@
                 
                 const isArmModule = def.id.includes('seat_arm'); const isDoubleArmModule = def.id.includes('2seats_arm'); const isChaise = def.type === 'chaise'; const isMeridien = def.type === 'meridien'; const isBartini = CURRENT_MODEL_ID === 'bartini'; const isFiori = CURRENT_MODEL_ID === 'fiori'; const isKindia = CURRENT_MODEL_ID === 'kindia'; const isSting = CURRENT_MODEL_ID === 'sting'; 
                 const isInfinity = CURRENT_MODEL_ID === 'infinity'; const isMagic = CURRENT_MODEL_ID === 'magic'; const isBruma = CURRENT_MODEL_ID === 'bruma'; const isKaori = CURRENT_MODEL_ID === 'kaori'; const isFienza = CURRENT_MODEL_ID === 'fienza';
+                const isPolestar = CURRENT_MODEL_ID === 'polestar';
                 
-                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma && !isKaori && !isFienza) { mesh.position.y += 12; }
+                // Adicionar Maxxi à lista de módulos que ficam no chão (mesma lógica da Chaise)
+                const isMaxxi = def.id.startsWith('maxxi');
+
+                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma && !isKaori && !isFienza && !isPolestar && !isMaxxi) { mesh.position.y += 12; }
                 
                 if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
                 if (CURRENT_MODEL_ID === 'athena' && def.id === 'seat_no_arm') { mesh.position.z += 4; }
@@ -1080,6 +1127,13 @@
 
         function addModule(moduleId, silent = false, startRelax = false) {
             const modelData = DB_MODELS[CURRENT_MODEL_ID];
+            
+            // Regra Especial: Bruma não tem 2seats_2arms no tamanho XL
+            if (CURRENT_MODEL_ID === 'bruma' && CURRENT_SIZE_KEY === 'XL' && moduleId === '2seats_2arms') {
+                if (!silent) showFeedback("Este módulo não está disponível no tamanho XL.", "error");
+                return;
+            }
+
             if (modelData.modules && !modelData.modules.includes(moduleId)) { 
                 if (!silent) console.warn(`Módulo ${moduleId} ignorado`); 
                 return; 
@@ -1353,7 +1407,7 @@
                     let needsFlip = def.hasArm === 'right' || def.id.endsWith('_r');
                     
                     // Lógica para corrigir inversão da Chaise e Meridien
-                    if (def.type === 'chaise' || def.type === 'meridien') {
+                    if (def.type === 'chaise' || def.type === 'meridien' || def.id.startsWith('maxxi')) {
                         needsFlip = !needsFlip;
                     }
 
