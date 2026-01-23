@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Configurador 3D Eleganza - V4.96 (Fix Syntax Error)</title>
+    <title>Configurador 3D Eleganza - V4.98 (Fix Rinaldi Scale)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -259,7 +259,7 @@
                 <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-10 md:w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
             </div>
 
-            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.96</span></div>
+            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.98</span></div>
         </div>
         
         <!-- HEADER BUTTONS (Mobile: Icons only to fit screen without scroll) -->
@@ -1126,11 +1126,12 @@
                 const isArmModule = def.id.includes('seat_arm'); const isDoubleArmModule = def.id.includes('2seats_arm'); const isChaise = def.type === 'chaise'; const isMeridien = def.type === 'meridien'; const isBartini = CURRENT_MODEL_ID === 'bartini'; const isFiori = CURRENT_MODEL_ID === 'fiori'; const isKindia = CURRENT_MODEL_ID === 'kindia'; const isSting = CURRENT_MODEL_ID === 'sting'; 
                 const isInfinity = CURRENT_MODEL_ID === 'infinity'; const isMagic = CURRENT_MODEL_ID === 'magic'; const isBruma = CURRENT_MODEL_ID === 'bruma'; const isKaori = CURRENT_MODEL_ID === 'kaori'; const isFienza = CURRENT_MODEL_ID === 'fienza';
                 const isPolestar = CURRENT_MODEL_ID === 'polestar';
+                const isRinaldi = CURRENT_MODEL_ID === 'rinaldi';
                 
                 // Adicionar Maxxi à lista de módulos que ficam no chão (mesma lógica da Chaise)
                 const isMaxxi = def.id.startsWith('maxxi');
 
-                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma && !isKaori && !isFienza && !isPolestar && !isMaxxi) { mesh.position.y += 12; }
+                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma && !isKaori && !isFienza && !isPolestar && !isRinaldi && !isMaxxi) { mesh.position.y += 12; }
                 
                 if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
                 if (CURRENT_MODEL_ID === 'athena' && def.id === 'seat_no_arm') { mesh.position.z += 4; }
@@ -1209,6 +1210,30 @@
             return false;
         }
 
+        // New helper to find backrest parts for Rinaldi
+        function findBackParts(mod) {
+            if (mod.backParts && mod.backParts.length > 0) return true;
+            const foundNodes = [];
+            mod.mesh.traverse(node => {
+                if (node === mod.mesh) return;
+                const cleanName = node.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+                // CORREÇÃO: Alterado de 'costas' para 'costa'
+                if (cleanName.includes('costa') || cleanName.includes('back')) {
+                    let parentAlreadyFound = false; let curr = node.parent; while(curr && curr !== mod.mesh) { if (foundNodes.includes(curr)) { parentAlreadyFound = true; break; } curr = curr.parent; }
+                    if (!parentAlreadyFound) { foundNodes.push(node); }
+                }
+            });
+            if (foundNodes.length > 0) { 
+                mod.backParts = foundNodes; 
+                mod.backParts.forEach(p => { 
+                    if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; 
+                    if (p.userData.origX === undefined) p.userData.origX = p.position.x; 
+                }); 
+                return true; 
+            }
+            return false;
+        }
+
         function animate() {
             if(!scene || !camera || !renderer) return;
             requestAnimationFrame(animate); controls.update();
@@ -1226,7 +1251,28 @@
 
                 const target = mod.hasRelax ? 1 : 0; mod.relaxFactor += (target - mod.relaxFactor) * 0.08;
                 if (Math.abs(target - mod.relaxFactor) < 0.001 && (target === 0 || target === 1)) {}
-                if (modelType === 'relax') {
+                
+                if (CURRENT_MODEL_ID === 'rinaldi') {
+                    if (findBackParts(mod)) {
+                        // FIX: Detect scale to prevent "flying" parts
+                        let scale = 1;
+                        if(mod.mesh.children.length > 0) scale = mod.mesh.children[0].scale.x;
+                        
+                        const dist = 27 / scale;
+                        const distCorner = 19 / scale;
+
+                        mod.backParts.forEach(part => {
+                            if (mod.data.id === 'rinaldi_corner') {
+                                // Corner moves diagonally
+                                part.position.x = part.userData.origX - (mod.relaxFactor * distCorner); 
+                                part.position.z = part.userData.origZ + (mod.relaxFactor * distCorner);
+                            } else {
+                                // Standard moves forward
+                                part.position.z = part.userData.origZ + (mod.relaxFactor * dist);
+                            }
+                        });
+                    }
+                } else if (modelType === 'relax') {
                     const foot = mod.mesh.getObjectByName('footrest_anim') || mod.mesh.getObjectByName('recliner'); const back = mod.mesh.getObjectByName('back_anim') || mod.mesh.getObjectByName('backrest');
                     if (foot) { foot.rotation.x = -Math.PI / 2.5 * mod.relaxFactor; foot.position.y = mod.relaxFactor * 30 + 12; foot.position.z = mod.relaxFactor * 40; }
                     if (back) back.rotation.x = -0.2 * mod.relaxFactor;
@@ -1252,10 +1298,33 @@
                     const screenX = (vector.x * .5 + .5) * renderer.domElement.clientWidth; const screenY = (vector.y * -.5 + .5) * renderer.domElement.clientHeight;
                     hoverMenu.style.left = `${screenX}px`; hoverMenu.style.top = `${screenY}px`; hoverMenu.classList.add('visible');
                     const btnRelax = document.getElementById('btn-relax'); const btnRemove = document.getElementById('btn-remove');
-                    if (DB_MODELS[CURRENT_MODEL_ID].type === 'fixed') btnRelax.style.display = 'none';
+                    if (DB_MODELS[CURRENT_MODEL_ID].type === 'fixed' && CURRENT_MODEL_ID !== 'rinaldi') btnRelax.style.display = 'none';
                     else { 
-                        btnRelax.style.display = 'flex'; const isSlide = DB_MODELS[CURRENT_MODEL_ID].type === 'slide'; document.getElementById('relax-text').innerText = isSlide ? 'Deslizar' : 'Relax'; 
-                        btnRelax.onclick = () => { if (isSlide) { const found = findSlideParts(mod); if (!found) { showFeedback("ERRO: Peça 'assento' não encontrada.", "error"); return; } } mod.hasRelax = !mod.hasRelax; if (isSlide) showFeedback(mod.hasRelax ? "A deslizar..." : "A recolher...", "success"); updatePriceUI(); }; 
+                        btnRelax.style.display = 'flex'; 
+                        
+                        // Custom Text for Rinaldi
+                        if (CURRENT_MODEL_ID === 'rinaldi') {
+                            document.getElementById('relax-text').innerText = 'Avançar Costas';
+                            btnRelax.innerHTML = `<i class="fas fa-arrows-alt-h"></i> <span id="relax-text">Avançar Costas</span>`;
+                        } else {
+                            const isSlide = DB_MODELS[CURRENT_MODEL_ID].type === 'slide'; 
+                            document.getElementById('relax-text').innerText = isSlide ? 'Deslizar' : 'Relax';
+                            btnRelax.innerHTML = `<i class="fas fa-couch"></i> <span id="relax-text">${isSlide ? 'Deslizar' : 'Relax'}</span>`;
+                        }
+
+                        btnRelax.onclick = () => { 
+                            if (DB_MODELS[CURRENT_MODEL_ID].type === 'slide') { const found = findSlideParts(mod); if (!found) { showFeedback("ERRO: Peça 'assento' não encontrada.", "error"); return; } } 
+                            // Check parts for Rinaldi
+                            if (CURRENT_MODEL_ID === 'rinaldi') {
+                                const foundBacks = findBackParts(mod);
+                                if (!foundBacks) { showFeedback("ERRO: Costas não encontradas.", "error"); return; }
+                            }
+
+                            mod.hasRelax = !mod.hasRelax; 
+                            if (CURRENT_MODEL_ID === 'rinaldi') showFeedback(mod.hasRelax ? "Costas avançadas" : "Costas recuadas", "success");
+                            else if (DB_MODELS[CURRENT_MODEL_ID].type === 'slide') showFeedback(mod.hasRelax ? "A deslizar..." : "A recolher...", "success"); 
+                            updatePriceUI(); 
+                        }; 
                         if (mod.hasRelax) btnRelax.classList.add('active'); else btnRelax.classList.remove('active');
                     }
                     btnRemove.onclick = () => { scene.remove(mod.mesh); addedModules.splice(idx, 1); repositionModules(); hoverMenu.classList.remove('visible'); };
@@ -1540,7 +1609,15 @@
         
         function initModelSelector() { updateModelButtonUI(); const container = document.getElementById('model-grid-container'); if(!container) return; container.innerHTML = ''; Object.keys(DB_MODELS).forEach(key => { const model = DB_MODELS[key]; const card = document.createElement('div'); const isActive = key === CURRENT_MODEL_ID; let badgeClass = 'badge-fixed'; let typeLabel = 'Fixo'; if (model.type === 'relax') { badgeClass = 'badge-relax'; typeLabel = 'Relax'; } if (model.type === 'slide') { badgeClass = 'badge-slide'; typeLabel = 'Deslizante'; } card.className = `model-card ${isActive ? 'active' : ''}`; card.onclick = () => { changeModel(key); uiSet('model-modal', 'display', 'none'); }; const cleanName = model.name.split('(')[0].trim(); const keyLower = key.toLowerCase(); const imgUrlWebP = `${GITHUB_REPO_URL}assets/icons/${keyLower}.webp`; const imgUrlPng = `${GITHUB_REPO_URL}assets/icons/${keyLower}.png`; const placeholder = `https://placehold.co/150x100?text=${cleanName}`; card.innerHTML = `<img src="${imgUrlWebP}" class="model-card-img" alt="${cleanName}" onerror="this.onerror=null; this.src='${imgUrlPng}'; this.onerror=function(){this.src='${placeholder}'; this.style.objectFit='cover';};"><div class="model-card-name">${cleanName}</div><span class="model-badge ${badgeClass}">${typeLabel}</span>`; container.appendChild(card); }); }
         function updateModelButtonUI() { const nameEl = document.getElementById('current-model-name'); if(!nameEl) return; const modelName = DB_MODELS[CURRENT_MODEL_ID].name.split('(')[0].trim(); nameEl.textContent = modelName; const cards = document.querySelectorAll('.model-card'); cards.forEach(c => { if(c.innerText.includes(modelName)) c.classList.add('active'); else c.classList.remove('active'); }); }
-        function initSizeSelector() { const container = document.getElementById('size-selector-container'); if(!container) return; container.innerHTML = ''; const modelSizes = DB_MODELS[CURRENT_MODEL_ID].sizes; Object.keys(modelSizes).forEach(size => { const btn = document.createElement('button'); btn.className = `flex-1 py-1.5 px-3 text-xs font-bold rounded-md transition whitespace-nowrap min-w-[40px] snap-start ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`; btn.innerText = size; btn.onclick = () => changeSize(size); container.appendChild(btn); }); updateSizePreview(); }
+        function initSizeSelector() { const container = document.getElementById('size-selector-container'); if(!container) return; 
+            // Ocultar se o modelo pedir
+            if (DB_MODELS[CURRENT_MODEL_ID].hideSizeSelector) {
+                container.parentElement.style.display = 'none';
+                return;
+            } else {
+                container.parentElement.style.display = 'block';
+            }
+            container.innerHTML = ''; const modelSizes = DB_MODELS[CURRENT_MODEL_ID].sizes; Object.keys(modelSizes).forEach(size => { const btn = document.createElement('button'); btn.className = `flex-1 py-1.5 px-3 text-xs font-bold rounded-md transition whitespace-nowrap min-w-[40px] snap-start ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`; btn.innerText = size; btn.onclick = () => changeSize(size); container.appendChild(btn); }); updateSizePreview(); }
         window.changeModel = function(modelId) { 
             if (!DB_MODELS[modelId]) return; 
             pendingConfiguration = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax })); 
@@ -1589,6 +1666,16 @@
             } else {
                 ['seat', 'arm', 'corner', 'chaise'].forEach(k => neededKeys.add(k));
             }
+            // Adicionar explicitamente as partes do Rinaldi se necessário, embora o loop acima já deva apanhar via fileKey
+            if (modelId === 'rinaldi') {
+                neededKeys.add('seatL');
+                neededKeys.add('seatXL');
+                neededKeys.add('armL');
+                neededKeys.add('armXL');
+                neededKeys.add('corner');
+                neededKeys.add('pouff');
+            }
+
             const partsToLoad = Array.from(neededKeys);
 
             partsToLoad.forEach(part => { 
