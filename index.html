@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Configurador 3D Eleganza - V4.95 (Bruma Rules Update)</title>
+    <title>Configurador 3D Eleganza - V4.96 (Fix Syntax Error)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -259,7 +259,7 @@
                 <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-10 md:w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
             </div>
 
-            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.95</span></div>
+            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.96</span></div>
         </div>
         
         <!-- HEADER BUTTONS (Mobile: Icons only to fit screen without scroll) -->
@@ -477,7 +477,7 @@
                 folder: 'enzo', 
                 sizes: { S: 62, M: 72, L: 82, XL: 92 }, 
                 meridienSizes: { S: 112, M: 122, L: 132, XL: 142 }, 
-                chaiseSizes: { S: 62, M: 72, L: 82, XL: 92 },
+                chaiseSizes: { S: 92, M: 102, L: 112, XL: 122 },
                 armWidth: 30, 
                 depth: 100, 
                 chaiseDepth: 165, 
@@ -579,6 +579,18 @@
                 chaiseDepth: 174, 
                 cornerSize: 100, 
                 modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'pouff', 'meiple', 'maxxi_l', 'maxxi_r'] 
+            },
+            'rinaldi': { 
+                name: 'Rinaldi', 
+                type: 'relax', 
+                folder: 'rinaldi', 
+                hideSizeSelector: true, /* Ocultar seletor global pois mistura-se tamanhos */
+                sizes: { L: 83, XL: 119 }, 
+                armWidth: 20, 
+                depth: 112,
+                cornerSize: 112,
+                pouffSize: 60,
+                modules: ['rinaldi_seat_l', 'rinaldi_seat_xl', 'rinaldi_arm_l_l', 'rinaldi_arm_l_r', 'rinaldi_arm_xl_l', 'rinaldi_arm_xl_r', 'rinaldi_corner', 'rinaldi_pouff'] 
             }
         };
 
@@ -599,7 +611,17 @@
             { id: 'pouff', name: 'Pouff Quadrado', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/pouff.svg`, type: 'standalone', fileKey: 'pouff', hasArm: false, fixed: true },
             { id: 'triangle', name: 'Triângulo', icon: 'fa-play', imgUrl: `${GITHUB_REPO_URL}assets/icons/triangle.svg`, type: 'corner', fileKey: 'triangle', hasArm: false, fixed: true },
             { id: 'maxxi_l', name: 'Maxxi Esq.', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'maxxi', hasArm: 'left' },
-            { id: 'maxxi_r', name: 'Maxxi Dir.', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'maxxi', hasArm: 'right' }
+            { id: 'maxxi_r', name: 'Maxxi Dir.', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'maxxi', hasArm: 'right' },
+            
+            // Módulos RINALDI (Intercalar L e XL)
+            { id: 'rinaldi_seat_l', name: 'Assento L', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/seatrelax.svg`, type: 'seat', fileKey: 'seatL', hasArm: false, fixedWidth: 83 },
+            { id: 'rinaldi_seat_xl', name: 'Assento XL', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/seatrelax.svg`, type: 'seat', fileKey: 'seatXL', hasArm: false, fixedWidth: 119 },
+            { id: 'rinaldi_arm_l_l', name: 'Braço L Esq.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/armrelax.svg`, type: 'seat', fileKey: 'armL', hasArm: 'left', fixedWidth: 83 }, // Largura base do assento, somar braço na logica
+            { id: 'rinaldi_arm_l_r', name: 'Braço L Dir.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/armrelax.svg`, type: 'seat', fileKey: 'armL', hasArm: 'right', fixedWidth: 83 },
+            { id: 'rinaldi_arm_xl_l', name: 'Braço XL Esq.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/armrelax.svg`, type: 'seat', fileKey: 'armXL', hasArm: 'left', fixedWidth: 119 },
+            { id: 'rinaldi_arm_xl_r', name: 'Braço XL Dir.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/armrelax.svg`, type: 'seat', fileKey: 'armXL', hasArm: 'right', fixedWidth: 119 },
+            { id: 'rinaldi_corner', name: 'Canto', icon: 'fa-border-all', imgUrl: `${GITHUB_REPO_URL}assets/icons/corner.svg`, type: 'corner', fileKey: 'corner', hasArm: false, fixed: true },
+            { id: 'rinaldi_pouff', name: 'Pouff', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/pouff.svg`, type: 'standalone', fileKey: 'pouff', hasArm: false, fixed: true }
         ];
 
         const DB_COLLECTIONS = [ 
@@ -999,7 +1021,10 @@
             
             // Lógica de Largura (Width)
             let width;
-            if (def.fixed) {
+            if (def.fixedWidth) {
+                // Rinaldi: largura fixa definida no módulo
+                width = def.fixedWidth;
+            } else if (def.fixed) {
                 if (def.id === 'pouff' && modelData.pouffSize) width = modelData.pouffSize;
                 else if (def.id === 'triangle' && modelData.triangleSize) width = modelData.triangleSize;
                 else width = modelData.cornerSize;
