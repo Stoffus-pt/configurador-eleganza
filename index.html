@@ -591,6 +591,18 @@
                 cornerSize: 112,
                 pouffSize: 60,
                 modules: ['rinaldi_seat_l', 'rinaldi_seat_xl', 'rinaldi_arm_l_l', 'rinaldi_arm_l_r', 'rinaldi_arm_xl_l', 'rinaldi_arm_xl_r', 'rinaldi_corner', 'rinaldi_pouff'] 
+            },
+            'spirit': { 
+                name: 'Spirit', 
+                type: 'fixed', 
+                folder: 'spirit', 
+                sizes: { L: 90, XL: 100 }, 
+                chaiseSizes: { L: 90, XL: 100 },
+                armWidth: 12, 
+                depth: 100, 
+                chaiseDepth: 165, 
+                cornerSize: 112, 
+                modules: ['meiple', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner'] 
             }
         };
 
@@ -1127,11 +1139,12 @@
                 const isInfinity = CURRENT_MODEL_ID === 'infinity'; const isMagic = CURRENT_MODEL_ID === 'magic'; const isBruma = CURRENT_MODEL_ID === 'bruma'; const isKaori = CURRENT_MODEL_ID === 'kaori'; const isFienza = CURRENT_MODEL_ID === 'fienza';
                 const isPolestar = CURRENT_MODEL_ID === 'polestar';
                 const isRinaldi = CURRENT_MODEL_ID === 'rinaldi';
+                const isSpirit = CURRENT_MODEL_ID === 'spirit';
                 
                 // Adicionar Maxxi à lista de módulos que ficam no chão (mesma lógica da Chaise)
                 const isMaxxi = def.id.startsWith('maxxi');
 
-                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma && !isKaori && !isFienza && !isPolestar && !isRinaldi && !isMaxxi) { mesh.position.y += 12; }
+                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma && !isKaori && !isFienza && !isPolestar && !isRinaldi && !isMaxxi && !isSpirit) { mesh.position.y += 12; }
                 
                 if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
                 if (CURRENT_MODEL_ID === 'athena' && def.id === 'seat_no_arm') { mesh.position.z += 4; }
@@ -1256,7 +1269,8 @@
                     if (findBackParts(mod)) {
                         // FIX: Detect scale to prevent "flying" parts
                         let scale = 1;
-                        if(mod.mesh.children.length > 0) scale = mod.mesh.children[0].scale.x;
+                        // CORREÇÃO: Usar Math.abs() para ignorar o sinal negativo em módulos invertidos (ex: Braço Direito)
+                        if(mod.mesh.children.length > 0) scale = Math.abs(mod.mesh.children[0].scale.x);
                         
                         const dist = 27 / scale;
                         const distCorner = 19 / scale;
