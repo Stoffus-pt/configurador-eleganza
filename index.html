@@ -568,14 +568,16 @@
                 name: 'Polestar', 
                 type: 'fixed', 
                 folder: 'polestar', 
-                sizes: { L: 83 }, 
-                twoSeatSizes: { L: 166 }, 
-                chaiseSizes: { L: 83 }, 
-                pouffSize: 112,
-                armWidth: 23, 
-                depth: 112, 
-                chaiseDepth: 170, 
-                cornerSize: 120, 
+                sizes: { L: 88 }, 
+                twoSeatSizes: { L: 176 }, 
+                chaiseSizes: { L: 88 }, 
+                maxxiSize: 120, /* Largura assento Maxxi */
+                maxxiDepth: 130, /* Profundidade Maxxi */
+                pouffSize: 88,
+                armWidth: 12, 
+                depth: 90, 
+                chaiseDepth: 174, 
+                cornerSize: 100, 
                 modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'pouff', 'meiple', 'maxxi_l', 'maxxi_r'] 
             }
         };
@@ -1004,8 +1006,8 @@
             } else if (def.type === 'meridien' && modelData.meridienSizes) {
                 width = modelData.meridienSizes[effectiveSizeKey] || 100;
             } else if (def.id.startsWith('maxxi')) {
-                // Largura do Maxxi (Quadrado)
-                width = modelData.maxxiSize || 170; 
+                // Largura do Maxxi
+                width = modelData.maxxiSize || 132; 
             } else if (def.type === 'chaise' && modelData.chaiseSizes) {
                 width = modelData.chaiseSizes[effectiveSizeKey] || 80;
             } else if ((def.id === 'seat_arm_l' || def.id === 'seat_arm_r') && modelData.oneSeatArmSizes) {
@@ -1022,7 +1024,8 @@
             
             // Lógica de Profundidade (Depth)
             let depth = modelData.depth; 
-            if (def.type === 'chaise' || def.id.startsWith('maxxi')) depth = modelData.chaiseDepth; 
+            if (def.type === 'chaise') depth = modelData.chaiseDepth;
+            if (def.id.startsWith('maxxi')) depth = modelData.maxxiDepth || 130; 
             if (def.type === 'meridien') depth = modelData.chaiseDepth; 
             
             // Exceções para Meridiens com profundidade curta (igual ao assento)
@@ -1085,7 +1088,7 @@
                 }
                 // Maxxi usa a mesma lógica de flip da Chaise (standard)
                 if (def.id.startsWith('maxxi')) {
-                    flip = def.hasArm === 'left';
+                    flip = def.hasArm === 'right';
                 }
 
                 if (CURRENT_MODEL_ID === 'kindia' && def.id.includes('seat_arm')) { flip = !flip; }
