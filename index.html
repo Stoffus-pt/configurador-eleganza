@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Configurador 3D Eleganza - V4.98 (Fix Rinaldi Scale)</title>
+    <title>Configurador 3D Eleganza - V4.99 (Rinaldi Pendular)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -100,6 +100,7 @@
         .badge-relax { background: #dbeafe; color: #1e40af; }
         .badge-slide { background: #f3e8ff; color: #6b21a8; }
         .badge-fixed { background: #f3f4f6; color: #4b5563; }
+        .badge-pendular { background: #e0f2fe; color: #0369a1; }
 
         #module-hover-menu { position: absolute; pointer-events: auto; z-index: 50; transform: translate(-50%, -100%); opacity: 0; transition: opacity 0.2s, transform 0.2s; display: flex; gap: 8px; padding-bottom: 10px; }
         #module-hover-menu.visible { opacity: 1; transform: translate(-50%, -120%); }
@@ -259,7 +260,7 @@
                 <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-10 md:w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
             </div>
 
-            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.98</span></div>
+            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.99</span></div>
         </div>
         
         <!-- HEADER BUTTONS (Mobile: Icons only to fit screen without scroll) -->
@@ -582,11 +583,11 @@
             },
             'rinaldi': { 
                 name: 'Rinaldi', 
-                type: 'relax', 
+                type: 'pendular', 
                 folder: 'rinaldi', 
                 hideSizeSelector: true, /* Ocultar seletor global pois mistura-se tamanhos */
                 sizes: { L: 83, XL: 119 }, 
-                armWidth: 20, 
+                armWidth: 40, 
                 depth: 112,
                 cornerSize: 112,
                 pouffSize: 60,
@@ -598,11 +599,13 @@
                 folder: 'spirit', 
                 sizes: { L: 90, XL: 100 }, 
                 chaiseSizes: { L: 90, XL: 100 },
+                meridienSizes: { L: 102, XL: 102 },
+                meridienDepth: 225,
                 armWidth: 12, 
                 depth: 100, 
                 chaiseDepth: 165, 
                 cornerSize: 112, 
-                modules: ['meiple', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner'] 
+                modules: ['meiple', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'meridien_l', 'meridien_r'] 
             }
         };
 
@@ -619,7 +622,7 @@
             { id: 'chaise_r', name: 'Chaise Dir.', icon: 'fa-l', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'chaise', hasArm: 'right' },
             { id: 'meridien_l', name: 'Meridien Esq.', icon: 'fa-layer-group', imgUrl: `${GITHUB_REPO_URL}assets/icons/meridien.svg`, type: 'meridien', fileKey: 'meridien', hasArm: 'left' },
             { id: 'meridien_r', name: 'Meridien Dir.', icon: 'fa-layer-group', imgUrl: `${GITHUB_REPO_URL}assets/icons/meridien.svg`, type: 'meridien', fileKey: 'meridien', hasArm: 'right' },
-            { id: 'meiple', name: '1 Lug. 2 Braços', icon: 'fa-chair', imgUrl: `${GITHUB_REPO_URL}assets/icons/meiplerelax.svg`, type: 'standalone', fileKey: 'meiple', hasArm: true },
+            { id: 'meiple', name: '1 Lug. 2 Braços', icon: 'fa-chair', imgUrl: `${GITHUB_REPO_URL}assets/icons/meiple.svg`, type: 'standalone', fileKey: 'meiple', hasArm: true },
             { id: 'pouff', name: 'Pouff Quadrado', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/pouff.svg`, type: 'standalone', fileKey: 'pouff', hasArm: false, fixed: true },
             { id: 'triangle', name: 'Triângulo', icon: 'fa-play', imgUrl: `${GITHUB_REPO_URL}assets/icons/triangle.svg`, type: 'corner', fileKey: 'triangle', hasArm: false, fixed: true },
             { id: 'maxxi_l', name: 'Maxxi Esq.', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'maxxi', hasArm: 'left' },
@@ -1037,7 +1040,8 @@
                 // Rinaldi: largura fixa definida no módulo
                 width = def.fixedWidth;
             } else if (def.fixed) {
-                if (def.id === 'pouff' && modelData.pouffSize) width = modelData.pouffSize;
+                // CORREÇÃO: Usar fileKey para detetar qualquer pouff (incluindo rinaldi_pouff)
+                if (def.fileKey === 'pouff' && modelData.pouffSize) width = modelData.pouffSize;
                 else if (def.id === 'triangle' && modelData.triangleSize) width = modelData.triangleSize;
                 else width = modelData.cornerSize;
             } else if (def.type === 'meridien' && modelData.meridienSizes) {
@@ -1063,7 +1067,11 @@
             let depth = modelData.depth; 
             if (def.type === 'chaise') depth = modelData.chaiseDepth;
             if (def.id.startsWith('maxxi')) depth = modelData.maxxiDepth || 130; 
-            if (def.type === 'meridien') depth = modelData.chaiseDepth; 
+            
+            if (def.type === 'meridien') {
+                // Usa profundidade específica da Meridien se definida, senão usa a da Chaise
+                depth = modelData.meridienDepth || modelData.chaiseDepth;
+            }
             
             // Exceções para Meridiens com profundidade curta (igual ao assento)
             if ((CURRENT_MODEL_ID === 'athena' || CURRENT_MODEL_ID === 'brittany' || CURRENT_MODEL_ID === 'fiori') && def.type === 'meridien') {
@@ -1153,8 +1161,9 @@
                 group.add(mesh);
                 
                 const type = DB_MODELS[CURRENT_MODEL_ID].type;
-                if ((type === 'relax' || type === 'slide') && !def.fixed) {
-                    const labelText = type === 'slide' ? "SLIDE" : "RELAX";
+                if ((type === 'relax' || type === 'slide' || type === 'pendular') && !def.fixed) {
+                    let labelText = type === 'slide' ? "SLIDE" : "RELAX";
+                    if (type === 'pendular') labelText = "PENDULAR";
                     const badge = createStatusSprite(labelText);
                     badge.position.set(0, 90, -10); 
                     badge.name = 'status_badge';
@@ -1512,6 +1521,11 @@
                         currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meipleslide.svg`;
                     }
                 }
+                
+                // 4. [NOVO] Ícone específico para Meridien Spirit
+                if (CURRENT_MODEL_ID === 'spirit' && def.type === 'meridien') {
+                     currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meridienspirit.svg`;
+                }
 
                 if(currentImgUrl) {
                     // Check if needs flip (Right modules usually need the left-icon flipped)
@@ -1621,7 +1635,7 @@
             }
         }
         
-        function initModelSelector() { updateModelButtonUI(); const container = document.getElementById('model-grid-container'); if(!container) return; container.innerHTML = ''; Object.keys(DB_MODELS).forEach(key => { const model = DB_MODELS[key]; const card = document.createElement('div'); const isActive = key === CURRENT_MODEL_ID; let badgeClass = 'badge-fixed'; let typeLabel = 'Fixo'; if (model.type === 'relax') { badgeClass = 'badge-relax'; typeLabel = 'Relax'; } if (model.type === 'slide') { badgeClass = 'badge-slide'; typeLabel = 'Deslizante'; } card.className = `model-card ${isActive ? 'active' : ''}`; card.onclick = () => { changeModel(key); uiSet('model-modal', 'display', 'none'); }; const cleanName = model.name.split('(')[0].trim(); const keyLower = key.toLowerCase(); const imgUrlWebP = `${GITHUB_REPO_URL}assets/icons/${keyLower}.webp`; const imgUrlPng = `${GITHUB_REPO_URL}assets/icons/${keyLower}.png`; const placeholder = `https://placehold.co/150x100?text=${cleanName}`; card.innerHTML = `<img src="${imgUrlWebP}" class="model-card-img" alt="${cleanName}" onerror="this.onerror=null; this.src='${imgUrlPng}'; this.onerror=function(){this.src='${placeholder}'; this.style.objectFit='cover';};"><div class="model-card-name">${cleanName}</div><span class="model-badge ${badgeClass}">${typeLabel}</span>`; container.appendChild(card); }); }
+        function initModelSelector() { updateModelButtonUI(); const container = document.getElementById('model-grid-container'); if(!container) return; container.innerHTML = ''; Object.keys(DB_MODELS).forEach(key => { const model = DB_MODELS[key]; const card = document.createElement('div'); const isActive = key === CURRENT_MODEL_ID; let badgeClass = 'badge-fixed'; let typeLabel = 'Fixo'; if (model.type === 'relax') { badgeClass = 'badge-relax'; typeLabel = 'Relax'; } if (model.type === 'slide') { badgeClass = 'badge-slide'; typeLabel = 'Deslizante'; } if (model.type === 'pendular') { badgeClass = 'badge-pendular'; typeLabel = 'Pendular'; } card.className = `model-card ${isActive ? 'active' : ''}`; card.onclick = () => { changeModel(key); uiSet('model-modal', 'display', 'none'); }; const cleanName = model.name.split('(')[0].trim(); const keyLower = key.toLowerCase(); const imgUrlWebP = `${GITHUB_REPO_URL}assets/icons/${keyLower}.webp`; const imgUrlPng = `${GITHUB_REPO_URL}assets/icons/${keyLower}.png`; const placeholder = `https://placehold.co/150x100?text=${cleanName}`; card.innerHTML = `<img src="${imgUrlWebP}" class="model-card-img" alt="${cleanName}" onerror="this.onerror=null; this.src='${imgUrlPng}'; this.onerror=function(){this.src='${placeholder}'; this.style.objectFit='cover';};"><div class="model-card-name">${cleanName}</div><span class="model-badge ${badgeClass}">${typeLabel}</span>`; container.appendChild(card); }); }
         function updateModelButtonUI() { const nameEl = document.getElementById('current-model-name'); if(!nameEl) return; const modelName = DB_MODELS[CURRENT_MODEL_ID].name.split('(')[0].trim(); nameEl.textContent = modelName; const cards = document.querySelectorAll('.model-card'); cards.forEach(c => { if(c.innerText.includes(modelName)) c.classList.add('active'); else c.classList.remove('active'); }); }
         function initSizeSelector() { const container = document.getElementById('size-selector-container'); if(!container) return; 
             // Ocultar se o modelo pedir
