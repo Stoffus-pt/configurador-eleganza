@@ -1894,10 +1894,9 @@
 
             addedModules.forEach(mod => {
                 const tr = document.createElement('tr');
-                const mech = mod.hasRelax ? (DB_MODELS[CURRENT_MODEL_ID].type === 'slide' ? 'Deslizante' : 'Relax') : 'Fixo';
                 
-                let pointsDisplay = 0; // Default to 0 for safety
-                const modelPrices = DB_PRICES[CURRENT_MODEL_ID] || {}; // Added Safety Check
+                let pointsDisplay = 0; 
+                const modelPrices = DB_PRICES[CURRENT_MODEL_ID] || {}; 
                 if (modelPrices && modelPrices[mod.data.id]) {
                     const sizeKey = CURRENT_SIZE_KEY;
                     const sizePrices = modelPrices[mod.data.id][sizeKey];
@@ -1911,17 +1910,33 @@
                     }
                 }
 
-                // Add costs logic for display in table
                 let extraPts = 0;
-                let extraText = "";
-                if(mod.hasRelax) { extraPts += RELAX_COST_POINTS; extraText += " (+Relax)"; }
-                if(mod.hasRelax && hasLithiumBattery) { extraPts += BATTERY_COST_POINTS; extraText += " (+Bat)"; }
+                let nameSuffix = "";
+                
+                if(mod.hasRelax) { 
+                    extraPts += RELAX_COST_POINTS; 
+                    const type = DB_MODELS[CURRENT_MODEL_ID].type;
+                    if (type === 'slide') nameSuffix = " + Slide";
+                    else if (type === 'pendular') nameSuffix = " + Pendular";
+                    else nameSuffix = " + Relax";
+                }
+                
+                if(mod.hasRelax && hasLithiumBattery) { 
+                    extraPts += BATTERY_COST_POINTS; 
+                    nameSuffix += " + Bateria"; 
+                }
                 
                 let basePts = parseInt(pointsDisplay);
                 if(isNaN(basePts)) basePts = 0;
                 let finalItemPts = basePts + extraPts;
 
-                tr.innerHTML = `<td>${mod.data.name} <span class="text-[10px] text-gray-400">${extraText}</span></td><td>${Math.round(mod.width)} cm</td><td class="font-bold text-gray-500">${finalItemPts} pts</td>`;
+                // Formatar para (Base + Extra) Total pts
+                let pointsStr = `${finalItemPts} pts`;
+                if(extraPts > 0) {
+                    pointsStr = `<span class="text-xs font-normal text-gray-400">(${basePts} + ${extraPts})</span> ${finalItemPts} pts`;
+                }
+
+                tr.innerHTML = `<td>${mod.data.name}${nameSuffix}</td><td>${Math.round(mod.width)} cm</td><td class="font-bold text-gray-500 whitespace-nowrap">${pointsStr}</td>`;
                 tbody.appendChild(tr);
             });
 
@@ -1937,6 +1952,112 @@
         }
 
         window.openModelSelector = function() { uiSet('model-modal', 'display', 'flex'); }
+
+        window.confirmAndGeneratePDF = async function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const dateStr = new Date().toLocaleDateString('pt-PT');
+            const modelName = DB_MODELS[CURRENT_MODEL_ID].name;
+            const fabricName = document.getElementById('current-fabric-name').innerText;
+            const observations = document.getElementById('order-observations').value;
+            const totalPoints = document.getElementById('summary-points').innerText;
+            
+            // Header with Logo Logic
+            const logoUrl = `${GITHUB_REPO_URL}assets/logo.png`; 
+            try {
+                const response = await fetch(logoUrl);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const base64Img = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                    // Logotipo centrado
+                    doc.addImage(base64Img, 'PNG', 85, 10, 40, 0); 
+                } else {
+                    throw new Error("Logo not found");
+                }
+            } catch (e) {
+                // Fallback Texto
+                doc.setFontSize(22);
+                doc.setTextColor(232, 76, 38); // Stoffus Orange
+                doc.text("Stoffus", 105, 20, null, null, "center");
+            }
+            
+            // Subtítulo
+            doc.setFontSize(16);
+            doc.setTextColor(0, 0, 0);
+            doc.text("Encomenda", 105, 30, null, null, "center");
+            
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Data: ${dateStr}`, 20, 40);
+            
+            // Preview Image
+            const imgData = document.getElementById('order-preview-img').src;
+            if(imgData) {
+                doc.addImage(imgData, 'JPEG', 15, 50, 180, 100);
+            }
+            
+            // Details
+            let yPos = 160;
+            doc.setFontSize(14);
+            doc.text("Detalhes da Configuração:", 20, yPos);
+            yPos += 10;
+            
+            doc.setFontSize(11);
+            doc.text(`Modelo: ${modelName}`, 25, yPos); yPos += 7;
+            doc.text(`Tecido: ${fabricName}`, 25, yPos); yPos += 7;
+            doc.text(`Preço Total: ${totalPoints}`, 25, yPos); yPos += 10;
+
+            if (hasLithiumBattery) {
+                doc.setTextColor(0, 150, 0);
+                doc.text(`Bateria de Lítio Incluída`, 25, yPos); 
+                doc.setTextColor(0, 0, 0);
+                yPos += 10;
+            }
+
+            // Observations
+            if(observations) {
+                yPos += 5;
+                doc.setFontSize(12);
+                doc.text("Observações:", 20, yPos);
+                yPos += 7;
+                doc.setFontSize(10);
+                const splitObs = doc.splitTextToSize(observations, 170);
+                doc.text(splitObs, 25, yPos);
+                yPos += (splitObs.length * 7) + 10;
+            }
+
+            // Table of Modules
+            const tableBody = addedModules.map(mod => {
+                 let details = mod.hasRelax ? (DB_MODELS[CURRENT_MODEL_ID].type === 'slide' ? 'Deslizante' : 'Relax') : 'Fixo';
+                 if (mod.hasRelax && hasLithiumBattery) details += " + Bateria";
+                 return [mod.data.name, Math.round(mod.width) + " cm", details];
+            });
+
+            doc.autoTable({
+                head: [['Módulo', 'Largura', 'Detalhes']],
+                body: tableBody,
+                startY: yPos,
+                theme: 'grid',
+                headStyles: { fillColor: [232, 76, 38] }
+            });
+            
+            // Footer
+            const pageCount = doc.internal.getNumberOfPages();
+            for(let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(10);
+                doc.text('Gerado por Configurador Stoffus 3D', 105, 285, null, null, "center");
+            }
+            
+            doc.save(`Encomenda_Stoffus_${Date.now()}.pdf`);
+            showFeedback("PDF Gerado com Sucesso!", "success");
+            uiSet('order-modal', 'display', 'none');
+        }
 
         // ======================== INITIALIZATION ========================
         window.init = async function() {
