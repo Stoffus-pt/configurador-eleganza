@@ -606,6 +606,21 @@
                 chaiseDepth: 165, 
                 cornerSize: 112, 
                 modules: ['meiple', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'meridien_l', 'meridien_r'] 
+            },
+            'rose': { 
+                name: 'Rose', 
+                type: 'fixed', 
+                folder: 'rose', 
+                sizes: { M: 72, L: 87 }, 
+                chaiseSizes: { M: 72, L: 87 },
+                meridienSizes: 92,
+                meridienDepth: 212,
+                meipleSize: 75,
+                armWidth: 15, 
+                depth: 92, 
+                chaiseDepth: 165, 
+                cornerSize: 105,
+                modules: ['meiple', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'meridien_l', 'meridien_r'] 
             }
         };
 
@@ -1045,15 +1060,26 @@
                 else if (def.id === 'triangle' && modelData.triangleSize) width = modelData.triangleSize;
                 else width = modelData.cornerSize;
             } else if (def.type === 'meridien' && modelData.meridienSizes) {
-                width = modelData.meridienSizes[effectiveSizeKey] || 100;
+                if (typeof modelData.meridienSizes === 'number') {
+                    width = modelData.meridienSizes;
+                } else {
+                    width = modelData.meridienSizes[effectiveSizeKey] || 100;
+                }
             } else if (def.id.startsWith('maxxi')) {
                 // Largura do Maxxi
                 width = modelData.maxxiSize || 132; 
             } else if (def.type === 'chaise' && modelData.chaiseSizes) {
                 width = modelData.chaiseSizes[effectiveSizeKey] || 80;
+            } else if (def.id === 'meiple') {
+                // Lógica específica para Meiple (Prioridade: Tamanho fixo > oneSeatArmSizes > tamanho base)
+                if (modelData.meipleSize) {
+                    width = modelData.meipleSize;
+                } else if (modelData.oneSeatArmSizes) {
+                    width = modelData.oneSeatArmSizes[effectiveSizeKey];
+                } else {
+                    width = modelData.sizes[effectiveSizeKey] || 70;
+                }
             } else if ((def.id === 'seat_arm_l' || def.id === 'seat_arm_r') && modelData.oneSeatArmSizes) {
-                width = modelData.oneSeatArmSizes[effectiveSizeKey];
-            } else if (def.id === 'meiple' && modelData.oneSeatArmSizes) {
                 width = modelData.oneSeatArmSizes[effectiveSizeKey];
             } else if (def.id.startsWith('2seats') && modelData.twoSeatSizes) {
                 width = modelData.twoSeatSizes[effectiveSizeKey];
@@ -1073,8 +1099,8 @@
                 depth = modelData.meridienDepth || modelData.chaiseDepth;
             }
             
-            // Exceções para Meridiens com profundidade curta (igual ao assento)
-            if ((CURRENT_MODEL_ID === 'athena' || CURRENT_MODEL_ID === 'brittany' || CURRENT_MODEL_ID === 'fiori') && def.type === 'meridien') {
+            // ATUALIZAÇÃO: Para todos os modelos tipo RELAX, a Meridien tem a profundidade do assento
+            if (modelData.type === 'relax' && def.type === 'meridien') {
                 depth = modelData.depth;
             }
             
@@ -1148,12 +1174,16 @@
                 const isPolestar = CURRENT_MODEL_ID === 'polestar';
                 const isRinaldi = CURRENT_MODEL_ID === 'rinaldi';
                 const isSpirit = CURRENT_MODEL_ID === 'spirit';
+                const isRose = CURRENT_MODEL_ID === 'rose';
                 
                 // Adicionar Maxxi à lista de módulos que ficam no chão (mesma lógica da Chaise)
                 const isMaxxi = def.id.startsWith('maxxi');
 
-                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma && !isKaori && !isFienza && !isPolestar && !isRinaldi && !isMaxxi && !isSpirit) { mesh.position.y += 12; }
+                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma && !isKaori && !isFienza && !isPolestar && !isRinaldi && !isMaxxi && !isSpirit && !isRose) { mesh.position.y += 12; }
                 
+                // Elevar especificamente o Canto do Rose em 12cm
+                if (CURRENT_MODEL_ID === 'rose' && def.id === 'corner') { mesh.position.y += 12; }
+
                 if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
                 if (CURRENT_MODEL_ID === 'athena' && def.id === 'seat_no_arm') { mesh.position.z += 4; }
                 if (CURRENT_MODEL_ID === 'athena' && def.id === 'corner') { mesh.position.z += 4; }
@@ -1523,7 +1553,7 @@
                 }
                 
                 // 4. [NOVO] Ícone específico para Meridien Spirit
-                if (CURRENT_MODEL_ID === 'spirit' && def.type === 'meridien') {
+                if ((CURRENT_MODEL_ID === 'spirit' || CURRENT_MODEL_ID === 'rose') && def.type === 'meridien') {
                      currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meridienspirit.svg`;
                 }
 
