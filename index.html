@@ -1956,6 +1956,8 @@
         window.confirmAndGeneratePDF = async function() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth(); // A4 width ~210mm
+            const margin = 20;
             
             const dateStr = new Date().toLocaleDateString('pt-PT');
             const modelName = DB_MODELS[CURRENT_MODEL_ID].name;
@@ -1963,8 +1965,22 @@
             const observations = document.getElementById('order-observations').value;
             const totalPoints = document.getElementById('summary-points').innerText;
             
-            // Header with Logo Logic
-            const logoUrl = `${GITHUB_REPO_URL}assets/logo.png`; 
+            // --- 1. CABEÇALHO ---
+            
+            // Título "ENCOMENDA" no Canto Superior Esquerdo
+            doc.setFontSize(24);
+            doc.setTextColor(33, 33, 33); // Cinzento quase preto
+            doc.setFont("helvetica", "bold");
+            doc.text("ENCOMENDA", margin, 25);
+            
+            // Data por baixo
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(120, 120, 120); // Cinzento médio
+            doc.text(`Data: ${dateStr}`, margin, 32);
+
+            // Logótipo no Canto Superior Direito
+            const logoUrl = `${GITHUB_REPO_URL}logo.png`; 
             try {
                 const response = await fetch(logoUrl);
                 if (response.ok) {
@@ -1974,84 +1990,153 @@
                         reader.onloadend = () => resolve(reader.result);
                         reader.readAsDataURL(blob);
                     });
-                    // Logotipo centrado
-                    doc.addImage(base64Img, 'PNG', 85, 10, 40, 0); 
-                } else {
-                    throw new Error("Logo not found");
+                    const logoW = 40;
+                    // Posição X = LarguraPagina - Margem - LarguraLogo
+                    doc.addImage(base64Img, 'PNG', pageWidth - margin - logoW, 10, logoW, 0); 
                 }
             } catch (e) {
-                // Fallback Texto
-                doc.setFontSize(22);
-                doc.setTextColor(232, 76, 38); // Stoffus Orange
-                doc.text("Stoffus", 105, 20, null, null, "center");
+                console.warn("Logo load failed", e);
             }
-            
-            // Subtítulo
-            doc.setFontSize(16);
-            doc.setTextColor(0, 0, 0);
-            doc.text("Encomenda", 105, 30, null, null, "center");
-            
-            doc.setFontSize(12);
-            doc.setTextColor(0, 0, 0);
-            doc.text(`Data: ${dateStr}`, 20, 40);
-            
-            // Preview Image
+
+            // Linha Separadora
+            doc.setDrawColor(220, 220, 220); // Cinzento muito claro
+            doc.setLineWidth(0.5);
+            doc.line(margin, 40, pageWidth - margin, 40);
+
+            // --- 2. CONTEÚDO PRINCIPAL ---
+            let yPos = 50;
+
+            // Imagem de Pré-visualização
             const imgData = document.getElementById('order-preview-img').src;
             if(imgData) {
-                doc.addImage(imgData, 'JPEG', 15, 50, 180, 100);
+                // Adicionar imagem com proporção fixa (mais panorâmica)
+                doc.addImage(imgData, 'JPEG', margin, yPos, pageWidth - (margin*2), 85);
+                
+                // Moldura fina à volta da imagem para acabamento
+                doc.setDrawColor(230, 230, 230);
+                doc.rect(margin, yPos, pageWidth - (margin*2), 85);
+                
+                yPos += 95; // Avançar cursor
             }
-            
-            // Details
-            let yPos = 160;
-            doc.setFontSize(14);
-            doc.text("Detalhes da Configuração:", 20, yPos);
-            yPos += 10;
-            
-            doc.setFontSize(11);
-            doc.text(`Modelo: ${modelName}`, 25, yPos); yPos += 7;
-            doc.text(`Tecido: ${fabricName}`, 25, yPos); yPos += 7;
-            doc.text(`Preço Total: ${totalPoints}`, 25, yPos); yPos += 10;
 
+            // Grelha de Informação (Modelo | Tecido | Extras)
+            doc.setFontSize(9);
+            doc.setTextColor(150, 150, 150); // Label Cinzento Claro
+            doc.setFont("helvetica", "bold");
+            
+            doc.text("MODELO", margin, yPos);
+            doc.text("TECIDO / ACABAMENTO", margin + 60, yPos);
+            if (hasLithiumBattery) doc.text("EXTRAS", margin + 130, yPos);
+
+            yPos += 6;
+            
+            doc.setFontSize(12);
+            doc.setTextColor(40, 40, 40); // Texto Escuro
+            doc.setFont("helvetica", "normal");
+            
+            doc.text(modelName, margin, yPos);
+            
+            // Texto do tecido com quebra de linha se for muito longo
+            const splitFabric = doc.splitTextToSize(fabricName, 60);
+            doc.text(splitFabric, margin + 60, yPos);
+            
             if (hasLithiumBattery) {
-                doc.setTextColor(0, 150, 0);
-                doc.text(`Bateria de Lítio Incluída`, 25, yPos); 
-                doc.setTextColor(0, 0, 0);
-                yPos += 10;
+                doc.setTextColor(22, 163, 74); // Verde para destaque positivo
+                doc.setFont("helvetica", "bold");
+                doc.text("Bateria de Lítio Incluída", margin + 130, yPos);
+                doc.setTextColor(40, 40, 40); // Reset
+                doc.setFont("helvetica", "normal");
             }
+            
+            // Ajustar Y baseado no tamanho do texto do tecido
+            yPos += (splitFabric.length * 5) + 10;
 
-            // Observations
-            if(observations) {
-                yPos += 5;
-                doc.setFontSize(12);
-                doc.text("Observações:", 20, yPos);
-                yPos += 7;
+            // Observações (Caixa de destaque se existirem)
+            if(observations && observations.trim() !== "") {
+                doc.setFillColor(250, 250, 250); // Fundo muito leve
+                doc.setDrawColor(240, 240, 240);
+                // Desenhar retângulo de fundo
+                // Calcular altura necessária
+                const splitObs = doc.splitTextToSize(observations, pageWidth - (margin*2) - 10);
+                const boxHeight = 15 + (splitObs.length * 5);
+                
+                doc.rect(margin, yPos, pageWidth - (margin*2), boxHeight, 'FD');
+                
+                doc.setFontSize(9);
+                doc.setTextColor(100, 100, 100);
+                doc.text("Observações:", margin + 5, yPos + 8);
+                
                 doc.setFontSize(10);
-                const splitObs = doc.splitTextToSize(observations, 170);
-                doc.text(splitObs, 25, yPos);
-                yPos += (splitObs.length * 7) + 10;
+                doc.setTextColor(60, 60, 60);
+                doc.text(splitObs, margin + 5, yPos + 16);
+                
+                yPos += boxHeight + 10;
+            } else {
+                yPos += 5;
             }
 
-            // Table of Modules
+            // --- 3. TABELA DE MÓDULOS ---
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(33, 33, 33);
+            doc.text("Especificação dos Módulos", margin, yPos);
+            yPos += 5;
+
             const tableBody = addedModules.map(mod => {
-                 let details = mod.hasRelax ? (DB_MODELS[CURRENT_MODEL_ID].type === 'slide' ? 'Deslizante' : 'Relax') : 'Fixo';
+                 let details = mod.hasRelax ? (DB_MODELS[CURRENT_MODEL_ID].type === 'slide' ? 'Sistema Deslizante' : 'Mecanismo Relax') : 'Fixo';
                  if (mod.hasRelax && hasLithiumBattery) details += " + Bateria";
+                 
+                 // Nome limpo
                  return [mod.data.name, Math.round(mod.width) + " cm", details];
             });
 
             doc.autoTable({
-                head: [['Módulo', 'Largura', 'Detalhes']],
-                body: tableBody,
                 startY: yPos,
-                theme: 'grid',
-                headStyles: { fillColor: [232, 76, 38] }
+                head: [['Módulo', 'Largura', 'Configuração']],
+                body: tableBody,
+                theme: 'plain', // Estilo limpo sem linhas verticais pesadas
+                styles: { 
+                    fontSize: 10, 
+                    cellPadding: 4, 
+                    textColor: [60, 60, 60] 
+                },
+                headStyles: { 
+                    fillColor: [245, 245, 245], // Cabeçalho cinzento muito claro
+                    textColor: [33, 33, 33], 
+                    fontStyle: 'bold',
+                    lineWidth: 0
+                },
+                columnStyles: {
+                    0: { fontStyle: 'bold', width: 70 }, 
+                    1: { halign: 'left', width: 40 }
+                },
+                margin: { left: margin, right: margin }
             });
             
-            // Footer
+            yPos = doc.lastAutoTable.finalY + 15;
+
+            // --- 4. TOTAL (Destaque Final) ---
+            // Desenhar linha fina acima do total
+            doc.setDrawColor(220, 220, 220);
+            doc.line(pageWidth - margin - 80, yPos - 5, pageWidth - margin, yPos - 5);
+
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text("VALOR TOTAL (PONTOS)", pageWidth - margin, yPos, { align: "right" });
+            
+            yPos += 10;
+            doc.setFontSize(22);
+            doc.setTextColor(232, 76, 38); // Stoffus Orange
+            doc.setFont("helvetica", "bold");
+            doc.text(totalPoints, pageWidth - margin, yPos, { align: "right" });
+
+            // --- RODAPÉ ---
             const pageCount = doc.internal.getNumberOfPages();
             for(let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
-                doc.setFontSize(10);
-                doc.text('Gerado por Configurador Stoffus 3D', 105, 285, null, null, "center");
+                doc.setFontSize(8);
+                doc.setTextColor(180, 180, 180);
+                doc.text('Gerado por Configurador Stoffus 3D', pageWidth / 2, doc.internal.pageSize.height - 10, { align: "center" });
             }
             
             doc.save(`Encomenda_Stoffus_${Date.now()}.pdf`);
