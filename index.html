@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Configurador 3D Eleganza - V4.99 (Rinaldi Pendular)</title>
+    <title>Configurador 3D Eleganza - V5.9 (Estável)</title>
     
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,7 +21,9 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script type="module" src="https://unpkg.com/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>
+    
+    <!-- Model Viewer (AR) -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -39,7 +41,7 @@
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         #room-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background-size: cover; background-position: center bottom; display: none; transition: background-image 0.5s ease-in-out; }
         
-        /* Mobile Specific adjustments for selectors */
+        /* Mobile Specific adjustments */
         #model-selector-bar { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 20; width: 95%; max-width: fit-content; }
         #fabric-selector-bar { position: absolute; bottom: 240px; left: 50%; transform: translateX(-50%); z-index: 20; width: 95%; max-width: fit-content; transition: bottom 0.3s; }
 
@@ -52,7 +54,7 @@
             .trigger-pill-btn { min-width: auto; width: 100%; padding: 6px 12px; justify-content: space-between; height: 44px; }
             .pill-content { max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .pill-icon-box { width: 28px; height: 28px; font-size: 14px; }
-            .pill-label { display: none; } /* Hide label on mobile to save space */
+            .pill-label { display: none; }
             .pill-value { font-size: 13px; }
             
             .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -60,20 +62,13 @@
         }
 
         .trigger-pill-btn {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            padding: 10px 24px;
-            border-radius: 50px;
-            border: 1px solid rgba(255,255,255,0.5);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-            display: flex; align-items: center; gap: 10px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-family: 'Inter', sans-serif;
-            min-width: 240px;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); padding: 10px 24px; border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: 'Inter', sans-serif; min-width: 240px;
         }
         .trigger-pill-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(0,0,0,0.12); border-color: #e84c26; }
-        .pill-icon-box { width: 36px; height: 36px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 16px; flex-shrink: 0; }
+        .pill-icon-box { width: 36px; height: 36px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content center; color: #6b7280; font-size: 16px; flex-shrink: 0; }
         .trigger-pill-btn:hover .pill-icon-box { background: #fff7ed; color: #e84c26; }
         .pill-content { flex: 1; text-align: left; }
         .pill-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; font-weight: 700; display: block; }
@@ -260,7 +255,7 @@
                 <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-10 md:w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
             </div>
 
-            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V4.99</span></div>
+            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V5.9</span></div>
         </div>
         
         <!-- HEADER BUTTONS (Mobile: Icons only to fit screen without scroll) -->
@@ -293,7 +288,7 @@
     </div>
 
     <!-- PAINEL EDITOR -->
-    <div id="editor-panel" class="ui-panel absolute md:top-20 md:right-4 md:w-64 w-[90%] left-1/2 -translate-x-1/2 top-20 p-4 rounded-xl shadow-2xl z-40 hidden flex-col h-auto">
+    <div id="editor-panel" class="ui-panel absolute md:top-20 md:right-4 md:left-auto md:translate-x-0 md:w-72 w-[90%] left-1/2 -translate-x-1/2 top-20 p-4 rounded-xl shadow-2xl z-40 hidden flex-col h-auto">
         <div class="flex justify-between items-center mb-4 border-b pb-2 flex-shrink-0">
             <h3 class="font-bold text-gray-800 flex items-center"><i class="fas fa-layer-group mr-2 text-stoffus-primary"></i> Acabamentos</h3>
             <button onclick="document.getElementById('editor-panel').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
@@ -303,9 +298,17 @@
                 <div class="flex justify-between items-center mb-1"><label class="text-[10px] font-bold text-gray-500 uppercase">Rapport (Escala)</label><span id="rapport-display" class="text-xs font-mono text-stoffus-primary bg-orange-50 px-1 rounded">35 cm</span></div>
                 <input type="range" id="rapport-slider" min="10" max="100" value="35" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-stoffus-primary">
             </div>
+            
+            <!-- OPÇÕES DE COR DOS PÉS -->
              <div>
-                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Acabamento dos Pés</p>
-                 <div class="text-xs text-gray-400 italic">Pés standard do modelo selecionado.</div>
+                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Cor dos Pés</p>
+                 <div class="flex gap-2 flex-wrap">
+                    <button onclick="setLegFinish('black_matte')" class="w-8 h-8 rounded-full border-2 border-gray-200 hover:scale-110 transition bg-neutral-900" title="Negro Matte"></button>
+                    <button onclick="setLegFinish('black_shine')" class="w-8 h-8 rounded-full border-2 border-gray-200 hover:scale-110 transition bg-black shadow-inner" title="Negro Brilho"></button>
+                    <button onclick="setLegFinish('chrome')" class="w-8 h-8 rounded-full border-2 border-gray-200 hover:scale-110 transition bg-gradient-to-br from-gray-200 to-gray-500" title="Cromo"></button>
+                    <button onclick="setLegFinish('moka')" class="w-8 h-8 rounded-full border-2 border-gray-200 hover:scale-110 transition" style="background: #28221e" title="Moka"></button>
+                    <button onclick="setLegFinish('gold')" class="w-8 h-8 rounded-full border-2 border-gray-200 hover:scale-110 transition bg-gradient-to-br from-yellow-200 to-yellow-600" title="Dourado"></button>
+                 </div>
             </div>
             
             <!-- Battery Option - Only for Relax Models -->
@@ -389,330 +392,36 @@
             }
         }, 5000);
 
-        // ======================== CARREGAMENTO DE PREÇOS EXTERNOS ========================
-        let DB_PRICES = {}; // Inicializado vazio
+        // ======================== GLOBAIS ========================
+        let DB_PRICES = {}; 
+        let DB_MODELS = {}; 
+        // Inicializar como arrays vazios, serão preenchidos pelo loadExternalConfig
+        let DB_MODULES = []; 
+        let DB_COLLECTIONS = [];
+
         const GITHUB_REPO_URL = 'https://stoffus-pt.github.io/configurador-eleganza/';
-
-        function loadExternalPrices() {
-            return new Promise((resolve) => {
-                const script = document.createElement('script');
-                // Adicionamos ?v=timestamp para evitar cache
-                script.src = `${GITHUB_REPO_URL}js/price.js?v=${Date.now()}`;
-                
-                script.onload = () => {
-                    if (typeof DB_PRICES_EXTERNAL !== 'undefined') {
-                        DB_PRICES = DB_PRICES_EXTERNAL;
-                        console.log("Preços carregados com sucesso do GitHub.");
-                        resolve(true);
-                    } else {
-                        console.error("Variável DB_PRICES_EXTERNAL não encontrada no ficheiro remoto.");
-                        resolve(false);
-                    }
-                };
-                
-                script.onerror = () => {
-                    console.error("Erro ao carregar o ficheiro price.js do GitHub.");
-                    resolve(false);
-                };
-                
-                document.head.appendChild(script);
-            });
-        }
-
-        // ======================== DADOS ========================
-        const DB_MODELS = {
-            'athena': { 
-                name: 'Athena', 
-                type: 'relax', 
-                folder: 'athena', 
-                sizes: { S: 62, M: 72, L: 82, XL: 92 }, 
-                meridienSizes: { S: 112, M: 122, L: 132, XL: 142 }, 
-                chaiseSizes: { S: 62, M: 72, L: 82, XL: 92 },
-                armWidth: 20, 
-                depth: 100, 
-                chaiseDepth: 165, 
-                cornerSize: 113, 
-                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] 
-            },
-            'bartini': { 
-                name: 'Bartini', 
-                type: 'relax', 
-                folder: 'Bartini', 
-                sizes: { S: 62, M: 68, L: 78, XL: 88 }, 
-                meridienSizes: { S: 116, M: 122, L: 132, XL: 142 },
-                chaiseSizes: { S: 62, M: 68, L: 78, XL: 88 },
-                armWidth: 24, 
-                depth: 100, 
-                chaiseDepth: 165, 
-                cornerSize: 108, 
-                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r', 'meiple'] 
-            },
-            'brittany': { 
-                name: 'Brittany', 
-                type: 'relax', 
-                folder: 'brittany', 
-                sizes: { S: 62, M: 72, L: 82, XL: 92 }, 
-                meridienSizes: { S: 112, M: 122, L: 132, XL: 142 }, 
-                armWidth: 24, 
-                depth: 100, 
-                chaiseDepth: 165, 
-                cornerSize: 113, 
-                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] 
-            },
-            'dayma': { 
-                name: 'Dayma', 
-                type: 'relax', 
-                folder: 'dayma', 
-                sizes: { S: 62, M: 72, L: 82, XL: 92 }, 
-                meridienSizes: { S: 112, M: 122, L: 132, XL: 142 }, 
-                chaiseSizes: { S: 62, M: 72, L: 82, XL: 92 },
-                armWidth: 24, 
-                depth: 100, 
-                chaiseDepth: 165, 
-                cornerSize: 113, 
-                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] 
-            },
-            'enzo': { 
-                name: 'Enzo', 
-                type: 'relax', 
-                folder: 'enzo', 
-                sizes: { S: 62, M: 72, L: 82, XL: 92 }, 
-                meridienSizes: { S: 112, M: 122, L: 132, XL: 142 }, 
-                chaiseSizes: { S: 92, M: 102, L: 112, XL: 122 },
-                armWidth: 30, 
-                depth: 100, 
-                chaiseDepth: 165, 
-                cornerSize: 113, 
-                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] 
-            },
-            'fiori': { 
-                name: 'Fiori', 
-                type: 'relax', 
-                folder: 'fiori', 
-                sizes: { S: 62, M: 68, L: 78, XL: 88 }, 
-                meridienSizes: { S: 114, M: 120, L: 130, XL: 140 }, 
-                chaiseSizes: { S: 62, M: 68, L: 78, XL: 88 },
-                armWidth: 25, 
-                depth: 100, 
-                chaiseDepth: 165, 
-                cornerSize: 108, 
-                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] 
-            },
-            'fienza': {
-                name: 'Fienza',
-                type: 'relax',
-                folder: 'fienza',
-                sizes: { S: 54, M: 64, L: 74, XL: 84 },
-                armWidth: 28,
-                depth: 97,
-                chaiseDepth: 165,
-                cornerSize: 112,
-                modules: ['seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner']
-            },
-            'infinity': { name: 'Infinity (Deslizante)', type: 'slide', folder: 'Infinity', sizes: { S: 60, M: 67, L: 75, XL: 87, XXL: 97 }, armWidth: 17, depth: 110, chaiseDepth: 162, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
-            'magic': { name: 'Magic (Deslizante)', type: 'slide', folder: 'magic', sizes: { S: 60, M: 67, L: 75, XL: 87, XXL: 97 }, armWidth: 25, depth: 102, chaiseDepth: 154, cornerSize: 0, modules: ['2seats_2arms', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'chaise_l', 'chaise_r', 'meiple'] },
-            'bruma': { 
-                name: 'Bruma (Fixo)', 
-                type: 'fixed', 
-                folder: 'bruma', 
-                sizes: { L: 83, XL: 111 }, 
-                twoSeatSizes: { L: 166, XL: 185 },
-                chaiseSizes: { L: 83, XL: 92 }, 
-                pouffSize: 112,
-                triangleSize: 110,
-                triangleDepth: 108,
-                armWidth: 23, 
-                depth: 112, 
-                chaiseDepth: 170, 
-                cornerSize: 120, 
-                modules: ['seat_arm_l', 'seat_arm_r', '2seats_no_arm', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'triangle', 'pouff'] 
-            },
-            'kindia': { 
-                name: 'Kindia', 
-                type: 'relax', 
-                folder: 'kindia', 
-                sizes: { S: 58, M: 62, L: 78, XL: 90 }, 
-                oneSeatArmSizes: { S: 58, M: 62, L: 78, XL: 90 }, 
-                twoSeatSizes: { S: 132, M: 140, L: 172, XL: 196 },
-                chaiseSizes: { S: 58, M: 62, L: 78, XL: 90 }, 
-                armWidth: 16, 
-                depth: 95, 
-                chaiseDepth: 175, 
-                cornerSize: 0, 
-                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'meiple'] 
-            },
-            'sting': { 
-                name: 'Sting', 
-                type: 'relax', 
-                folder: 'sting', 
-                sizes: { S: 62, M: 68, L: 78, XL: 88 }, 
-                meridienSizes: { S: 114, M: 120, L: 130, XL: 140 },
-                armWidth: 33, 
-                depth: 100, 
-                chaiseDepth: 165, 
-                cornerSize: 108, 
-                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r'] 
-            },
-            'kaori': { 
-                name: 'Kaori', 
-                type: 'fixed', 
-                folder: 'kaori', 
-                sizes: { S: 70, M: 80, L: 90, XL: 100 }, 
-                chaiseSizes: { S: 70, M: 80, L: 90, XL: 100 },
-                meipleSize: 70,
-                armWidth: 12, 
-                depth: 100, 
-                chaiseDepth: 165, 
-                cornerSize: 112, 
-                modules: ['meiple', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner'] 
-            },
-            'polestar': { 
-                name: 'Polestar', 
-                type: 'fixed', 
-                folder: 'polestar', 
-                sizes: { L: 88 }, 
-                twoSeatSizes: { L: 176 }, 
-                chaiseSizes: { L: 88 }, 
-                maxxiSize: 120, /* Largura assento Maxxi */
-                maxxiDepth: 130, /* Profundidade Maxxi */
-                pouffSize: 88,
-                armWidth: 12, 
-                depth: 90, 
-                chaiseDepth: 174, 
-                cornerSize: 100, 
-                modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'pouff', 'meiple', 'maxxi_l', 'maxxi_r'] 
-            },
-            'rinaldi': { 
-                name: 'Rinaldi', 
-                type: 'pendular', 
-                folder: 'rinaldi', 
-                hideSizeSelector: true, /* Ocultar seletor global pois mistura-se tamanhos */
-                sizes: { L: 83, XL: 119 }, 
-                armWidth: 40, 
-                depth: 112,
-                cornerSize: 112,
-                pouffSize: 60,
-                modules: ['rinaldi_seat_l', 'rinaldi_seat_xl', 'rinaldi_arm_l_l', 'rinaldi_arm_l_r', 'rinaldi_arm_xl_l', 'rinaldi_arm_xl_r', 'rinaldi_corner', 'rinaldi_pouff'] 
-            },
-            'spirit': { 
-                name: 'Spirit', 
-                type: 'fixed', 
-                folder: 'spirit', 
-                sizes: { L: 83, XL: 103 }, 
-                chaiseSizes: { L: 83, XL: 103 },
-                meridienSizes: 102,
-                meridienDepth: 225,
-                meipleSize: 80,
-                armWidth: 14, 
-                depth: 102, 
-                chaiseDepth: 180, 
-                cornerSize: 110, 
-                modules: ['meiple', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'meridien_l', 'meridien_r'] 
-            },
-            'rose': { 
-                name: 'Rose', 
-                type: 'fixed', 
-                folder: 'rose', 
-                sizes: { M: 72, L: 87 }, 
-                chaiseSizes: { M: 72, L: 87 },
-                meridienSizes: 92,
-                meridienDepth: 212,
-                meipleSize: 60,
-                armWidth: 15, 
-                depth: 92, 
-                chaiseDepth: 165, 
-                cornerSize: 105,
-                modules: ['meiple', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'meridien_l', 'meridien_r'] 
-            }
+        
+        // MATERIAIS DOS PÉS
+        const LEG_MATERIALS = { 
+            black_matte: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.3, roughness: 0.9 }), 
+            black_shine: new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.9, roughness: 0.2 }), 
+            chrome: new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8, roughness: 0.3 }), 
+            moka: new THREE.MeshStandardMaterial({ color: 0x28221e, metalness: 0.3, roughness: 0.9 }), 
+            gold: new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.8, roughness: 0.2 }) 
         };
 
-        const DB_MODULES = [
-            { id: 'seat_no_arm', name: 'Centro', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/seatrelax.svg`, type: 'seat', fileKey: 'seat', hasArm: false },
-            { id: '2seats_no_arm', name: '2 Costas', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/2backs.svg`, type: 'seat', fileKey: '2seats', hasArm: false },
-            { id: 'seat_arm_l', name: 'Braço Esq.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/arm.svg`, type: 'seat', fileKey: 'arm', hasArm: 'left' },
-            { id: 'seat_arm_r', name: 'Braço Dir.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/arm.svg`, type: 'seat', fileKey: 'arm', hasArm: 'right' },
-            { id: '2seats_2arms', name: '2 Lug. 2 Braços', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/2arm2seats.svg`, type: 'seat', fileKey: '2arm2seats', hasArm: 'both' },
-            { id: '2seats_arm_l', name: '2 Lug. Braço Esq.', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/arm2seats.svg`, type: 'seat', fileKey: 'arm2seats', hasArm: 'left' },
-            { id: '2seats_arm_r', name: '2 Lug. Braço Dir.', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/arm2seats.svg`, type: 'seat', fileKey: 'arm2seats', hasArm: 'right' },
-            { id: 'corner', name: 'Canto', icon: 'fa-border-all', imgUrl: `${GITHUB_REPO_URL}assets/icons/corner.svg`, type: 'corner', fileKey: 'corner', hasArm: false, fixed: true },
-            { id: 'chaise_l', name: 'Chaise Esq.', icon: 'fa-l', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'chaise', hasArm: 'left' },
-            { id: 'chaise_r', name: 'Chaise Dir.', icon: 'fa-l', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'chaise', hasArm: 'right' },
-            { id: 'meridien_l', name: 'Meridien Esq.', icon: 'fa-layer-group', imgUrl: `${GITHUB_REPO_URL}assets/icons/meridien.svg`, type: 'meridien', fileKey: 'meridien', hasArm: 'left' },
-            { id: 'meridien_r', name: 'Meridien Dir.', icon: 'fa-layer-group', imgUrl: `${GITHUB_REPO_URL}assets/icons/meridien.svg`, type: 'meridien', fileKey: 'meridien', hasArm: 'right' },
-            /* ALTERAÇÃO: Meiple agora tem hasArm: 'both' para somar os 2 braços corretamente (ex: 80 + 14 + 14) */
-            { id: 'meiple', name: '1 Lug. 2 Braços', icon: 'fa-chair', imgUrl: `${GITHUB_REPO_URL}assets/icons/meiple.svg`, type: 'standalone', fileKey: 'meiple', hasArm: 'both' },
-            { id: 'pouff', name: 'Pouff Quadrado', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/pouff.svg`, type: 'standalone', fileKey: 'pouff', hasArm: false, fixed: true },
-            { id: 'triangle', name: 'Triângulo', icon: 'fa-play', imgUrl: `${GITHUB_REPO_URL}assets/icons/triangle.svg`, type: 'corner', fileKey: 'triangle', hasArm: false, fixed: true },
-            { id: 'maxxi_l', name: 'Maxxi Esq.', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'maxxi', hasArm: 'left' },
-            { id: 'maxxi_r', name: 'Maxxi Dir.', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/chaise.svg`, type: 'chaise', fileKey: 'maxxi', hasArm: 'right' },
-            
-            // Módulos RINALDI (Intercalar L e XL)
-            { id: 'rinaldi_seat_l', name: 'Assento L', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/seatrelax.svg`, type: 'seat', fileKey: 'seatL', hasArm: false, fixedWidth: 83 },
-            { id: 'rinaldi_seat_xl', name: 'Assento XL', icon: 'fa-couch', imgUrl: `${GITHUB_REPO_URL}assets/icons/seatrelax.svg`, type: 'seat', fileKey: 'seatXL', hasArm: false, fixedWidth: 119 },
-            { id: 'rinaldi_arm_l_l', name: 'Braço L Esq.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/armrelax.svg`, type: 'seat', fileKey: 'armL', hasArm: 'left', fixedWidth: 83 }, // Largura base do assento, somar braço na logica
-            { id: 'rinaldi_arm_l_r', name: 'Braço L Dir.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/armrelax.svg`, type: 'seat', fileKey: 'armL', hasArm: 'right', fixedWidth: 83 },
-            { id: 'rinaldi_arm_xl_l', name: 'Braço XL Esq.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/armrelax.svg`, type: 'seat', fileKey: 'armXL', hasArm: 'left', fixedWidth: 119 },
-            { id: 'rinaldi_arm_xl_r', name: 'Braço XL Dir.', icon: 'fa-cube', imgUrl: `${GITHUB_REPO_URL}assets/icons/armrelax.svg`, type: 'seat', fileKey: 'armXL', hasArm: 'right', fixedWidth: 119 },
-            { id: 'rinaldi_corner', name: 'Canto', icon: 'fa-border-all', imgUrl: `${GITHUB_REPO_URL}assets/icons/corner.svg`, type: 'corner', fileKey: 'corner', hasArm: false, fixed: true },
-            { id: 'rinaldi_pouff', name: 'Pouff', icon: 'fa-vector-square', imgUrl: `${GITHUB_REPO_URL}assets/icons/pouff.svg`, type: 'standalone', fileKey: 'pouff', hasArm: false, fixed: true }
-        ];
-
-        const DB_COLLECTIONS = [ 
-            // BLISS (A-Z)
-            { name: 'Artis', prefix: 'D', start: 4001, end: 4007 },
-            { name: 'Barbados', prefix: 'F', start: 4001, end: 4007 },
-            { name: 'Bella', prefix: 'B', start: 1057, end: 1063 },
-            { name: 'Carmen', prefix: 'B', start: 1127, end: 1133 },
-            { name: 'Falcon', prefix: 'B', start: 4092, end: 4098 },
-            { name: 'Funky', prefix: 'B', start: 4106, end: 4112 },
-            { name: 'Garby', prefix: 'B', start: 4078, end: 4084 },
-            { name: 'Grift', prefix: 'B', start: 4008, end: 4014 },
-            { name: 'Jade', prefix: 'B', start: 1145, end: 1151 },
-            { name: 'Kamala', prefix: 'B', start: 4071, end: 4077 },
-            { name: 'Kamala2', prefix: 'B', start: 1138, end: 1144 },
-            { name: 'Karma', prefix: 'B', start: 4043, end: 4049 },
-            { name: 'Matchy', prefix: 'B', start: 4085, end: 4091 },
-            { name: 'Mirage', prefix: 'B', start: 4099, end: 4105 },
-            { name: 'Pisa', prefix: 'B', start: 1113, end: 1119 },
-            { name: 'Prisma', prefix: 'B', start: 4022, end: 4028 },
-            { name: 'Ramses', prefix: 'B', start: 1015, end: 1021 },
-            { name: 'Rissani', prefix: 'B', start: 4057, end: 4063 },
-            { name: 'Soft', prefix: 'B', start: 4015, end: 4021 },
-            { name: 'Stancy', prefix: 'B', start: 4029, end: 4035 },
-            { name: 'Talia', prefix: 'B', start: 1043, end: 1049 },
-            { name: 'Touareg', prefix: 'B', start: 1106, end: 1112 },
-            { name: 'Venturi', prefix: 'B', start: 4050, end: 4056 },
-            { name: 'Zemy', prefix: 'B', start: 4001, end: 4007 },
-            
-            // DELTA
-            { name: 'Fumiko', prefix: 'D', start: 1001, end: 1007 },
-            { name: 'Madoka', prefix: 'D', start: 4008, end: 4014 },
-            
-            // PELE EXTRA
-            { name: 'River', prefix: 'E', start: 1001, end: 1007 },
-            
-            // PELE PLATINA
-            { name: 'Siza', prefix: 'P', start: 1001, end: 1007 }
-        ];
-
-        // NO LONGER NEEDED - TEXTURE_LAYOUTS replaced by direct file access 1-7
-        const LEG_MATERIALS = { chrome: new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8, roughness: 0.2 }), black: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.0, roughness: 0.9 }), moka: new THREE.MeshStandardMaterial({ color: 0x5D4037, metalness: 0.1, roughness: 0.6 }), wood: new THREE.MeshStandardMaterial({ color: 0x8b5a2b, metalness: 0.0, roughness: 0.8 }) };
-        
         let CURRENT_MODEL_ID = 'athena', CURRENT_SIZE_KEY = 'M', USE_ONLINE_ASSETS = true; 
         const apiKey = ""; 
         let scene, camera, renderer, controls, manager, raycaster, mouse;
         let addedModules = [], modelLibrary = {}, FABRIC_LIBRARY = [], IMAGES = {};
-        let currentFabricMaterial = null, currentLegMaterial = LEG_MATERIALS.black;
+        let currentFabricMaterial = null;
+        let currentLegMaterial = LEG_MATERIALS.black_matte; // Default
         let showDimensions = false, dimensionLinesGroup = null;
         let activeFabricId = null; 
         let failedAssetsCount = 0;
         let pendingConfiguration = null; 
         let currentRapport = 35;
         let hasLithiumBattery = false; 
-        let loadedCollectionsQueue = []; 
-        let activeCategoryList = []; 
-        let renderedCount = 0; 
-        const BATCH_SIZE = 30; 
         let touchStartX = 0;
         let touchStartY = 0;
         let isRoomModeActive = false;
@@ -727,7 +436,73 @@
             return { type: 'DEV', basePath: GITHUB_REPO_URL, useOnline: true };
         }
         const CURRENT_ENV = detectEnvironment();
-        
+
+        // ======================== LOADERS ========================
+
+        function loadExternalPrices() {
+            return new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = `${GITHUB_REPO_URL}js/price.js?v=${Date.now()}`;
+                
+                script.onload = () => {
+                    if (typeof DB_PRICES_EXTERNAL !== 'undefined') {
+                        DB_PRICES = DB_PRICES_EXTERNAL;
+                        console.log("Preços carregados com sucesso do GitHub.");
+                        resolve(true);
+                    } else {
+                        console.error("Variável DB_PRICES_EXTERNAL não encontrada.");
+                        resolve(false);
+                    }
+                };
+                script.onerror = () => { console.error("Erro ao carregar o ficheiro price.js."); resolve(false); };
+                document.head.appendChild(script);
+            });
+        }
+
+        function loadExternalModels() {
+            return new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = `${GITHUB_REPO_URL}js/models.js?v=${Date.now()}`;
+                
+                script.onload = () => {
+                    if (typeof DB_MODELS_EXTERNAL !== 'undefined') {
+                        DB_MODELS = DB_MODELS_EXTERNAL;
+                        console.log("Modelos carregados com sucesso do GitHub.");
+                        resolve(true);
+                    } else {
+                        console.error("Variável DB_MODELS_EXTERNAL não encontrada.");
+                        resolve(false);
+                    }
+                };
+                script.onerror = () => { console.error("Erro ao carregar o ficheiro models.js."); resolve(false); };
+                document.head.appendChild(script);
+            });
+        }
+
+        function loadExternalConfig() {
+            return new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = `${GITHUB_REPO_URL}js/config.js?v=${Date.now()}`;
+                
+                script.onload = () => {
+                    // Espera que as variáveis globais do config.js estejam disponíveis
+                    if (typeof DB_MODULES_EXTERNAL !== 'undefined' && typeof DB_COLLECTIONS_EXTERNAL !== 'undefined') {
+                        DB_MODULES = DB_MODULES_EXTERNAL;
+                        DB_COLLECTIONS = DB_COLLECTIONS_EXTERNAL;
+                        console.log("Configuração (Módulos e Coleções) carregada com sucesso.");
+                        resolve(true);
+                    } else {
+                        console.error("Variáveis de configuração externa não encontradas.");
+                        resolve(false);
+                    }
+                };
+                script.onerror = () => { console.error("Erro ao carregar o ficheiro config.js."); resolve(false); };
+                document.head.appendChild(script);
+            });
+        }
+
+        // ======================== FUNÇÕES UTILITÁRIAS ========================
+
         function showFeedback(msg, type) { 
             const el = document.getElementById('feedback-message'); 
             if(!el) return; 
@@ -744,82 +519,15 @@
             if(el) el.style[prop] = val; 
         }
 
-        function onWindowResize() { 
-            if (camera && renderer) {
-                camera.aspect = window.innerWidth / window.innerHeight; 
-                camera.updateProjectionMatrix(); 
-                renderer.setSize(window.innerWidth, window.innerHeight); 
-            }
-        }
-        
-        function resetCamera() {
-            const duration = 1500; 
-            const startPos = camera.position.clone(); 
-            const startTarget = controls.target.clone();
-            const endPos = new THREE.Vector3(0, 450, 750); 
-            const endTarget = new THREE.Vector3(0, 0, 0);
-            
-            const startTime = performance.now(); 
-            controls.enabled = false;
-
-            function animateScroll(currentTime) {
-                const elapsed = currentTime - startTime; 
-                let progress = Math.min(elapsed / duration, 1);
-                const ease = 1 - Math.pow(1 - progress, 3);
-
-                camera.position.lerpVectors(startPos, endPos, ease);
-                controls.target.lerpVectors(startTarget, endTarget, ease);
-                
-                controls.update();
-
-                if (progress < 1) {
-                    requestAnimationFrame(animateScroll);
-                } else {
-                    controls.enabled = true; 
-                    showFeedback("Câmara recentrada", "success");
-                    const btn = document.getElementById('btn-recenter');
-                    if(btn) btn.classList.add('hidden');
-                }
-            }
-            requestAnimationFrame(animateScroll);
-        }
-        
-        function buildFloor() {
-            const loader = new THREE.TextureLoader();
-            loader.setCrossOrigin('anonymous');
-            const floorTex = loader.load('https://stoffus-pt.github.io/configurador-eleganza/assets/textures/floor.jpg');
-            floorTex.wrapS = THREE.RepeatWrapping;
-            floorTex.wrapT = THREE.RepeatWrapping;
-            floorTex.repeat.set(10, 10); 
-            
-            const floorGeo = new THREE.PlaneGeometry(2000, 2000);
-            const floorMat = new THREE.MeshStandardMaterial({ 
-                map: floorTex, 
-                roughness: 0.8,
-                color: 0xffffff
-            });
-            
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.y = -0.5; // Slightly below y=0
-            floor.receiveShadow = true;
-            floor.name = 'permanent_floor';
-            scene.add(floor);
-        }
-
         function createTextSprite(message) {
             const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); 
             const fontSize = 64; ctx.font = "Bold " + fontSize + "px Arial"; 
             const textWidth = ctx.measureText(message).width; canvas.width = textWidth + 40; canvas.height = fontSize + 40;
-            
             ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; 
-            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, canvas.width, canvas.height, 20); ctx.fill(); } 
-            else { ctx.fillRect(0, 0, canvas.width, canvas.height); }
-            
+            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, canvas.width, canvas.height, 20); ctx.fill(); } else { ctx.fillRect(0, 0, canvas.width, canvas.height); }
             ctx.fillStyle = "white"; ctx.font = "Bold " + fontSize + "px Arial"; 
             ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
             ctx.fillText(message, canvas.width/2, canvas.height/2);
-            
             const texture = new THREE.CanvasTexture(canvas); 
             const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false })); 
             sprite.scale.set(canvas.width * 0.15, canvas.height * 0.15, 1); sprite.renderOrder = 999; 
@@ -829,23 +537,18 @@
         function createStatusSprite(label) {
             const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); 
             const w = 256; const h = 64; canvas.width = w; canvas.height = h;
-            
             ctx.fillStyle = "#e84c26"; 
-            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, w, h, 30); ctx.fill(); } 
-            else { ctx.fillRect(0, 0, w, h); }
-            
+            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, w, h, 30); ctx.fill(); } else { ctx.fillRect(0, 0, w, h); }
             ctx.fillStyle = "white"; ctx.font = "bold 30px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
             ctx.fillText(label.toUpperCase(), w/2, h/2);
-            
             ctx.beginPath(); ctx.arc(30, h/2, 6, 0, 2 * Math.PI); ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.fill();
-
             const texture = new THREE.CanvasTexture(canvas); texture.minFilter = THREE.LinearFilter;
             const material = new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false });
             const sprite = new THREE.Sprite(material); 
             sprite.scale.set(40, 10, 1); sprite.renderOrder = 1000;
             return sprite;
         }
-        
+
         function getFabricClass(collectionName) {
             if (!collectionName) return 'bliss'; 
             const name = collectionName.trim();
@@ -860,29 +563,18 @@
             let currentClass = 'bliss';
             if (activeFabricId) {
                 const fab = FABRIC_LIBRARY.find(f => f.id === activeFabricId);
-                if (fab) {
-                    currentClass = getFabricClass(fab.collection);
-                }
+                if (fab) currentClass = getFabricClass(fab.collection);
             }
             addedModules.forEach(mod => {
                 const modelPrices = DB_PRICES[CURRENT_MODEL_ID] || {};
                 if (modelPrices && modelPrices[mod.data.id]) {
                     const sizeKey = CURRENT_SIZE_KEY;
                     const sizePrices = modelPrices[mod.data.id][sizeKey];
-                    
                     if (sizePrices) {
                         const pts = sizePrices[currentClass];
                         if (pts) total += pts;
-                        
-                        // Add Cost for Relax Mechanism
-                        if (mod.hasRelax) {
-                             total += RELAX_COST_POINTS;
-                        }
-                        
-                        // Add Cost for Battery (if relax enabled)
-                        if (mod.hasRelax && hasLithiumBattery) {
-                             total += BATTERY_COST_POINTS;
-                        }
+                        if (mod.hasRelax) total += RELAX_COST_POINTS;
+                        if (mod.hasRelax && hasLithiumBattery) total += BATTERY_COST_POINTS;
                     }
                 }
             });
@@ -891,698 +583,29 @@
         
         function getMultiplier() {
              const input = document.getElementById('price-multiplier');
-             
              let val = 23.5;
              if(input) val = parseFloat(input.value);
-             
              if(isNaN(val)) return 0;
-             
-             // Enforce limits for calculation safety
              if(val < 10) return 10;
              if(val > 30) return 30;
-             
              return val;
         }
 
-        function getFinalPrice() {
-            const points = calculateTotalPoints();
-            const coefficient = getMultiplier();
-            return points * coefficient;
-        }
+        function getFinalPrice() { return calculateTotalPoints() * getMultiplier(); }
 
         function updatePriceUI() {
             const price = getFinalPrice();
             const priceStr = price.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
-            
             const sidebarEl = document.getElementById('sidebar-points');
             const summaryEl = document.getElementById('summary-points');
-            
-            // Atualizar labels
-            // Sidebar
             const sidebarLabel = document.getElementById('lbl-total');
-            if(sidebarLabel) sidebarLabel.innerText = "TOTAL"; // Alterado para "TOTAL" apenas
-
-            // Summary Modal
+            if(sidebarLabel) sidebarLabel.innerText = "TOTAL"; 
             const summaryLabel = document.querySelector('#summary-points')?.previousElementSibling;
-            if(summaryLabel) summaryLabel.innerText = "TOTAL:"; // Alterado para "TOTAL:"
-            
+            if(summaryLabel) summaryLabel.innerText = "TOTAL:"; 
             if(sidebarEl) sidebarEl.innerText = priceStr;
             if(summaryEl) summaryEl.innerText = priceStr;
         }
 
-        function updateDimensionLabels() {
-            if (!dimensionLinesGroup) return;
-             while(dimensionLinesGroup.children.length > 0){ 
-                const obj = dimensionLinesGroup.children[0]; 
-                if(obj.material && obj.material.map) obj.material.map.dispose(); 
-                dimensionLinesGroup.remove(obj); 
-            }
-            if(!showDimensions || addedModules.length === 0) return;
-            let leg1Length = 0; let leg2Length = 0; 
-            let cornerIndex = -1; 
-            for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIndex = i; break; }
-            const endLeg1Index = cornerIndex === -1 ? addedModules.length - 1 : cornerIndex; 
-            let startX = 0; let endX = 0;
-            if(addedModules.length > 0) {
-                const first = addedModules[0]; const lastLeg1 = addedModules[endLeg1Index]; 
-                endX = lastLeg1.mesh.position.x + lastLeg1.width/2; startX = -first.width/2; leg1Length = endX - startX;
-                const lineY = 110; 
-                const linePoints = [new THREE.Vector3(startX, lineY, 0), new THREE.Vector3(endX, lineY, 0)]; 
-                const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePoints), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 })); 
-                dimensionLinesGroup.add(line);
-                const sprite = createTextSprite(Math.round(leg1Length) + " cm"); 
-                sprite.position.set((startX + endX)/2, lineY + 15, 0); 
-                dimensionLinesGroup.add(sprite);
-            }
-            if(cornerIndex !== -1 && cornerIndex < addedModules.length - 1) {
-                const corner = addedModules[cornerIndex]; const lastLeg2 = addedModules[addedModules.length - 1]; 
-                const startZ = corner.mesh.position.z - corner.depth/2; const endZ = lastLeg2.mesh.position.z + lastLeg2.width/2; leg2Length = endZ - startZ;
-                const lineX = corner.mesh.position.x + corner.width/2 + 20; 
-                const lineY = 110;
-                const linePointsZ = [new THREE.Vector3(lineX, lineY, startZ), new THREE.Vector3(lineX, lineY, endZ)]; 
-                const lineZ = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePointsZ), new THREE.LineBasicMaterial({ color: 0xffffff })); 
-                dimensionLinesGroup.add(lineZ);
-                const spriteZ = createTextSprite(Math.round(leg2Length) + " cm"); 
-                spriteZ.position.set(lineX + 10, lineY + 15, (startZ + endZ)/2); 
-                dimensionLinesGroup.add(spriteZ);
-            }
-        }
-
-        function repositionModules() {
-            let cornerIdx = -1; 
-            for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIdx = i; break; }
-            let cornerPos = { x:0, z:0, depth: 0 }; 
-            const modelData = DB_MODELS[CURRENT_MODEL_ID];
-            let gapCorrection = 0;
-            if (CURRENT_MODEL_ID === 'dayma') gapCorrection = -2;
-            if (CURRENT_MODEL_ID === 'brittany') gapCorrection = -4; 
-            if (CURRENT_MODEL_ID === 'fiori') gapCorrection = -2; 
-
-            // 1. Posicionamento Visual (Mantém-se para o desenho 3D)
-            addedModules.forEach((mod, i) => {
-                const mesh = mod.mesh;
-                if(cornerIdx === -1 || i <= cornerIdx) {
-                    mod.isCornerLine = false; mesh.rotation.y = 0;
-                    if(i === 0) mesh.position.x = 0; 
-                    else { const prev = addedModules[i-1]; mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2) + gapCorrection; }
-                    mesh.position.z = ((mod.depth - modelData.depth) / 2); 
-                    if(mod.data.type === 'corner') cornerPos = { x: mesh.position.x, z: mesh.position.z, depth: mod.depth };
-                } else {
-                    mod.isCornerLine = true; mesh.rotation.y = -Math.PI / 2; 
-                    if(i === cornerIdx + 1) { mesh.position.z = cornerPos.z + (cornerPos.depth/2) + (mod.width/2) + gapCorrection; } 
-                    else { const prev = addedModules[i-1]; mesh.position.z = prev.mesh.position.z + (prev.width/2) + (mod.width/2) + gapCorrection; }
-                    mesh.position.x = cornerPos.x + (cornerPos.depth/2) - (mod.depth/2);
-                }
-            });
-            
-            // 2. Cálculo Lógico de Medidas (Baseado estritamente na DB)
-            let logicalW = 0;
-            let logicalD = 0;
-
-            if (addedModules.length > 0) {
-                const hasCorner = cornerIdx !== -1;
-                
-                // --- Calcular Largura (Linha Principal) ---
-                // Se tem canto, soma até ao canto (inclusive). Se não, soma tudo.
-                const limitIndex = hasCorner ? cornerIdx : addedModules.length - 1;
-                
-                for(let i=0; i <= limitIndex; i++) {
-                    logicalW += addedModules[i].width;
-                }
-                
-                // --- Calcular Profundidade ---
-                if (hasCorner) {
-                    // Profundidade Base é a profundidade do módulo de canto
-                    logicalD = addedModules[cornerIdx].depth;
-                    
-                    // Soma a largura dos módulos da segunda linha (que rodam e formam comprimento)
-                    for(let i = cornerIdx + 1; i < addedModules.length; i++) {
-                        logicalD += addedModules[i].width;
-                    }
-                } else {
-                    // Se é linear, a profundidade total é a maior profundidade encontrada (ex: chaise)
-                    let maxD = 0;
-                    addedModules.forEach(m => {
-                        if(m.depth > maxD) maxD = m.depth;
-                    });
-                    logicalD = maxD;
-                }
-            }
-
-            const widthDisplay = document.getElementById('total-width-display');
-            if (widthDisplay) widthDisplay.innerText = `${Math.round(logicalW)}cm x ${Math.round(logicalD)}cm +/-`;
-            
-            updateDimensionLabels();
-            updatePriceUI(); 
-        }
-
-        function createModuleMesh(moduleId) {
-            const def = DB_MODULES.find(m => m.id === moduleId); 
-            const modelData = DB_MODELS[CURRENT_MODEL_ID]; 
-            const group = new THREE.Group();
-            
-            let effectiveSizeKey = CURRENT_SIZE_KEY;
-            
-            if (!modelData.sizes[effectiveSizeKey]) {
-                 const keys = Object.keys(modelData.sizes);
-                 if(keys.length > 0) effectiveSizeKey = keys[0];
-                 else effectiveSizeKey = 'M'; 
-            }
-            
-            const isSlidingModel = ['infinity', 'magic'].includes(CURRENT_MODEL_ID);
-            if (isSlidingModel && CURRENT_SIZE_KEY === 'XXL' && def.id !== '2seats_2arms') { effectiveSizeKey = 'XL'; }
-            
-            // Lógica de Largura (Width)
-            let width;
-            if (def.fixedWidth) {
-                // Rinaldi: largura fixa definida no módulo
-                width = def.fixedWidth;
-            } else if (def.fixed) {
-                // CORREÇÃO: Usar fileKey para detetar qualquer pouff (incluindo rinaldi_pouff)
-                if (def.fileKey === 'pouff' && modelData.pouffSize) width = modelData.pouffSize;
-                else if (def.id === 'triangle' && modelData.triangleSize) width = modelData.triangleSize;
-                else width = modelData.cornerSize;
-            } else if (def.type === 'meridien' && modelData.meridienSizes) {
-                if (typeof modelData.meridienSizes === 'number') {
-                    width = modelData.meridienSizes;
-                } else {
-                    width = modelData.meridienSizes[effectiveSizeKey] || 100;
-                }
-            } else if (def.id.startsWith('maxxi')) {
-                // Largura do Maxxi
-                width = modelData.maxxiSize || 132; 
-            } else if (def.type === 'chaise' && modelData.chaiseSizes) {
-                width = modelData.chaiseSizes[effectiveSizeKey] || 80;
-            } else if (def.id === 'meiple') {
-                // Lógica específica para Meiple (Prioridade: Tamanho fixo > oneSeatArmSizes > tamanho base)
-                if (modelData.meipleSize) {
-                    width = modelData.meipleSize;
-                } else if (modelData.oneSeatArmSizes) {
-                    width = modelData.oneSeatArmSizes[effectiveSizeKey];
-                } else {
-                    width = modelData.sizes[effectiveSizeKey] || 70;
-                }
-            } else if ((def.id === 'seat_arm_l' || def.id === 'seat_arm_r') && modelData.oneSeatArmSizes) {
-                width = modelData.oneSeatArmSizes[effectiveSizeKey];
-            } else if (def.id.startsWith('2seats') && modelData.twoSeatSizes) {
-                width = modelData.twoSeatSizes[effectiveSizeKey];
-            } else {
-                width = modelData.sizes[effectiveSizeKey] || 70;
-            }
-
-            if (def.id.startsWith('2seats') && !modelData.twoSeatSizes) width *= 2;
-            
-            // Lógica de Profundidade (Depth)
-            let depth = modelData.depth; 
-            if (def.type === 'chaise') depth = modelData.chaiseDepth;
-            if (def.id.startsWith('maxxi')) depth = modelData.maxxiDepth || 130; 
-            
-            if (def.type === 'meridien') {
-                // Usa profundidade específica da Meridien se definida, senão usa a da Chaise
-                depth = modelData.meridienDepth || modelData.chaiseDepth;
-            }
-            
-            // ATUALIZAÇÃO: Para todos os modelos tipo RELAX, a Meridien tem a profundidade do assento
-            if (modelData.type === 'relax' && def.type === 'meridien') {
-                depth = modelData.depth;
-            }
-            
-            if (def.type === 'corner') depth = modelData.cornerSize;
-            
-            // Ajuste para profundidade do triângulo, se definida
-            if (def.id === 'triangle' && modelData.triangleDepth) {
-                depth = modelData.triangleDepth;
-            }
-            
-            let totalWidth = width + (def.hasArm ? modelData.armWidth : 0);
-            if (def.hasArm === 'both') totalWidth = width + (modelData.armWidth * 2);
-            
-            // CORREÇÃO: Meridien usa a largura definida como total, sem somar braço
-            if (def.type === 'meridien') {
-                totalWidth = width;
-            }
-            
-            const asset = modelLibrary[def.fileKey];
-            if (asset) {
-                const mesh = asset.clone();
-                if (!def.fixed) { 
-                    const baseRefSize = 72; 
-                    const baseArmSize = 20; 
-                    
-                    let targetTotalW = width + (def.hasArm ? modelData.armWidth : 0);
-                    if (def.hasArm === 'both') targetTotalW = width + (modelData.armWidth * 2);
-
-                    // Aplica a mesma correção para o cálculo da escala
-                    if (def.type === 'meridien') {
-                        targetTotalW = width;
-                    }
-
-                    let baseTotalW = baseRefSize + (def.hasArm ? baseArmSize : 0);
-                    if (def.hasArm === 'both') baseTotalW = baseRefSize + (baseArmSize * 2);
-                    
-                    const box = new THREE.Box3().setFromObject(mesh); 
-                    const size = new THREE.Vector3(); 
-                    box.getSize(size); 
-                    const currentW = size.x;
-
-                    if (currentW > 0.1) {
-                         const scaleFactor = targetTotalW / currentW;
-                         mesh.scale.x *= scaleFactor;
-                    } else {
-                        const scaleFactor = targetTotalW / baseTotalW;
-                        mesh.scale.x *= scaleFactor; 
-                    }
-                }
-                
-                let flip = def.hasArm === 'right'; 
-                if (def.type === 'meridien') { flip = def.hasArm === 'left'; }
-                if (def.type === 'chaise') { 
-                    if (CURRENT_MODEL_ID === 'athena') { flip = def.hasArm === 'right'; } 
-                    else { flip = def.hasArm === 'left'; } 
-                }
-                // Maxxi usa a mesma lógica de flip da Chaise (standard)
-                if (def.id.startsWith('maxxi')) {
-                    flip = def.hasArm === 'right';
-                }
-
-                if (CURRENT_MODEL_ID === 'kindia' && def.id.includes('seat_arm')) { flip = !flip; }
-                
-                if (flip) { mesh.scale.x *= -1; mesh.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); }
-                
-                const finalBox = new THREE.Box3().setFromObject(mesh); 
-                const center = new THREE.Vector3(); finalBox.getCenter(center); mesh.position.sub(center); mesh.position.y += (finalBox.max.y - finalBox.min.y) / 2;
-                
-                const isArmModule = def.id.includes('seat_arm'); const isDoubleArmModule = def.id.includes('2seats_arm'); const isChaise = def.type === 'chaise'; const isMeridien = def.type === 'meridien'; const isBartini = CURRENT_MODEL_ID === 'bartini'; const isFiori = CURRENT_MODEL_ID === 'fiori'; const isKindia = CURRENT_MODEL_ID === 'kindia'; const isSting = CURRENT_MODEL_ID === 'sting'; 
-                const isInfinity = CURRENT_MODEL_ID === 'infinity'; const isMagic = CURRENT_MODEL_ID === 'magic'; const isBruma = CURRENT_MODEL_ID === 'bruma'; const isKaori = CURRENT_MODEL_ID === 'kaori'; const isFienza = CURRENT_MODEL_ID === 'fienza';
-                const isPolestar = CURRENT_MODEL_ID === 'polestar';
-                const isRinaldi = CURRENT_MODEL_ID === 'rinaldi';
-                const isSpirit = CURRENT_MODEL_ID === 'spirit';
-                const isRose = CURRENT_MODEL_ID === 'rose';
-                
-                // Adicionar Maxxi à lista de módulos que ficam no chão (mesma lógica da Chaise)
-                const isMaxxi = def.id.startsWith('maxxi');
-
-                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma && !isKaori && !isFienza && !isPolestar && !isRinaldi && !isMaxxi && !isSpirit && !isRose) { mesh.position.y += 12; }
-                
-                // Elevar especificamente o Canto do Rose em 12cm
-                if (CURRENT_MODEL_ID === 'rose' && def.id === 'corner') { mesh.position.y += 12; }
-
-                if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
-                if (CURRENT_MODEL_ID === 'athena' && def.id === 'seat_no_arm') { mesh.position.z += 4; }
-                if (CURRENT_MODEL_ID === 'athena' && def.id === 'corner') { mesh.position.z += 4; }
-
-                group.add(mesh);
-                
-                const type = DB_MODELS[CURRENT_MODEL_ID].type;
-                if ((type === 'relax' || type === 'slide' || type === 'pendular') && !def.fixed) {
-                    let labelText = type === 'slide' ? "SLIDE" : "RELAX";
-                    if (type === 'pendular') labelText = "PENDULAR";
-                    const badge = createStatusSprite(labelText);
-                    badge.position.set(0, 90, -10); 
-                    badge.name = 'status_badge';
-                    badge.visible = false; 
-                    group.add(badge);
-                }
-
-            } else { const box = new THREE.Mesh(new THREE.BoxGeometry(totalWidth, 45, depth), new THREE.MeshStandardMaterial({color:0x999999})); box.position.y = 34.5; group.add(box); }
-            group.userData = { def: def, width: totalWidth, depth: depth, hasRelax: false, relaxFactor: 0 };
-            return group;
-        }
-
-        function addModule(moduleId, silent = false, startRelax = false) {
-            const modelData = DB_MODELS[CURRENT_MODEL_ID];
-            
-            // Regra Especial: Bruma não tem 2seats_2arms no tamanho XL
-            if (CURRENT_MODEL_ID === 'bruma' && CURRENT_SIZE_KEY === 'XL' && moduleId === '2seats_2arms') {
-                if (!silent) showFeedback("Este módulo não está disponível no tamanho XL.", "error");
-                return;
-            }
-
-            if (modelData.modules && !modelData.modules.includes(moduleId)) { 
-                if (!silent) console.warn(`Módulo ${moduleId} ignorado`); 
-                return; 
-            }
-            const mesh = createModuleMesh(moduleId); 
-            scene.add(mesh);
-            
-            const data = mesh.userData; 
-            data.hasRelax = startRelax; 
-            data.relaxFactor = startRelax ? 1 : 0;
-            
-            addedModules.push({ mesh: mesh, data: data.def, ...data });
-            
-            mesh.traverse((node) => { 
-                if (node.isMesh) { 
-                    const lowerName = node.name.toLowerCase(); 
-                    const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw)); 
-                    if (!isLeg && node.name !== 'shadow_plane' && currentFabricMaterial) { 
-                        node.material = currentFabricMaterial; 
-                    } 
-                    if (isLeg && currentLegMaterial) { 
-                        node.material = currentLegMaterial; 
-                    } 
-                } 
-            });
-            
-            repositionModules(); 
-            if(!silent) showFeedback("Módulo Adicionado", "success");
-        }
-
-        function findSlideParts(mod) {
-            if (mod.sliderParts && mod.sliderParts.length > 0) return true;
-            const foundNodes = [];
-            mod.mesh.traverse(node => {
-                if (node === mod.mesh) return;
-                const cleanName = node.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
-                if (cleanName.includes('assento') || cleanName.includes('seat') || cleanName.includes('slid')) {
-                    let parentAlreadyFound = false; let curr = node.parent; while(curr && curr !== mod.mesh) { if (foundNodes.includes(curr)) { parentAlreadyFound = true; break; } curr = curr.parent; }
-                    if (!parentAlreadyFound) { foundNodes.push(node); }
-                }
-            });
-            if (foundNodes.length > 0) { mod.sliderParts = foundNodes; mod.sliderParts.forEach(p => { if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; }); return true; }
-            const fallbackParts = []; mod.mesh.traverse(node => { if (node.isMesh) { const n = node.name.toLowerCase(); if (n.includes('almofada') || n.includes('cushion')) { fallbackParts.push(node); } } });
-            if (fallbackParts.length > 0) { mod.sliderParts = fallbackParts; mod.sliderParts.forEach(p => { if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; }); return true; }
-            return false;
-        }
-
-        // New helper to find backrest parts for Rinaldi
-        function findBackParts(mod) {
-            if (mod.backParts && mod.backParts.length > 0) return true;
-            const foundNodes = [];
-            mod.mesh.traverse(node => {
-                if (node === mod.mesh) return;
-                const cleanName = node.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
-                // CORREÇÃO: Alterado de 'costas' para 'costa'
-                if (cleanName.includes('costa') || cleanName.includes('back')) {
-                    let parentAlreadyFound = false; let curr = node.parent; while(curr && curr !== mod.mesh) { if (foundNodes.includes(curr)) { parentAlreadyFound = true; break; } curr = curr.parent; }
-                    if (!parentAlreadyFound) { foundNodes.push(node); }
-                }
-            });
-            if (foundNodes.length > 0) { 
-                mod.backParts = foundNodes; 
-                mod.backParts.forEach(p => { 
-                    if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; 
-                    if (p.userData.origX === undefined) p.userData.origX = p.position.x; 
-                }); 
-                return true; 
-            }
-            return false;
-        }
-
-        function animate() {
-            if(!scene || !camera || !renderer) return;
-            requestAnimationFrame(animate); controls.update();
-            const btnRecenter = document.getElementById('btn-recenter');
-            if (btnRecenter) { const distTarget = controls.target.length(); const distCam = camera.position.distanceTo(controls.target); if (distTarget > 300 || distCam > 2000) { if(btnRecenter.classList.contains('hidden')) btnRecenter.classList.remove('hidden'); } else { if(!btnRecenter.classList.contains('hidden')) btnRecenter.classList.add('hidden'); } }
-            const modelType = DB_MODELS[CURRENT_MODEL_ID].type;
-            const time = Date.now() * 0.003;
-
-            addedModules.forEach(mod => {
-                const badge = mod.mesh.getObjectByName('status_badge');
-                if (badge) {
-                    badge.visible = mod.relaxFactor > 0.1;
-                    if (badge.visible) { badge.position.y = 90 + Math.sin(time) * 2; }
-                }
-
-                const target = mod.hasRelax ? 1 : 0; mod.relaxFactor += (target - mod.relaxFactor) * 0.08;
-                if (Math.abs(target - mod.relaxFactor) < 0.001 && (target === 0 || target === 1)) {}
-                
-                if (CURRENT_MODEL_ID === 'rinaldi') {
-                    if (findBackParts(mod)) {
-                        // FIX: Detect scale to prevent "flying" parts
-                        let scale = 1;
-                        // CORREÇÃO: Usar Math.abs() para ignorar o sinal negativo em módulos invertidos (ex: Braço Direito)
-                        if(mod.mesh.children.length > 0) scale = Math.abs(mod.mesh.children[0].scale.x);
-                        
-                        const dist = 27 / scale;
-                        const distCorner = 19 / scale;
-
-                        mod.backParts.forEach(part => {
-                            if (mod.data.id === 'rinaldi_corner') {
-                                // Corner moves diagonally
-                                part.position.x = part.userData.origX - (mod.relaxFactor * distCorner); 
-                                part.position.z = part.userData.origZ + (mod.relaxFactor * distCorner);
-                            } else {
-                                // Standard moves forward
-                                part.position.z = part.userData.origZ + (mod.relaxFactor * dist);
-                            }
-                        });
-                    }
-                } else if (modelType === 'relax') {
-                    const foot = mod.mesh.getObjectByName('footrest_anim') || mod.mesh.getObjectByName('recliner'); const back = mod.mesh.getObjectByName('back_anim') || mod.mesh.getObjectByName('backrest');
-                    if (foot) { foot.rotation.x = -Math.PI / 2.5 * mod.relaxFactor; foot.position.y = mod.relaxFactor * 30 + 12; foot.position.z = mod.relaxFactor * 40; }
-                    if (back) back.rotation.x = -0.2 * mod.relaxFactor;
-                } else if (modelType === 'slide') {
-                    let internalScale = 1; if (mod.mesh.children.length > 0) { internalScale = mod.mesh.children[0].scale.z; }
-                    const slideDistance = 50 / internalScale;
-                    if (mod.sliderParts && mod.sliderParts.length > 0) { mod.sliderParts.forEach(part => { if (part.userData.origZ === undefined) part.userData.origZ = part.position.z; part.position.z = part.userData.origZ + (mod.relaxFactor * slideDistance); }); } else if (mod.sliderGroup) { mod.sliderGroup.position.z = mod.sliderGroup.userData.origZ + (mod.relaxFactor * slideDistance); }
-                }
-            });
-            renderer.render(scene, camera);
-        }
-
-        function interactWithScene(x, y) {
-            const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((x - rect.left) / rect.width) * 2 - 1; mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(scene.children, true);
-            const hoverMenu = document.getElementById('module-hover-menu');
-            if (intersects.length > 0) {
-                let obj = intersects[0].object; while(obj.parent && obj.parent.type !== 'Scene') obj = obj.parent;
-                const idx = addedModules.findIndex(m => m.mesh === obj);
-                if (idx !== -1) {
-                    const mod = addedModules[idx];
-                    const vector = new THREE.Vector3(); mod.mesh.getWorldPosition(vector); vector.y += 60; vector.project(camera);
-                    const screenX = (vector.x * .5 + .5) * renderer.domElement.clientWidth; const screenY = (vector.y * -.5 + .5) * renderer.domElement.clientHeight;
-                    hoverMenu.style.left = `${screenX}px`; hoverMenu.style.top = `${screenY}px`; hoverMenu.classList.add('visible');
-                    const btnRelax = document.getElementById('btn-relax'); const btnRemove = document.getElementById('btn-remove');
-                    if (DB_MODELS[CURRENT_MODEL_ID].type === 'fixed' && CURRENT_MODEL_ID !== 'rinaldi') btnRelax.style.display = 'none';
-                    else { 
-                        btnRelax.style.display = 'flex'; 
-                        
-                        // Custom Text for Rinaldi
-                        if (CURRENT_MODEL_ID === 'rinaldi') {
-                            document.getElementById('relax-text').innerText = 'Avançar Costas';
-                            btnRelax.innerHTML = `<i class="fas fa-arrows-alt-h"></i> <span id="relax-text">Avançar Costas</span>`;
-                        } else {
-                            const isSlide = DB_MODELS[CURRENT_MODEL_ID].type === 'slide'; 
-                            document.getElementById('relax-text').innerText = isSlide ? 'Deslizar' : 'Relax';
-                            btnRelax.innerHTML = `<i class="fas fa-couch"></i> <span id="relax-text">${isSlide ? 'Deslizar' : 'Relax'}</span>`;
-                        }
-
-                        btnRelax.onclick = () => { 
-                            if (DB_MODELS[CURRENT_MODEL_ID].type === 'slide') { const found = findSlideParts(mod); if (!found) { showFeedback("ERRO: Peça 'assento' não encontrada.", "error"); return; } } 
-                            // Check parts for Rinaldi
-                            if (CURRENT_MODEL_ID === 'rinaldi') {
-                                const foundBacks = findBackParts(mod);
-                                if (!foundBacks) { showFeedback("ERRO: Costas não encontradas.", "error"); return; }
-                            }
-
-                            mod.hasRelax = !mod.hasRelax; 
-                            if (CURRENT_MODEL_ID === 'rinaldi') showFeedback(mod.hasRelax ? "Costas avançadas" : "Costas recuadas", "success");
-                            else if (DB_MODELS[CURRENT_MODEL_ID].type === 'slide') showFeedback(mod.hasRelax ? "A deslizar..." : "A recolher...", "success"); 
-                            updatePriceUI(); 
-                        }; 
-                        if (mod.hasRelax) btnRelax.classList.add('active'); else btnRelax.classList.remove('active');
-                    }
-                    btnRemove.onclick = () => { scene.remove(mod.mesh); addedModules.splice(idx, 1); repositionModules(); hoverMenu.classList.remove('visible'); };
-                    return true;
-                }
-            }
-            hoverMenu.classList.remove('visible'); return false;
-        }
-
-        function onTouchStart(e) { if (e.touches.length === 1) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; } }
-        function onTouchEnd(e) { if (e.changedTouches.length === 1) { const dx = e.changedTouches[0].clientX - touchStartX; const dy = e.changedTouches[0].clientY - touchStartY; if (Math.abs(dx) < 10 && Math.abs(dy) < 10) { interactWithScene(e.changedTouches[0].clientX, e.changedTouches[0].clientY); } } }
-        function onMouseMove(e) { interactWithScene(e.clientX, e.clientY); }
-        function onMouseClick(e) { interactWithScene(e.clientX, e.clientY); }
-
-        function renderFabricDock(mode, collectionKey) {
-            const list = document.getElementById('fabric-modal-content-list'); const title = document.getElementById('fabric-modal-title'); const backBtn = document.getElementById('fabric-back-btn'); const btnName = document.getElementById('current-fabric-name');
-            if(!list) return; list.innerHTML = '';
-            
-            const thumbBase = 'https://stoffus-pt.github.io/configurador-eleganza/assets/compressedtextures/';
-            
-            if (mode === 'collections') {
-                title.textContent = "Coleções de Tecidos"; backBtn.classList.add('hidden');
-                DB_COLLECTIONS.forEach(col => {
-                    const key = col.name.toLowerCase().replace(/\s/g, ''); 
-                    
-                    const imgUrl = `${thumbBase}${col.name} 1.webp`;
-                    let c1, c2;
-                    if (['Fumiko', 'Madoka'].includes(col.name)) {
-                        c1 = '#64a8e4'; c2 = '#2b5a87'; 
-                    } else if (col.name === 'River') {
-                        c1 = '#ed7629'; c2 = '#db362c';
-                    } else if (col.name === 'Siza') {
-                        c1 = '#da3012'; c2 = '#bc2e1a';
-                    } else {
-                        c1 = '#91c73b'; c2 = '#88b741';
-                    }
-
-                    const gradStyle = `linear-gradient(135deg, ${c1} 0%, ${c1} 45%, ${c2} 100%)`;
-                    
-                    const item = document.createElement('div'); 
-                    item.className = 'dock-item'; 
-                    item.onclick = () => renderFabricDock('colors', key);
-                    
-                    const style = `
-                        background-image: url('${imgUrl}'), ${gradStyle};
-                        background-origin: padding-box, border-box;
-                        background-clip: padding-box, border-box;
-                        background-size: cover, auto;
-                        background-position: center;
-                        background-repeat: no-repeat;
-                        border: 4px solid transparent;
-                    `;
-
-                    item.innerHTML = `<div class="dock-circle" style="${style}"></div><span class="dock-label">${col.name}</span>`; 
-                    list.appendChild(item);
-                });
-            } else if (mode === 'colors') {
-                const colName = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === collectionKey).name; title.textContent = colName.toUpperCase(); backBtn.classList.remove('hidden');
-                const fabrics = FABRIC_LIBRARY.filter(f => f.type === collectionKey);
-                
-                fabrics.forEach(fab => {
-                    const item = document.createElement('div'); item.className = `dock-item ${fab.id === activeFabricId ? 'active' : ''}`;
-                    item.onclick = () => { setFabricFromLibrary(fab.id); uiSet('fabric-modal', 'display', 'none'); btnName.innerText = fab.name; };
-                    
-                    const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type); const colN = col ? col.name : fab.collection;
-                    const imgUrl = `${thumbBase}${colN} ${fab.fileIndex}.webp`;
-                    
-                    item.innerHTML = `<div class="dock-circle" style="background-image: url('${imgUrl}'); background-size: cover;"></div><span class="dock-label">${fab.name}</span>`; list.appendChild(item);
-                });
-            }
-        }
-
-        function initFabricData() { 
-            DB_COLLECTIONS.forEach(col => { 
-                const key = col.name.toLowerCase().replace(/\s/g, ''); 
-                IMAGES[key] = {}; 
-                for (let i = 0; i < 7; i++) {
-                    const suffix = i + 1;
-                    const idCode = col.start + i;
-                    FABRIC_LIBRARY.push({ 
-                        id: `${key}_${col.prefix}${idCode}`, 
-                        name: `${col.name} ${col.prefix}${idCode}`, 
-                        color: '#dcdcdc', 
-                        type: key, 
-                        fileIndex: suffix, 
-                        collection: col.name 
-                    });
-                }
-            }); 
-        }
-        
-        function initFabricSystem() { 
-            initFabricData(); 
-            renderFabricDock('collections');
-        }
-        
-        function applyTextureRepeat(texture, rapportCm) { if(!texture) return; const referenceSizeCm = 90; const repeatFactor = referenceSizeCm / rapportCm; texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(repeatFactor, repeatFactor); texture.needsUpdate = true; }
-        
-        function createMaterialFromImage(sourceImg) { 
-            if(!sourceImg) return null; 
-            const tex = new THREE.Texture(sourceImg);
-            tex.encoding = THREE.sRGBEncoding; 
-            tex.wrapS = THREE.RepeatWrapping; 
-            tex.wrapT = THREE.RepeatWrapping; 
-            tex.needsUpdate = true;
-            applyTextureRepeat(tex, currentRapport); 
-            
-            let params = { 
-                map: tex, 
-                color: 0xffffff, 
-                roughness: 0.9, 
-                metalness: 0.0, 
-                bumpMap: tex, 
-                bumpScale: 0.02 
-            }; 
-            return new THREE.MeshStandardMaterial(params); 
-        }
-        
-        function createProceduralFabricTexture(type, colorHex) { const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size); const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; applyTextureRepeat(tex, currentRapport); return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.01 }); }
-        function updateAllModulesMaterial() { addedModules.forEach(mod => { if(!mod.mesh) return; mod.mesh.traverse((node) => { if (node.isMesh) { const lowerName = node.name.toLowerCase(); const isLeg = ['leg', 'pé', 'base', 'metal', 'wood'].some(kw => lowerName.includes(kw)); if (!isLeg && node.name !== 'shadow_plane') node.material = currentFabricMaterial; if (isLeg) node.material = currentLegMaterial; } }); }); }
-        function updateFabricRapport() { if(currentFabricMaterial && currentFabricMaterial.map) { applyTextureRepeat(currentFabricMaterial.map, currentRapport); if(currentFabricMaterial.bumpMap) applyTextureRepeat(currentFabricMaterial.bumpMap, currentRapport); } }
-        
-        function renderModuleButtons() { 
-            const container = document.getElementById('module-list'); 
-            if(!container) return; 
-            container.innerHTML = ''; 
-            const modelData = DB_MODELS[CURRENT_MODEL_ID]; 
-            
-            DB_MODULES.forEach(def => { 
-                if (modelData.modules && !modelData.modules.includes(def.id)) return; 
-                
-                const btn = document.createElement('button'); 
-                // Adjusted Classes for Mobile Horizontal Scroll vs Desktop Grid
-                btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16 md:h-20 min-w-[80px] md:min-w-0 snap-start"; 
-                btn.onclick = () => addModule(def.id); 
-                
-                // Logic to choose between Icon or Image
-                let visualContent;
-                let currentImgUrl = def.imgUrl;
-
-                // 1. Lógica para Canto Redondo (Round Corner)
-                if (def.id === 'corner') {
-                     const roundCornerModels = ['athena', 'brittany', 'dayma', 'enzo'];
-                     if (roundCornerModels.includes(CURRENT_MODEL_ID)) {
-                         currentImgUrl = `${GITHUB_REPO_URL}assets/icons/roundcorner.svg`;
-                     }
-                }
-
-                // 2. Lógica específica para modelos RELAX
-                if (modelData.type === 'relax') {
-                    if (def.id === 'seat_no_arm') {
-                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/seatrelax.svg`;
-                    } else if (def.id === 'seat_arm_l' || def.id === 'seat_arm_r') {
-                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/armrelax.svg`;
-                    } else if (def.id === 'meiple') {
-                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meiplerelax.svg`;
-                    } else if (def.id === 'meridien_l' || def.id === 'meridien_r') {
-                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meridienrelax.svg`;
-                    }
-                }
-
-                // 3. [NOVO] Lógica específica para modelos SLIDE (Infinity, Magic)
-                if (modelData.type === 'slide') {
-                    if (def.id === 'seat_arm_l' || def.id === 'seat_arm_r') {
-                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/armslide.svg`;
-                    } else if (def.id === '2seats_2arms') {
-                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/2arm2slide.svg`;
-                    } else if (def.id === '2seats_arm_l' || def.id === '2seats_arm_r') {
-                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/arm2slide.svg`;
-                    } else if (def.id === 'meiple') {
-                        currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meipleslide.svg`;
-                    }
-                }
-                
-                // 4. [NOVO] Ícone específico para Meridien Spirit
-                if ((CURRENT_MODEL_ID === 'spirit' || CURRENT_MODEL_ID === 'rose') && def.type === 'meridien') {
-                     currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meridienspirit.svg`;
-                }
-
-                if(currentImgUrl) {
-                    // Check if needs flip (Right modules usually need the left-icon flipped)
-                    let needsFlip = def.hasArm === 'right' || def.id.endsWith('_r');
-                    
-                    // Lógica para corrigir inversão da Chaise e Meridien
-                    if (def.type === 'chaise' || def.type === 'meridien' || def.id.startsWith('maxxi')) {
-                        needsFlip = !needsFlip;
-                    }
-
-                    const flipClass = needsFlip ? 'scale-x-[-1]' : '';
-                    
-                    // Use Image with increased height and object-contain
-                    visualContent = `<img src="${currentImgUrl}" class="h-6 md:h-8 w-auto object-contain mb-1 opacity-70 group-hover:opacity-100 transition-all ${flipClass}" alt="${def.name}">`;
-                } else {
-                    // Fallback to FontAwesome
-                    visualContent = `<i class="fas ${def.icon} text-base md:text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i>`;
-                }
-
-                btn.innerHTML = `${visualContent}<span class="text-[8px] md:text-[9px] font-bold text-gray-600 leading-tight text-center line-clamp-2">${def.name}</span>`; 
-                container.appendChild(btn); 
-            }); 
-        }
-        
         function updateBatteryUI() {
             const btn = document.getElementById('battery-btn');
             const icon = document.getElementById('battery-icon');
@@ -1607,6 +630,8 @@
 
         function updateBatteryVisibility() {
             const container = document.getElementById('battery-container');
+            if (!DB_MODELS[CURRENT_MODEL_ID]) return;
+            
             const type = DB_MODELS[CURRENT_MODEL_ID].type;
             if (type === 'relax' || type === 'slide') {
                 if(container) container.classList.remove('hidden');
@@ -1616,6 +641,15 @@
                 updateBatteryUI();
             }
         }
+
+        // --- NEW: SET LEG FINISH (GLOBAL) ---
+        window.setLegFinish = function(materialKey) {
+            if (LEG_MATERIALS[materialKey]) {
+                currentLegMaterial = LEG_MATERIALS[materialKey];
+                updateAllModulesMaterial();
+                showFeedback("Acabamento dos pés atualizado", "success");
+            }
+        };
 
         function initUIListeners() { 
             const resetBtn = document.getElementById('reset-btn'); 
@@ -1647,13 +681,9 @@
                 });
             }
 
-            // Price Multiplier Listener (Simplified)
             const multiplierInput = document.getElementById('price-multiplier');
-            
             const validateInput = (e) => {
                 let val = parseFloat(e.target.value);
-                
-                // Only clamp on 'change' (when user presses enter or leaves field) to allow typing
                 if (e.type === 'change') {
                     if (isNaN(val) || val < 10) val = 10;
                     if (val > 30) val = 30;
@@ -1663,49 +693,320 @@
             };
             
             if (multiplierInput) {
-                multiplierInput.addEventListener('input', updatePriceUI); // Live update calculation
-                multiplierInput.addEventListener('change', validateInput); // Validate limits on finish
+                multiplierInput.addEventListener('input', updatePriceUI);
+                multiplierInput.addEventListener('change', validateInput);
+            }
+
+            const btnRecenter = document.getElementById('btn-recenter');
+            if(btnRecenter) btnRecenter.addEventListener('click', resetCamera);
+        }
+
+        // ======================== LÓGICA 3D & INTERAÇÃO ========================
+
+        function onWindowResize() { 
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight; 
+                camera.updateProjectionMatrix(); 
+                renderer.setSize(window.innerWidth, window.innerHeight); 
             }
         }
-        
-        function initModelSelector() { updateModelButtonUI(); const container = document.getElementById('model-grid-container'); if(!container) return; container.innerHTML = ''; Object.keys(DB_MODELS).forEach(key => { const model = DB_MODELS[key]; const card = document.createElement('div'); const isActive = key === CURRENT_MODEL_ID; let badgeClass = 'badge-fixed'; let typeLabel = 'Fixo'; if (model.type === 'relax') { badgeClass = 'badge-relax'; typeLabel = 'Relax'; } if (model.type === 'slide') { badgeClass = 'badge-slide'; typeLabel = 'Deslizante'; } if (model.type === 'pendular') { badgeClass = 'badge-pendular'; typeLabel = 'Pendular'; } card.className = `model-card ${isActive ? 'active' : ''}`; card.onclick = () => { changeModel(key); uiSet('model-modal', 'display', 'none'); }; const cleanName = model.name.split('(')[0].trim(); const keyLower = key.toLowerCase(); const imgUrlWebP = `${GITHUB_REPO_URL}assets/icons/${keyLower}.webp`; const imgUrlPng = `${GITHUB_REPO_URL}assets/icons/${keyLower}.png`; const placeholder = `https://placehold.co/150x100?text=${cleanName}`; card.innerHTML = `<img src="${imgUrlWebP}" class="model-card-img" alt="${cleanName}" onerror="this.onerror=null; this.src='${imgUrlPng}'; this.onerror=function(){this.src='${placeholder}'; this.style.objectFit='cover';};"><div class="model-card-name">${cleanName}</div><span class="model-badge ${badgeClass}">${typeLabel}</span>`; container.appendChild(card); }); }
-        function updateModelButtonUI() { const nameEl = document.getElementById('current-model-name'); if(!nameEl) return; const modelName = DB_MODELS[CURRENT_MODEL_ID].name.split('(')[0].trim(); nameEl.textContent = modelName; const cards = document.querySelectorAll('.model-card'); cards.forEach(c => { if(c.innerText.includes(modelName)) c.classList.add('active'); else c.classList.remove('active'); }); }
-        function initSizeSelector() { const container = document.getElementById('size-selector-container'); if(!container) return; 
-            // Ocultar se o modelo pedir
-            if (DB_MODELS[CURRENT_MODEL_ID].hideSizeSelector) {
-                container.parentElement.style.display = 'none';
-                return;
-            } else {
-                container.parentElement.style.display = 'block';
-            }
-            container.innerHTML = ''; const modelSizes = DB_MODELS[CURRENT_MODEL_ID].sizes; Object.keys(modelSizes).forEach(size => { const btn = document.createElement('button'); btn.className = `flex-1 py-1.5 px-3 text-xs font-bold rounded-md transition whitespace-nowrap min-w-[40px] snap-start ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`; btn.innerText = size; btn.onclick = () => changeSize(size); container.appendChild(btn); }); updateSizePreview(); }
-        window.changeModel = function(modelId) { 
-            if (!DB_MODELS[modelId]) return; 
-            pendingConfiguration = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax })); 
-            CURRENT_MODEL_ID = modelId; 
-            const modelData = DB_MODELS[modelId]; 
+
+        function buildFloor() {
+            const loader = new THREE.TextureLoader();
+            loader.setCrossOrigin('anonymous');
+            const floorTex = loader.load('https://stoffus-pt.github.io/configurador-eleganza/assets/textures/floor.jpg');
+            floorTex.wrapS = THREE.RepeatWrapping;
+            floorTex.wrapT = THREE.RepeatWrapping;
+            floorTex.repeat.set(10, 10); 
             
-            // Lógica melhorada para selecionar tamanho padrão
-            if (!modelData.sizes[CURRENT_SIZE_KEY]) { 
-                const availableSizes = Object.keys(modelData.sizes);
-                if (availableSizes.includes('M')) {
-                    CURRENT_SIZE_KEY = 'M';
-                } else if (availableSizes.length > 0) {
-                    CURRENT_SIZE_KEY = availableSizes[0];
+            const floorGeo = new THREE.PlaneGeometry(2000, 2000);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                map: floorTex, 
+                roughness: 0.8,
+                color: 0xffffff
+            });
+            
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -0.5; // Slightly below y=0
+            floor.receiveShadow = true;
+            floor.name = 'permanent_floor';
+            scene.add(floor);
+        }
+
+        function resetCamera() {
+            const duration = 1500; 
+            const startPos = camera.position.clone(); 
+            const startTarget = controls.target.clone();
+            const endPos = new THREE.Vector3(0, 450, 750); 
+            const endTarget = new THREE.Vector3(0, 0, 0);
+            
+            const startTime = performance.now(); 
+            controls.enabled = false;
+
+            function animateScroll(currentTime) {
+                const elapsed = currentTime - startTime; 
+                let progress = Math.min(elapsed / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3);
+
+                camera.position.lerpVectors(startPos, endPos, ease);
+                controls.target.lerpVectors(startTarget, endTarget, ease);
+                
+                controls.update();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateScroll);
+                } else {
+                    controls.enabled = true; 
+                    showFeedback("Câmara recentrada", "success");
+                    const btn = document.getElementById('btn-recenter');
+                    if(btn) btn.classList.add('hidden');
                 }
-            } 
+            }
+            requestAnimationFrame(animateScroll);
+        }
+
+        function interactWithScene(x, y) {
+            if (!renderer || !camera || !scene || !raycaster) return; // Guard clause
+            const rect = renderer.domElement.getBoundingClientRect(); 
+            mouse.x = ((x - rect.left) / rect.width) * 2 - 1; 
+            mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera); 
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            const hoverMenu = document.getElementById('module-hover-menu');
             
-            updateModelButtonUI(); 
-            initSizeSelector(); 
-            addedModules.forEach(m => scene.remove(m.mesh)); 
-            addedModules = []; 
-            loadModelAssets(modelId); 
-            updateSizePreview(); 
-            updateBatteryVisibility(); 
-            renderModuleButtons(); 
-        };
-        window.changeSize = function(sizeKey) { if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && sizeKey === 'XXL') { const hasValidModule = addedModules.some(m => m.data.id === '2seats_2arms'); if (!hasValidModule) { showFeedback("Tamanho XXL exclusivo para o módulo '2 Lug. 2 Braços'. Adicione-o primeiro.", "error"); initSizeSelector(); return; } } if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && sizeKey === 'XXL') { showFeedback("Tamanho XXL aplicado ao módulo '2 Lug. 2 Braços'.", "success"); } CURRENT_SIZE_KEY = sizeKey; initSizeSelector(); const currentModules = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax })); addedModules.forEach(m => scene.remove(m.mesh)); addedModules = []; currentModules.forEach(m => addModule(m.id, true, m.hasRelax)); repositionModules(); };
-        function updateSizePreview() { document.getElementById('size-preview').innerText = `${DB_MODELS[CURRENT_MODEL_ID].sizes[CURRENT_SIZE_KEY]} cm`; }
+            if (intersects.length > 0) {
+                let obj = intersects[0].object; while(obj.parent && obj.parent.type !== 'Scene') obj = obj.parent;
+                const idx = addedModules.findIndex(m => m.mesh === obj);
+                if (idx !== -1) {
+                    const mod = addedModules[idx];
+                    const vector = new THREE.Vector3(); mod.mesh.getWorldPosition(vector); vector.y += 60; vector.project(camera);
+                    const screenX = (vector.x * .5 + .5) * renderer.domElement.clientWidth; const screenY = (vector.y * -.5 + .5) * renderer.domElement.clientHeight;
+                    hoverMenu.style.left = `${screenX}px`; hoverMenu.style.top = `${screenY}px`; hoverMenu.classList.add('visible');
+                    const btnRelax = document.getElementById('btn-relax'); const btnRemove = document.getElementById('btn-remove');
+                    if (DB_MODELS[CURRENT_MODEL_ID].type === 'fixed' && CURRENT_MODEL_ID !== 'rinaldi') btnRelax.style.display = 'none';
+                    else { 
+                        btnRelax.style.display = 'flex'; 
+                        if (CURRENT_MODEL_ID === 'rinaldi') {
+                            document.getElementById('relax-text').innerText = 'Avançar Costas';
+                            btnRelax.innerHTML = `<i class="fas fa-arrows-alt-h"></i> <span id="relax-text">Avançar Costas</span>`;
+                        } else {
+                            const isSlide = DB_MODELS[CURRENT_MODEL_ID].type === 'slide'; 
+                            document.getElementById('relax-text').innerText = isSlide ? 'Deslizar' : 'Relax';
+                            btnRelax.innerHTML = `<i class="fas fa-couch"></i> <span id="relax-text">${isSlide ? 'Deslizar' : 'Relax'}</span>`;
+                        }
+                        btnRelax.onclick = () => { 
+                            if (DB_MODELS[CURRENT_MODEL_ID].type === 'slide') { const found = findSlideParts(mod); if (!found) { showFeedback("ERRO: Peça 'assento' não encontrada.", "error"); return; } } 
+                            if (CURRENT_MODEL_ID === 'rinaldi') { const foundBacks = findBackParts(mod); if (!foundBacks) { showFeedback("ERRO: Costas não encontradas.", "error"); return; } }
+                            mod.hasRelax = !mod.hasRelax; 
+                            if (CURRENT_MODEL_ID === 'rinaldi') showFeedback(mod.hasRelax ? "Costas avançadas" : "Costas recuadas", "success");
+                            else if (DB_MODELS[CURRENT_MODEL_ID].type === 'slide') showFeedback(mod.hasRelax ? "A deslizar..." : "A recolher...", "success"); 
+                            updatePriceUI(); 
+                        }; 
+                        if (mod.hasRelax) btnRelax.classList.add('active'); else btnRelax.classList.remove('active');
+                    }
+                    btnRemove.onclick = () => { scene.remove(mod.mesh); addedModules.splice(idx, 1); repositionModules(); hoverMenu.classList.remove('visible'); };
+                    return true;
+                }
+            }
+            hoverMenu.classList.remove('visible'); return false;
+        }
+
+        // Event Handlers Globais
+        function onTouchStart(e) { if (e.touches.length === 1) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; } }
+        function onTouchEnd(e) { if (e.changedTouches.length === 1) { const dx = e.changedTouches[0].clientX - touchStartX; const dy = e.changedTouches[0].clientY - touchStartY; if (Math.abs(dx) < 10 && Math.abs(dy) < 10) { interactWithScene(e.changedTouches[0].clientX, e.changedTouches[0].clientY); } } }
+        function onMouseMove(e) { interactWithScene(e.clientX, e.clientY); }
+        function onMouseClick(e) { interactWithScene(e.clientX, e.clientY); }
+
+        function renderFabricDock(mode, collectionKey) {
+            const list = document.getElementById('fabric-modal-content-list'); const title = document.getElementById('fabric-modal-title'); const backBtn = document.getElementById('fabric-back-btn'); const btnName = document.getElementById('current-fabric-name');
+            if(!list) return; list.innerHTML = '';
+            
+            const thumbBase = 'https://stoffus-pt.github.io/configurador-eleganza/assets/compressedtextures/';
+            
+            if (mode === 'collections') {
+                title.textContent = "Coleções de Tecidos"; backBtn.classList.add('hidden');
+                DB_COLLECTIONS.forEach(col => {
+                    const key = col.name.toLowerCase().replace(/\s/g, ''); 
+                    const imgUrl = `${thumbBase}${col.name} 1.webp`;
+                    let c1, c2;
+                    if (['Fumiko', 'Madoka'].includes(col.name)) { c1 = '#64a8e4'; c2 = '#2b5a87'; } 
+                    else if (col.name === 'River') { c1 = '#ed7629'; c2 = '#db362c'; } 
+                    else if (col.name === 'Siza') { c1 = '#da3012'; c2 = '#bc2e1a'; } 
+                    else { c1 = '#91c73b'; c2 = '#88b741'; }
+                    const gradStyle = `linear-gradient(135deg, ${c1} 0%, ${c1} 45%, ${c2} 100%)`;
+                    const item = document.createElement('div'); item.className = 'dock-item'; item.onclick = () => renderFabricDock('colors', key);
+                    const style = `background-image: url('${imgUrl}'), ${gradStyle}; background-origin: padding-box, border-box; background-clip: padding-box, border-box; background-size: cover, auto; background-position: center; background-repeat: no-repeat; border: 4px solid transparent;`;
+                    item.innerHTML = `<div class="dock-circle" style="${style}"></div><span class="dock-label">${col.name}</span>`; 
+                    list.appendChild(item);
+                });
+            } else if (mode === 'colors') {
+                const colName = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === collectionKey).name; title.textContent = colName.toUpperCase(); backBtn.classList.remove('hidden');
+                const fabrics = FABRIC_LIBRARY.filter(f => f.type === collectionKey);
+                fabrics.forEach(fab => {
+                    const item = document.createElement('div'); item.className = `dock-item ${fab.id === activeFabricId ? 'active' : ''}`;
+                    item.onclick = () => { setFabricFromLibrary(fab.id); uiSet('fabric-modal', 'display', 'none'); btnName.innerText = fab.name; };
+                    const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type); const colN = col ? col.name : fab.collection;
+                    const imgUrl = `${thumbBase}${colN} ${fab.fileIndex}.webp`;
+                    item.innerHTML = `<div class="dock-circle" style="background-image: url('${imgUrl}'); background-size: cover;"></div><span class="dock-label">${fab.name}</span>`; list.appendChild(item);
+                });
+            }
+        }
+
+        function initFabricData() { 
+            DB_COLLECTIONS.forEach(col => { 
+                const key = col.name.toLowerCase().replace(/\s/g, ''); 
+                IMAGES[key] = {}; 
+                for (let i = 0; i < 7; i++) {
+                    const suffix = i + 1; const idCode = col.start + i;
+                    FABRIC_LIBRARY.push({ id: `${key}_${col.prefix}${idCode}`, name: `${col.name} ${col.prefix}${idCode}`, color: '#dcdcdc', type: key, fileIndex: suffix, collection: col.name });
+                }
+            }); 
+        }
+        function initFabricSystem() { initFabricData(); renderFabricDock('collections'); }
+        function applyTextureRepeat(texture, rapportCm) { if(!texture) return; const referenceSizeCm = 90; const repeatFactor = referenceSizeCm / rapportCm; texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(repeatFactor, repeatFactor); texture.needsUpdate = true; }
+        
+        function createMaterialFromImage(sourceImg) { 
+            if(!sourceImg) return null; 
+            const tex = new THREE.Texture(sourceImg); tex.encoding = THREE.sRGBEncoding; tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; tex.needsUpdate = true; applyTextureRepeat(tex, currentRapport); 
+            let params = { map: tex, color: 0xffffff, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.02 }; 
+            return new THREE.MeshStandardMaterial(params); 
+        }
+        function createProceduralFabricTexture(type, colorHex) { const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size); const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; applyTextureRepeat(tex, currentRapport); return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.01 }); }
+        
+        function updateAllModulesMaterial() { 
+            addedModules.forEach(mod => { 
+                if(!mod.mesh) return; 
+                mod.mesh.traverse((node) => { 
+                    if (node.isMesh) { 
+                        const lowerName = node.name.toLowerCase(); 
+                        const isLegName = ['leg', 'pé', 'pe', 'foot', 'feet', 'base', 'metal', 'wood', 'estrutura', 'structure', 'inox', 'chrome', 'rodape'].some(kw => lowerName.includes(kw)); 
+                        const isHardware = node.material && node.material.name === 'Color M08';
+                        
+                        if (isLegName && currentLegMaterial) {
+                            node.material = currentLegMaterial;
+                        } else if (!isLegName && !isHardware && node.name !== 'shadow_plane' && currentFabricMaterial) { 
+                            node.material = currentFabricMaterial; 
+                        } 
+                    } 
+                }); 
+            }); 
+        }
+        function updateFabricRapport() { if(currentFabricMaterial && currentFabricMaterial.map) { applyTextureRepeat(currentFabricMaterial.map, currentRapport); if(currentFabricMaterial.bumpMap) applyTextureRepeat(currentFabricMaterial.bumpMap, currentRapport); } }
+        
+        function createModuleMesh(moduleId) {
+            const def = DB_MODULES.find(m => m.id === moduleId); 
+            const modelData = DB_MODELS[CURRENT_MODEL_ID]; 
+            const group = new THREE.Group();
+            
+            let effectiveSizeKey = CURRENT_SIZE_KEY;
+            
+            if (!modelData.sizes[effectiveSizeKey]) {
+                 const keys = Object.keys(modelData.sizes);
+                 if(keys.length > 0) effectiveSizeKey = keys[0];
+                 else effectiveSizeKey = 'M'; 
+            }
+            
+            const isSlidingModel = ['infinity', 'magic'].includes(CURRENT_MODEL_ID);
+            if (isSlidingModel && CURRENT_SIZE_KEY === 'XXL' && def.id !== '2seats_2arms') { effectiveSizeKey = 'XL'; }
+            
+            // Lógica de Largura (Width)
+            let width;
+            if (def.fixedWidth) {
+                width = def.fixedWidth;
+            } else if (def.fixed) {
+                if (def.fileKey === 'pouff' && modelData.pouffSize) width = modelData.pouffSize;
+                else if (def.id === 'triangle' && modelData.triangleSize) width = modelData.triangleSize;
+                else width = modelData.cornerSize;
+            } else if (def.type === 'meridien' && modelData.meridienSizes) {
+                if (typeof modelData.meridienSizes === 'number') { width = modelData.meridienSizes; } 
+                else { width = modelData.meridienSizes[effectiveSizeKey] || 100; }
+            } else if (def.id.startsWith('maxxi')) { width = modelData.maxxiSize || 132; 
+            } else if (def.type === 'chaise' && modelData.chaiseSizes) { width = modelData.chaiseSizes[effectiveSizeKey] || 80;
+            } else if (def.id === 'meiple') {
+                if (modelData.meipleSize) { width = modelData.meipleSize; } 
+                else if (modelData.oneSeatArmSizes) { width = modelData.oneSeatArmSizes[effectiveSizeKey]; } 
+                else { width = modelData.sizes[effectiveSizeKey] || 70; }
+            } else if ((def.id === 'seat_arm_l' || def.id === 'seat_arm_r') && modelData.oneSeatArmSizes) {
+                width = modelData.oneSeatArmSizes[effectiveSizeKey];
+            } else if (def.id.startsWith('2seats') && modelData.twoSeatSizes) {
+                width = modelData.twoSeatSizes[effectiveSizeKey];
+            } else {
+                width = modelData.sizes[effectiveSizeKey] || 70;
+            }
+
+            if (def.id.startsWith('2seats') && !modelData.twoSeatSizes) width *= 2;
+            
+            // Lógica de Profundidade (Depth)
+            let depth = modelData.depth; 
+            if (def.type === 'chaise') depth = modelData.chaiseDepth;
+            if (def.id.startsWith('maxxi')) depth = modelData.maxxiDepth || 130; 
+            
+            if (def.type === 'meridien') { depth = modelData.meridienDepth || modelData.chaiseDepth; }
+            if (modelData.type === 'relax' && def.type === 'meridien') { depth = modelData.depth; }
+            
+            if (def.type === 'corner') depth = modelData.cornerSize;
+            if (def.id === 'triangle' && modelData.triangleDepth) { depth = modelData.triangleDepth; }
+            
+            let totalWidth = width + (def.hasArm ? modelData.armWidth : 0);
+            if (def.hasArm === 'both') totalWidth = width + (modelData.armWidth * 2);
+            if (def.type === 'meridien') { totalWidth = width; }
+            
+            const asset = modelLibrary[def.fileKey];
+            if (asset) {
+                const mesh = asset.clone();
+                if (!def.fixed) { 
+                    const baseRefSize = 72; const baseArmSize = 20; 
+                    let targetTotalW = totalWidth;
+                    let baseTotalW = baseRefSize + (def.hasArm ? baseArmSize : 0);
+                    if (def.hasArm === 'both') baseTotalW = baseRefSize + (baseArmSize * 2);
+                    
+                    const box = new THREE.Box3().setFromObject(mesh); 
+                    const size = new THREE.Vector3(); box.getSize(size); 
+                    const currentW = size.x;
+
+                    if (currentW > 0.1) { const scaleFactor = targetTotalW / currentW; mesh.scale.x *= scaleFactor; } 
+                    else { const scaleFactor = targetTotalW / baseTotalW; mesh.scale.x *= scaleFactor; }
+                }
+                
+                let flip = def.hasArm === 'right'; 
+                if (def.type === 'meridien') { flip = def.hasArm === 'left'; }
+                if (def.type === 'chaise') { if (CURRENT_MODEL_ID === 'athena') { flip = def.hasArm === 'right'; } else { flip = def.hasArm === 'left'; } }
+                if (def.id.startsWith('maxxi')) { flip = def.hasArm === 'right'; }
+                if (CURRENT_MODEL_ID === 'kindia' && def.id.includes('seat_arm')) { flip = !flip; }
+                
+                if (flip) { mesh.scale.x *= -1; mesh.traverse(n => { if(n.isMesh) n.material.side = THREE.DoubleSide; }); }
+                
+                const finalBox = new THREE.Box3().setFromObject(mesh); 
+                const center = new THREE.Vector3(); finalBox.getCenter(center); mesh.position.sub(center); mesh.position.y += (finalBox.max.y - finalBox.min.y) / 2;
+                
+                const isArmModule = def.id.includes('seat_arm'); const isDoubleArmModule = def.id.includes('2seats_arm'); const isChaise = def.type === 'chaise'; const isMeridien = def.type === 'meridien'; const isBartini = CURRENT_MODEL_ID === 'bartini'; const isFiori = CURRENT_MODEL_ID === 'fiori'; const isKindia = CURRENT_MODEL_ID === 'kindia'; const isSting = CURRENT_MODEL_ID === 'sting'; 
+                const isInfinity = CURRENT_MODEL_ID === 'infinity'; const isMagic = CURRENT_MODEL_ID === 'magic'; const isBruma = CURRENT_MODEL_ID === 'bruma'; const isKaori = CURRENT_MODEL_ID === 'kaori'; const isFienza = CURRENT_MODEL_ID === 'fienza';
+                const isPolestar = CURRENT_MODEL_ID === 'polestar'; const isRinaldi = CURRENT_MODEL_ID === 'rinaldi'; const isSpirit = CURRENT_MODEL_ID === 'spirit'; const isRose = CURRENT_MODEL_ID === 'rose';
+                const isMaxxi = def.id.startsWith('maxxi');
+
+                if (!isArmModule && !isDoubleArmModule && !isChaise && !isMeridien && !isBartini && !isFiori && !isKindia && !isSting && !isInfinity && !isMagic && !isBruma && !isKaori && !isFienza && !isPolestar && !isRinaldi && !isMaxxi && !isSpirit && !isRose) { mesh.position.y += 12; }
+                if (CURRENT_MODEL_ID === 'rose' && def.id === 'corner') { mesh.position.y += 12; }
+                if (isKindia && def.id === 'seat_no_arm') { mesh.position.y += 4; }
+                if (CURRENT_MODEL_ID === 'athena' && def.id === 'seat_no_arm') { mesh.position.z += 4; }
+                if (CURRENT_MODEL_ID === 'athena' && def.id === 'corner') { mesh.position.z += 4; }
+
+                group.add(mesh);
+                
+                const type = DB_MODELS[CURRENT_MODEL_ID].type;
+                if ((type === 'relax' || type === 'slide' || type === 'pendular') && !def.fixed) {
+                    let labelText = type === 'slide' ? "SLIDE" : "RELAX";
+                    if (type === 'pendular') labelText = "PENDULAR";
+                    const badge = createStatusSprite(labelText);
+                    badge.position.set(0, 90, -10); badge.name = 'status_badge'; badge.visible = false; 
+                    group.add(badge);
+                }
+            } else { const box = new THREE.Mesh(new THREE.BoxGeometry(totalWidth, 45, depth), new THREE.MeshStandardMaterial({color:0x999999})); box.position.y = 34.5; group.add(box); }
+            group.userData = { def: def, width: totalWidth, depth: depth, hasRelax: false, relaxFactor: 0 };
+            return group;
+        }
+
+        // --- LOAD MODEL ASSETS (RESTORED) ---
         function loadModelAssets(modelId) { 
             const modelData = DB_MODELS[modelId]; 
             modelLibrary = {}; 
@@ -1717,241 +1018,325 @@
             loader.setCrossOrigin('anonymous'); 
             const cacheBuster = `?v=${Date.now()}`; 
             
-            // Build list of parts needed ONLY for the current model
             const neededKeys = new Set();
-            if (modelData.modules) {
-                modelData.modules.forEach(modId => {
-                    const def = DB_MODULES.find(m => m.id === modId);
-                    if (def) neededKeys.add(def.fileKey);
-                });
-            } else {
-                ['seat', 'arm', 'corner', 'chaise'].forEach(k => neededKeys.add(k));
-            }
-            // Adicionar explicitamente as partes do Rinaldi se necessário, embora o loop acima já deva apanhar via fileKey
-            if (modelId === 'rinaldi') {
-                neededKeys.add('seatL');
-                neededKeys.add('seatXL');
-                neededKeys.add('armL');
-                neededKeys.add('armXL');
-                neededKeys.add('corner');
-                neededKeys.add('pouff');
-            }
+            if (modelData.modules) { modelData.modules.forEach(modId => { const def = DB_MODULES.find(m => m.id === modId); if (def) neededKeys.add(def.fileKey); }); } 
+            else { ['seat', 'arm', 'corner', 'chaise'].forEach(k => neededKeys.add(k)); }
+            if (modelId === 'rinaldi') { neededKeys.add('seatL'); neededKeys.add('seatXL'); neededKeys.add('armL'); neededKeys.add('armXL'); neededKeys.add('corner'); neededKeys.add('pouff'); }
 
             const partsToLoad = Array.from(neededKeys);
-
             partsToLoad.forEach(part => { 
                 const folderName = modelData.folder; 
                 const partCap = part.charAt(0).toUpperCase() + part.slice(1); 
                 const folderCap = folderName.charAt(0).toUpperCase() + folderName.slice(1).toLowerCase(); 
                 const folderLower = folderName.toLowerCase(); 
-                const paths = [ 
-                    `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`, 
-                    `${GITHUB_REPO_URL}assets/models/${folderLower}/${part}.glb${cacheBuster}`, 
-                    `${GITHUB_REPO_URL}assets/models/${folderName}/${partCap}.glb${cacheBuster}`, 
-                    `${GITHUB_REPO_URL}assets/models/${folderLower}/${partCap}.glb${cacheBuster}`, 
-                    `${GITHUB_REPO_URL}assets/models/${folderCap}/${part}.glb${cacheBuster}`, 
-                    `${GITHUB_REPO_URL}assets/models/bartini/${part}.glb${cacheBuster}` 
-                ]; 
+                const paths = [ `${GITHUB_REPO_URL}assets/models/${folderName}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderLower}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderName}/${partCap}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderLower}/${partCap}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/${folderCap}/${part}.glb${cacheBuster}`, `${GITHUB_REPO_URL}assets/models/bartini/${part}.glb${cacheBuster}` ]; 
                 const tryLoadPath = (index) => { 
-                    if (index >= paths.length) { 
-                        if (modelId === 'athena') { 
-                            try {
-                                loader.load(`${GITHUB_REPO_URL}assets/models/${part}.glb`, (gltf) => processLoadedModel(gltf.scene, part), undefined, () => {}); 
-                            } catch(e) { console.error(e); }
-                        } 
-                        return; 
-                    } 
-                    try {
-                        loader.load(paths[index], (gltf) => { processLoadedModel(gltf.scene, part); }, undefined, (err) => { tryLoadPath(index + 1); }); 
-                    } catch(e) {
-                         console.error("Loader error", e);
-                         tryLoadPath(index + 1);
-                    }
+                    if (index >= paths.length) { if (modelId === 'athena') { try { loader.load(`${GITHUB_REPO_URL}assets/models/${part}.glb`, (gltf) => processLoadedModel(gltf.scene, part), undefined, () => {}); } catch(e) { console.error(e); } } return; } 
+                    try { loader.load(paths[index], (gltf) => { processLoadedModel(gltf.scene, part); }, undefined, (err) => { tryLoadPath(index + 1); }); } catch(e) { console.error("Loader error", e); tryLoadPath(index + 1); }
                 }; 
                 tryLoadPath(0); 
             }); 
         }
-        function processLoadedModel(sceneObj, partKey) { const box = new THREE.Box3().setFromObject(sceneObj); const size = new THREE.Vector3(); box.getSize(size); if (size.x < 20) { sceneObj.scale.set(100, 100, 100); sceneObj.updateMatrixWorld(true); } sceneObj.traverse(n => { if (n.isMesh) { if(n.name === 'shadow_plane') { n.visible = false; n.castShadow = false; n.receiveShadow = false; } else { n.castShadow = true; n.receiveShadow = true; } } }); modelLibrary[partKey] = sceneObj; }
-        
-        function setFabricFromLibrary(id) { 
-            const fab = FABRIC_LIBRARY.find(f => f.id === id); 
-            if(!fab) return; 
-            
-            activeFabricId = id; 
-            
-            const items = document.querySelectorAll('.dock-item'); 
-            items.forEach(el => { if(el.innerText.includes(fab.name)) el.classList.add('active'); else el.classList.remove('active'); }); 
-            
-            updatePriceUI(); // Atualiza o preço ao mudar o tecido (classe de preço pode mudar)
 
-            showFeedback(`A aplicar ${fab.name}...`, "info");
-            
-            const cacheKey = fab.type;
-            const fileIdx = fab.fileIndex;
-            
-            if (IMAGES[cacheKey] && IMAGES[cacheKey][fileIdx]) {
-                applyHighResTexture(IMAGES[cacheKey][fileIdx]);
-                showFeedback(fab.name, "success");
-            } else {
-                loadSpecificFabricImage(fab, (img) => {
-                    applyHighResTexture(img);
-                    showFeedback(fab.name, "success");
-                });
-            }
+        function processLoadedModel(sceneObj, partKey) { 
+            const box = new THREE.Box3().setFromObject(sceneObj); 
+            const size = new THREE.Vector3(); box.getSize(size); 
+            if (size.x < 20) { sceneObj.scale.set(100, 100, 100); sceneObj.updateMatrixWorld(true); } 
+            sceneObj.traverse(n => { 
+                if (n.isMesh) { 
+                    if(n.name === 'shadow_plane') { n.visible = false; n.castShadow = false; n.receiveShadow = false; } 
+                    else { n.castShadow = true; n.receiveShadow = true; } 
+                } 
+            }); 
+            modelLibrary[partKey] = sceneObj; 
         }
-        
-        function applyHighResTexture(sourceImg) { 
-            if(sourceImg) { 
-                currentFabricMaterial = createMaterialFromImage(sourceImg); 
-                updateAllModulesMaterial(); 
-            } 
+
+        function addModule(moduleId, silent = false, startRelax = false) {
+            const modelData = DB_MODELS[CURRENT_MODEL_ID];
+            if (CURRENT_MODEL_ID === 'bruma' && CURRENT_SIZE_KEY === 'XL' && moduleId === '2seats_2arms') { if (!silent) showFeedback("Este módulo não está disponível no tamanho XL.", "error"); return; }
+            if (modelData.modules && !modelData.modules.includes(moduleId)) { if (!silent) console.warn(`Módulo ${moduleId} ignorado`); return; }
+            const mesh = createModuleMesh(moduleId); scene.add(mesh);
+            const data = mesh.userData; data.hasRelax = startRelax; data.relaxFactor = startRelax ? 1 : 0;
+            addedModules.push({ mesh: mesh, data: data.def, ...data });
+            mesh.traverse((node) => { 
+                if (node.isMesh) { 
+                    const lowerName = node.name.toLowerCase(); 
+                    const isLeg = ['leg', 'pé', 'pe', 'foot', 'feet', 'base', 'metal', 'wood', 'estrutura', 'structure', 'inox', 'chrome', 'rodape'].some(kw => lowerName.includes(kw)); 
+                    const isHardware = node.material && node.material.name === 'Color M08';
+                    if (isLeg && currentLegMaterial) { node.material = currentLegMaterial; }
+                    else if (!isLeg && !isHardware && node.name !== 'shadow_plane' && currentFabricMaterial) { node.material = currentFabricMaterial; } 
+                } 
+            });
+            repositionModules(); 
+            if(!silent) showFeedback("Módulo Adicionado", "success");
         }
-        
-        function loadSpecificFabricImage(fab, callback) {
-            const collectionKey = fab.type;
-            const fileIdx = fab.fileIndex;
-            
-            const texLoader = new THREE.TextureLoader(); 
-            texLoader.setCrossOrigin('anonymous'); 
-            let BASE = 'https://stoffus-pt.github.io/configurador-eleganza/assets/textures/';
-            
-            const url = `${BASE}${fab.collection} ${fileIdx}.jpg`;
-            
-            texLoader.load(url, (tex) => {
-                if (!IMAGES[collectionKey]) IMAGES[collectionKey] = {};
-                IMAGES[collectionKey][fileIdx] = tex.image;
-                
-                callback(tex.image);
-            }, undefined, (err) => {
-                console.warn("Erro a carregar textura", url, "- A usar fallback.");
-                
-                if(fileIdx !== 1) {
-                    const urlFallback = `${BASE}${fab.collection} 1.jpg`;
-                    texLoader.load(urlFallback, (texFal) => {
-                         if (!IMAGES[collectionKey]) IMAGES[collectionKey] = {};
-                         IMAGES[collectionKey][fileIdx] = texFal.image;
-                         callback(texFal.image);
-                         showFeedback("Textura alternativa carregada", "info");
-                    }, undefined, () => {
-                        generateProceduralFallback(callback);
-                        showFeedback("Erro na textura. Cor provisória.", "error");
-                    });
-                } else {
-                    generateProceduralFallback(callback);
-                    showFeedback("Erro na textura. Cor provisória.", "error");
+
+        function renderModuleButtons() { 
+            const container = document.getElementById('module-list'); if(!container) return; container.innerHTML = ''; 
+            const modelData = DB_MODELS[CURRENT_MODEL_ID]; 
+            DB_MODULES.forEach(def => { 
+                if (modelData.modules && !modelData.modules.includes(def.id)) return; 
+                const btn = document.createElement('button'); 
+                btn.className = "module-btn flex flex-col items-center justify-center p-2 bg-white border border-gray-200 rounded-lg transition hover:border-stoffus-primary group h-16 md:h-20 min-w-[80px] md:min-w-0 snap-start"; 
+                btn.onclick = () => addModule(def.id); 
+                let visualContent; let currentImgUrl = def.imgUrl;
+                if (def.id === 'corner') { const roundCornerModels = ['athena', 'brittany', 'dayma', 'enzo']; if (roundCornerModels.includes(CURRENT_MODEL_ID)) { currentImgUrl = `${GITHUB_REPO_URL}assets/icons/roundcorner.svg`; } }
+                if (modelData.type === 'relax') { if (def.id === 'seat_no_arm') currentImgUrl = `${GITHUB_REPO_URL}assets/icons/seatrelax.svg`; else if (def.id === 'seat_arm_l' || def.id === 'seat_arm_r') currentImgUrl = `${GITHUB_REPO_URL}assets/icons/armrelax.svg`; else if (def.id === 'meiple') currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meiplerelax.svg`; else if (def.id === 'meridien_l' || def.id === 'meridien_r') currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meridienrelax.svg`; }
+                if (modelData.type === 'slide') { if (def.id === 'seat_arm_l' || def.id === 'seat_arm_r') currentImgUrl = `${GITHUB_REPO_URL}assets/icons/armslide.svg`; else if (def.id === '2seats_2arms') currentImgUrl = `${GITHUB_REPO_URL}assets/icons/2arm2slide.svg`; else if (def.id === '2seats_arm_l' || def.id === '2seats_arm_r') currentImgUrl = `${GITHUB_REPO_URL}assets/icons/arm2slide.svg`; else if (def.id === 'meiple') currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meipleslide.svg`; }
+                if ((CURRENT_MODEL_ID === 'spirit' || CURRENT_MODEL_ID === 'rose') && def.type === 'meridien') { currentImgUrl = `${GITHUB_REPO_URL}assets/icons/meridienspirit.svg`; }
+                if(currentImgUrl) {
+                    let needsFlip = def.hasArm === 'right' || def.id.endsWith('_r');
+                    if (def.type === 'chaise' || def.type === 'meridien' || def.id.startsWith('maxxi')) { needsFlip = !needsFlip; }
+                    const flipClass = needsFlip ? 'scale-x-[-1]' : '';
+                    visualContent = `<img src="${currentImgUrl}" class="h-6 md:h-8 w-auto object-contain mb-1 opacity-70 group-hover:opacity-100 transition-all ${flipClass}" alt="${def.name}">`;
+                } else { visualContent = `<i class="fas ${def.icon} text-base md:text-lg text-gray-400 group-hover:text-stoffus-primary mb-1"></i>`; }
+                btn.innerHTML = `${visualContent}<span class="text-[8px] md:text-[9px] font-bold text-gray-600 leading-tight text-center line-clamp-2">${def.name}</span>`; container.appendChild(btn); 
+            }); 
+        }
+
+        function findBackParts(mod) {
+            if (mod.backParts && mod.backParts.length > 0) return true;
+            const foundNodes = [];
+            mod.mesh.traverse(node => {
+                if (node === mod.mesh) return;
+                const cleanName = node.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+                if (cleanName.includes('costa') || cleanName.includes('back')) {
+                    let parentAlreadyFound = false; let curr = node.parent; while(curr && curr !== mod.mesh) { if (foundNodes.includes(curr)) { parentAlreadyFound = true; break; } curr = curr.parent; }
+                    if (!parentAlreadyFound) { foundNodes.push(node); }
                 }
             });
+            if (foundNodes.length > 0) { mod.backParts = foundNodes; mod.backParts.forEach(p => { if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; if (p.userData.origX === undefined) p.userData.origX = p.position.x; }); return true; }
+            return false;
         }
 
-        function generateProceduralFallback(callback) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#cccccc';
-            ctx.fillRect(0, 0, 512, 512);
-            ctx.fillStyle = '#bbbbbb';
-            for(let i=0; i<50; i++) {
-                ctx.fillRect(Math.random()*512, Math.random()*512, 10, 10);
-            }
-            callback(canvas);
-        }
+        function animate() {
+            if(!scene || !camera || !renderer) return;
+            requestAnimationFrame(animate); controls.update();
+            const btnRecenter = document.getElementById('btn-recenter');
+            if (btnRecenter) { const distTarget = controls.target.length(); const distCam = camera.position.distanceTo(controls.target); if (distTarget > 300 || distCam > 2000) { if(btnRecenter.classList.contains('hidden')) btnRecenter.classList.remove('hidden'); } else { if(!btnRecenter.classList.contains('hidden')) btnRecenter.classList.add('hidden'); } }
+            const modelType = DB_MODELS[CURRENT_MODEL_ID].type;
+            const time = Date.now() * 0.003;
 
-        function manageTextureCache(newCollectionKey) { 
-        }
-
-        function openFabricSelector() { 
-            if (activeFabricId) {
-                const fab = FABRIC_LIBRARY.find(f => f.id === activeFabricId);
-                if (fab) {
-                    renderFabricDock('colors', fab.type);
-                } else {
-                    renderFabricDock('collections');
+            addedModules.forEach(mod => {
+                const badge = mod.mesh.getObjectByName('status_badge');
+                if (badge) {
+                    badge.visible = mod.relaxFactor > 0.1;
+                    if (badge.visible) { badge.position.y = 90 + Math.sin(time) * 2; }
                 }
-            } else {
-                renderFabricDock('collections');
-            }
-            uiSet('fabric-modal', 'display', 'flex'); 
+                const target = mod.hasRelax ? 1 : 0; mod.relaxFactor += (target - mod.relaxFactor) * 0.08;
+                if (CURRENT_MODEL_ID === 'rinaldi') {
+                    if (findBackParts(mod)) {
+                        let scale = 1; if(mod.mesh.children.length > 0) scale = Math.abs(mod.mesh.children[0].scale.x);
+                        const dist = 27 / scale; const distCorner = 19 / scale;
+                        mod.backParts.forEach(part => {
+                            if (mod.data.id === 'rinaldi_corner') { part.position.x = part.userData.origX - (mod.relaxFactor * distCorner); part.position.z = part.userData.origZ + (mod.relaxFactor * distCorner); } 
+                            else { part.position.z = part.userData.origZ + (mod.relaxFactor * dist); }
+                        });
+                    }
+                } else if (modelType === 'relax') {
+                    const foot = mod.mesh.getObjectByName('footrest_anim') || mod.mesh.getObjectByName('recliner'); const back = mod.mesh.getObjectByName('back_anim') || mod.mesh.getObjectByName('backrest');
+                    if (foot) { foot.rotation.x = -Math.PI / 2.5 * mod.relaxFactor; foot.position.y = mod.relaxFactor * 30 + 12; foot.position.z = mod.relaxFactor * 40; }
+                    if (back) back.rotation.x = -0.2 * mod.relaxFactor;
+                } else if (modelType === 'slide') {
+                    let internalScale = 1; if (mod.mesh.children.length > 0) { internalScale = mod.mesh.children[0].scale.z; }
+                    const slideDistance = 50 / internalScale;
+                    if (mod.sliderParts && mod.sliderParts.length > 0) { mod.sliderParts.forEach(part => { if (part.userData.origZ === undefined) part.userData.origZ = part.position.z; part.position.z = part.userData.origZ + (mod.relaxFactor * slideDistance); }); } else if (mod.sliderGroup) { mod.sliderGroup.position.z = mod.sliderGroup.userData.origZ + (mod.relaxFactor * slideDistance); }
+                }
+            });
+            renderer.render(scene, camera);
         }
 
-        function openOrderSummary() {
-            const oldPos = camera.position.clone();
+        // ======================== FUNÇÕES MISTAS ========================
+
+        function updateDimensionLabels() {
+            if (!dimensionLinesGroup) return;
+             while(dimensionLinesGroup.children.length > 0){ const obj = dimensionLinesGroup.children[0]; if(obj.material && obj.material.map) obj.material.map.dispose(); dimensionLinesGroup.remove(obj); }
+            if(!showDimensions || addedModules.length === 0) return;
+            let leg1Length = 0; let leg2Length = 0; let cornerIndex = -1; 
+            for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIndex = i; break; }
+            const endLeg1Index = cornerIndex === -1 ? addedModules.length - 1 : cornerIndex; 
+            let startX = 0; let endX = 0;
+            if(addedModules.length > 0) {
+                const first = addedModules[0]; const lastLeg1 = addedModules[endLeg1Index]; 
+                endX = lastLeg1.mesh.position.x + lastLeg1.width/2; startX = -first.width/2; leg1Length = endX - startX;
+                const lineY = 110; 
+                const linePoints = [new THREE.Vector3(startX, lineY, 0), new THREE.Vector3(endX, lineY, 0)]; 
+                const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePoints), new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 })); 
+                dimensionLinesGroup.add(line);
+                const sprite = createTextSprite(Math.round(leg1Length) + " cm"); sprite.position.set((startX + endX)/2, lineY + 15, 0); dimensionLinesGroup.add(sprite);
+            }
+            if(cornerIndex !== -1 && cornerIndex < addedModules.length - 1) {
+                const corner = addedModules[cornerIndex]; const lastLeg2 = addedModules[addedModules.length - 1]; 
+                const startZ = corner.mesh.position.z - corner.depth/2; const endZ = lastLeg2.mesh.position.z + lastLeg2.width/2; leg2Length = endZ - startZ;
+                const lineX = corner.mesh.position.x + corner.width/2 + 20; const lineY = 110;
+                const linePointsZ = [new THREE.Vector3(lineX, lineY, startZ), new THREE.Vector3(lineX, lineY, endZ)]; 
+                const lineZ = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePointsZ), new THREE.LineBasicMaterial({ color: 0xffffff })); 
+                dimensionLinesGroup.add(lineZ);
+                const spriteZ = createTextSprite(Math.round(leg2Length) + " cm"); spriteZ.position.set(lineX + 10, lineY + 15, (startZ + endZ)/2); dimensionLinesGroup.add(spriteZ);
+            }
+        }
+
+        function repositionModules() {
+            let cornerIdx = -1; for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIdx = i; break; }
+            let cornerPos = { x:0, z:0, depth: 0 }; 
+            const modelData = DB_MODELS[CURRENT_MODEL_ID];
+            let gapCorrection = 0;
+            if (CURRENT_MODEL_ID === 'dayma') gapCorrection = -2; if (CURRENT_MODEL_ID === 'brittany') gapCorrection = -4; if (CURRENT_MODEL_ID === 'fiori') gapCorrection = -2; 
+
+            addedModules.forEach((mod, i) => {
+                const mesh = mod.mesh;
+                if(cornerIdx === -1 || i <= cornerIdx) {
+                    mod.isCornerLine = false; mesh.rotation.y = 0;
+                    if(i === 0) mesh.position.x = 0; else { const prev = addedModules[i-1]; mesh.position.x = prev.mesh.position.x + (prev.width/2) + (mod.width/2) + gapCorrection; }
+                    mesh.position.z = ((mod.depth - modelData.depth) / 2); 
+                    if(mod.data.type === 'corner') cornerPos = { x: mesh.position.x, z: mesh.position.z, depth: mod.depth };
+                } else {
+                    mod.isCornerLine = true; mesh.rotation.y = -Math.PI / 2; 
+                    if(i === cornerIdx + 1) { mesh.position.z = cornerPos.z + (cornerPos.depth/2) + (mod.width/2) + gapCorrection; } else { const prev = addedModules[i-1]; mesh.position.z = prev.mesh.position.z + (prev.width/2) + (mod.width/2) + gapCorrection; }
+                    mesh.position.x = cornerPos.x + (cornerPos.depth/2) - (mod.depth/2);
+                }
+            });
+            
+            let logicalW = 0; let logicalD = 0;
+            if (addedModules.length > 0) {
+                const hasCorner = cornerIdx !== -1;
+                const limitIndex = hasCorner ? cornerIdx : addedModules.length - 1;
+                for(let i=0; i <= limitIndex; i++) { logicalW += addedModules[i].width; }
+                if (hasCorner) { logicalD = addedModules[cornerIdx].depth; for(let i = cornerIdx + 1; i < addedModules.length; i++) { logicalD += addedModules[i].width; } } 
+                else { let maxD = 0; addedModules.forEach(m => { if(m.depth > maxD) maxD = m.depth; }); logicalD = maxD; }
+            }
+            const widthDisplay = document.getElementById('total-width-display');
+            if (widthDisplay) widthDisplay.innerText = `${Math.round(logicalW)}cm x ${Math.round(logicalD)}cm +/-`;
+            updateDimensionLabels(); updatePriceUI(); 
+        }
+
+        // ======================== UI INIT & HELPERS ========================
+
+        function initModelSelector() { 
+            updateModelButtonUI(); 
+            const container = document.getElementById('model-grid-container'); 
+            if(!container) return; 
+            container.innerHTML = ''; 
+            Object.keys(DB_MODELS).forEach(key => { 
+                const model = DB_MODELS[key]; 
+                const card = document.createElement('div'); 
+                const isActive = key === CURRENT_MODEL_ID; 
+                let badgeClass = 'badge-fixed'; 
+                let typeLabel = 'Fixo'; 
+                if (model.type === 'relax') { badgeClass = 'badge-relax'; typeLabel = 'Relax'; } 
+                if (model.type === 'slide') { badgeClass = 'badge-slide'; typeLabel = 'Deslizante'; } 
+                if (model.type === 'pendular') { badgeClass = 'badge-pendular'; typeLabel = 'Pendular'; } 
+                card.className = `model-card ${isActive ? 'active' : ''}`; 
+                card.onclick = () => { changeModel(key); uiSet('model-modal', 'display', 'none'); }; 
+                const cleanName = model.name.split('(')[0].trim(); 
+                const keyLower = key.toLowerCase(); 
+                const imgUrlWebP = `${GITHUB_REPO_URL}assets/icons/${keyLower}.webp`; 
+                const imgUrlPng = `${GITHUB_REPO_URL}assets/icons/${keyLower}.png`; 
+                const placeholder = `https://placehold.co/150x100?text=${cleanName}`; 
+                card.innerHTML = `<img src="${imgUrlWebP}" class="model-card-img" alt="${cleanName}" onerror="this.onerror=null; this.src='${imgUrlPng}'; this.onerror=function(){this.src='${placeholder}'; this.style.objectFit='cover';};"><div class="model-card-name">${cleanName}</div><span class="model-badge ${badgeClass}">${typeLabel}</span>`; 
+                container.appendChild(card); 
+            }); 
+        }
+
+        function updateModelButtonUI() { 
+            const nameEl = document.getElementById('current-model-name'); 
+            if(!nameEl) return; 
+            const modelName = DB_MODELS[CURRENT_MODEL_ID].name.split('(')[0].trim(); 
+            nameEl.textContent = modelName; 
+            const cards = document.querySelectorAll('.model-card'); 
+            cards.forEach(c => { 
+                if(c.innerText.includes(modelName)) c.classList.add('active'); 
+                else c.classList.remove('active'); 
+            }); 
+        }
+
+        function initSizeSelector() { 
+            const container = document.getElementById('size-selector-container'); 
+            if(!container) return; 
+            if (DB_MODELS[CURRENT_MODEL_ID].hideSizeSelector) {
+                container.parentElement.style.display = 'none';
+                return;
+            } else {
+                container.parentElement.style.display = 'block';
+            }
+            container.innerHTML = ''; 
+            const modelSizes = DB_MODELS[CURRENT_MODEL_ID].sizes; 
+            Object.keys(modelSizes).forEach(size => { 
+                const btn = document.createElement('button'); 
+                btn.className = `flex-1 py-1.5 px-3 text-xs font-bold rounded-md transition whitespace-nowrap min-w-[40px] snap-start ${CURRENT_SIZE_KEY === size ? 'bg-white shadow-sm text-stoffus-primary' : 'text-gray-600 hover:bg-white'}`; 
+                btn.innerText = size; 
+                btn.onclick = () => changeSize(size); 
+                container.appendChild(btn); 
+            }); 
+            updateSizePreview(); 
+        }
+
+        function updateSizePreview() { 
+            document.getElementById('size-preview').innerText = `${DB_MODELS[CURRENT_MODEL_ID].sizes[CURRENT_SIZE_KEY]} cm`; 
+        }
+
+        window.openModelSelector = function() { uiSet('model-modal', 'display', 'flex'); }
+
+        window.openOrderSummary = function() {
+            const oldPos = camera.position.clone(); 
             const oldTarget = controls.target.clone();
 
             if(addedModules.length > 0) {
-                const box = new THREE.Box3();
-                addedModules.forEach(mod => {
-                    box.expandByObject(mod.mesh);
-                });
+                const box = new THREE.Box3(); 
+                addedModules.forEach(mod => { box.expandByObject(mod.mesh); });
 
-                const center = new THREE.Vector3();
-                box.getCenter(center);
-                const size = new THREE.Vector3();
-                box.getSize(size);
+                const center = new THREE.Vector3(); box.getCenter(center); 
+                const size = new THREE.Vector3(); box.getSize(size);
 
-                const maxDim = Math.max(size.x, size.y, size.z);
+                const maxDim = Math.max(size.x, size.y, size.z); 
                 const dist = maxDim * 2.0 + 200; 
                 
-                controls.target.copy(center);
-                camera.position.set(center.x, center.y + dist * 0.5, center.z + dist);
-                camera.lookAt(center);
-                camera.updateProjectionMatrix();
+                controls.target.copy(center); 
+                camera.position.set(center.x, center.y + dist * 0.5, center.z + dist); 
+                camera.lookAt(center); 
+                camera.updateProjectionMatrix(); 
                 controls.update(); 
             }
 
-            renderer.render(scene, camera);
-            const imgData = renderer.domElement.toDataURL('image/jpeg', 0.8);
-            const imgEl = document.getElementById('order-preview-img');
+            renderer.render(scene, camera); 
+            const imgData = renderer.domElement.toDataURL('image/jpeg', 0.8); 
+            const imgEl = document.getElementById('order-preview-img'); 
             if(imgEl) imgEl.src = imgData;
 
-            if(addedModules.length > 0) {
-                camera.position.copy(oldPos);
-                controls.target.copy(oldTarget);
-                controls.update();
-                renderer.render(scene, camera);
+            if(addedModules.length > 0) { 
+                camera.position.copy(oldPos); 
+                controls.target.copy(oldTarget); 
+                controls.update(); 
+                renderer.render(scene, camera); 
             }
 
-            const tbody = document.getElementById('order-items-body');
-            tbody.innerHTML = '';
-            let totalWidth = 0;
+            const tbody = document.getElementById('order-items-body'); 
+            tbody.innerHTML = ''; 
             
-            if(addedModules.length > 0) {
-                let cornerIdx = -1;
-                for(let i=0; i<addedModules.length; i++) if(addedModules[i].data.type === 'corner') { cornerIdx = i; break; }
-                const first = addedModules[0];
-                let lastInLine1 = addedModules.length - 1;
-                if (cornerIdx !== -1) lastInLine1 = cornerIdx;
-                const startX = first.mesh.position.x - first.width/2;
-                const endX = addedModules[lastInLine1].mesh.position.x + addedModules[lastInLine1].width/2;
-                totalWidth = Math.round(endX - startX);
-            }
-
             addedModules.forEach(mod => {
                 const tr = document.createElement('tr');
-                
                 let pointsDisplay = 0; 
                 const modelPrices = DB_PRICES[CURRENT_MODEL_ID] || {}; 
                 if (modelPrices && modelPrices[mod.data.id]) {
-                    const sizeKey = CURRENT_SIZE_KEY;
-                    const sizePrices = modelPrices[mod.data.id][sizeKey];
+                    const sizeKey = CURRENT_SIZE_KEY; 
+                    const sizePrices = modelPrices[mod.data.id][sizeKey]; 
                     let currentClass = 'bliss';
-                    if (activeFabricId) {
-                        const fab = FABRIC_LIBRARY.find(f => f.id === activeFabricId);
-                        if (fab) currentClass = getFabricClass(fab.collection);
+                    if (activeFabricId) { 
+                        const fab = FABRIC_LIBRARY.find(f => f.id === activeFabricId); 
+                        if (fab) currentClass = getFabricClass(fab.collection); 
                     }
-                    if (sizePrices && sizePrices[currentClass]) {
-                        pointsDisplay = sizePrices[currentClass];
-                    }
+                    if (sizePrices && sizePrices[currentClass]) { pointsDisplay = sizePrices[currentClass]; }
                 }
 
-                let extraPts = 0;
+                let extraPts = 0; 
                 let nameSuffix = "";
                 
                 if(mod.hasRelax) { 
                     extraPts += RELAX_COST_POINTS; 
-                    const type = DB_MODELS[CURRENT_MODEL_ID].type;
-                    if (type === 'slide') nameSuffix = " + Slide";
-                    else if (type === 'pendular') nameSuffix = " + Pendular";
-                    else nameSuffix = " + Relax";
+                    const type = DB_MODELS[CURRENT_MODEL_ID].type; 
+                    if (type === 'slide') nameSuffix = " + Slide"; 
+                    else if (type === 'pendular') nameSuffix = " + Pendular"; 
+                    else nameSuffix = " + Relax"; 
                 }
                 
                 if(mod.hasRelax && hasLithiumBattery) { 
@@ -1959,37 +1344,30 @@
                     nameSuffix += " + Bateria"; 
                 }
                 
-                let basePts = parseInt(pointsDisplay);
-                if(isNaN(basePts)) basePts = 0;
+                let basePts = parseInt(pointsDisplay); 
+                if(isNaN(basePts)) basePts = 0; 
                 let finalItemPts = basePts + extraPts;
 
-                // Formatar para (Base + Extra) Total pts
-                let pointsStr = `${finalItemPts} pts`;
-                if(extraPts > 0) {
-                    pointsStr = `<span class="text-xs font-normal text-gray-400">(${basePts} + ${extraPts})</span> ${finalItemPts} pts`;
-                }
+                let pointsStr = `${finalItemPts} pts`; 
+                if(extraPts > 0) { pointsStr = `<span class="text-xs font-normal text-gray-400">(${basePts} + ${extraPts})</span> ${finalItemPts} pts`; }
 
-                tr.innerHTML = `<td>${mod.data.name}${nameSuffix}</td><td>${Math.round(mod.width)} cm</td><td class="font-bold text-gray-500 whitespace-nowrap">${pointsStr}</td>`;
+                tr.innerHTML = `<td>${mod.data.name}${nameSuffix}</td><td>${Math.round(mod.width)} cm</td><td class="font-bold text-gray-500 whitespace-nowrap">${pointsStr}</td>`; 
                 tbody.appendChild(tr);
             });
 
             document.getElementById('summary-model').innerText = DB_MODELS[CURRENT_MODEL_ID].name;
             const fabName = document.getElementById('current-fabric-name').innerText;
             document.getElementById('summary-fabric').innerText = fabName === 'Escolher Tecido' ? 'N/A' : fabName;
-            document.getElementById('summary-width').innerText = totalWidth + " cm";
             
-            updateBatteryUI();
+            updateBatteryUI(); 
             updatePriceUI();
-
             uiSet('order-modal', 'display', 'flex');
-        }
-
-        window.openModelSelector = function() { uiSet('model-modal', 'display', 'flex'); }
+        };
 
         window.confirmAndGeneratePDF = async function() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            const pageWidth = doc.internal.pageSize.getWidth(); // A4 width ~210mm
+            const pageWidth = doc.internal.pageSize.getWidth(); 
             const margin = 20;
             
             const dateStr = new Date().toLocaleDateString('pt-PT');
@@ -1998,21 +1376,12 @@
             const observations = document.getElementById('order-observations').value;
             const totalPoints = document.getElementById('summary-points').innerText;
             
-            // --- 1. CABEÇALHO ---
-            
-            // Título "ENCOMENDA" no Canto Superior Esquerdo
-            doc.setFontSize(24);
-            doc.setTextColor(33, 33, 33); // Cinzento quase preto
-            doc.setFont("helvetica", "bold");
+            doc.setFontSize(24); doc.setTextColor(33, 33, 33); doc.setFont("helvetica", "bold"); 
             doc.text("ENCOMENDA", margin, 25);
             
-            // Data por baixo
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            doc.setTextColor(120, 120, 120); // Cinzento médio
+            doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(120, 120, 120); 
             doc.text(`Data: ${dateStr}`, margin, 32);
 
-            // Logótipo no Canto Superior Direito
             const logoUrl = `${GITHUB_REPO_URL}logo.png`; 
             try {
                 const response = await fetch(logoUrl);
@@ -2023,179 +1392,162 @@
                         reader.onloadend = () => resolve(reader.result);
                         reader.readAsDataURL(blob);
                     });
-                    const logoW = 40;
-                    // Posição X = LarguraPagina - Margem - LarguraLogo
+                    const logoW = 40; 
                     doc.addImage(base64Img, 'PNG', pageWidth - margin - logoW, 10, logoW, 0); 
                 }
-            } catch (e) {
-                console.warn("Logo load failed", e);
-            }
+            } catch (e) { console.warn("Logo load failed", e); }
 
-            // Linha Separadora
-            doc.setDrawColor(220, 220, 220); // Cinzento muito claro
-            doc.setLineWidth(0.5);
+            doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.5); 
             doc.line(margin, 40, pageWidth - margin, 40);
 
-            // --- 2. CONTEÚDO PRINCIPAL ---
             let yPos = 50;
-
-            // Imagem de Pré-visualização
             const imgData = document.getElementById('order-preview-img').src;
-            if(imgData) {
-                // Adicionar imagem com proporção fixa (mais panorâmica)
-                doc.addImage(imgData, 'JPEG', margin, yPos, pageWidth - (margin*2), 85);
-                
-                // Moldura fina à volta da imagem para acabamento
-                doc.setDrawColor(230, 230, 230);
-                doc.rect(margin, yPos, pageWidth - (margin*2), 85);
-                
-                yPos += 95; // Avançar cursor
+            if(imgData) { 
+                doc.addImage(imgData, 'JPEG', margin, yPos, pageWidth - (margin*2), 85); 
+                doc.setDrawColor(230, 230, 230); 
+                doc.rect(margin, yPos, pageWidth - (margin*2), 85); 
+                yPos += 95; 
             }
 
-            // Grelha de Informação (Modelo | Tecido | Extras)
-            doc.setFontSize(9);
-            doc.setTextColor(150, 150, 150); // Label Cinzento Claro
-            doc.setFont("helvetica", "bold");
-            
-            doc.text("MODELO", margin, yPos);
+            doc.setFontSize(9); doc.setTextColor(150, 150, 150); doc.setFont("helvetica", "bold");
+            doc.text("MODELO", margin, yPos); 
             doc.text("TECIDO / ACABAMENTO", margin + 60, yPos);
             if (hasLithiumBattery) doc.text("EXTRAS", margin + 130, yPos);
-
             yPos += 6;
             
-            doc.setFontSize(12);
-            doc.setTextColor(40, 40, 40); // Texto Escuro
-            doc.setFont("helvetica", "normal");
-            
+            doc.setFontSize(12); doc.setTextColor(40, 40, 40); doc.setFont("helvetica", "normal");
             doc.text(modelName, margin, yPos);
-            
-            // Texto do tecido com quebra de linha se for muito longo
-            const splitFabric = doc.splitTextToSize(fabricName, 60);
+            const splitFabric = doc.splitTextToSize(fabricName, 60); 
             doc.text(splitFabric, margin + 60, yPos);
             
-            if (hasLithiumBattery) {
-                doc.setTextColor(22, 163, 74); // Verde para destaque positivo
-                doc.setFont("helvetica", "bold");
-                doc.text("Bateria de Lítio Incluída", margin + 130, yPos);
-                doc.setTextColor(40, 40, 40); // Reset
-                doc.setFont("helvetica", "normal");
+            if (hasLithiumBattery) { 
+                doc.setTextColor(22, 163, 74); doc.setFont("helvetica", "bold"); 
+                doc.text("Bateria de Lítio Incluída", margin + 130, yPos); 
+                doc.setTextColor(40, 40, 40); doc.setFont("helvetica", "normal"); 
             }
-            
-            // Ajustar Y baseado no tamanho do texto do tecido
             yPos += (splitFabric.length * 5) + 10;
 
-            // Observações (Caixa de destaque se existirem)
             if(observations && observations.trim() !== "") {
-                doc.setFillColor(250, 250, 250); // Fundo muito leve
-                doc.setDrawColor(240, 240, 240);
-                // Desenhar retângulo de fundo
-                // Calcular altura necessária
-                const splitObs = doc.splitTextToSize(observations, pageWidth - (margin*2) - 10);
+                doc.setFillColor(250, 250, 250); doc.setDrawColor(240, 240, 240);
+                const splitObs = doc.splitTextToSize(observations, pageWidth - (margin*2) - 10); 
                 const boxHeight = 15 + (splitObs.length * 5);
-                
                 doc.rect(margin, yPos, pageWidth - (margin*2), boxHeight, 'FD');
-                
-                doc.setFontSize(9);
-                doc.setTextColor(100, 100, 100);
+                doc.setFontSize(9); doc.setTextColor(100, 100, 100); 
                 doc.text("Observações:", margin + 5, yPos + 8);
-                
-                doc.setFontSize(10);
-                doc.setTextColor(60, 60, 60);
+                doc.setFontSize(10); doc.setTextColor(60, 60, 60); 
                 doc.text(splitObs, margin + 5, yPos + 16);
-                
                 yPos += boxHeight + 10;
-            } else {
-                yPos += 5;
-            }
+            } else { yPos += 5; }
 
-            // --- 3. TABELA DE MÓDULOS ---
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(33, 33, 33);
-            doc.text("Especificação dos Módulos", margin, yPos);
-            yPos += 5;
+            doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.setTextColor(33, 33, 33); 
+            doc.text("Especificação dos Módulos", margin, yPos); yPos += 5;
 
             const tableBody = addedModules.map(mod => {
                  let details = mod.hasRelax ? (DB_MODELS[CURRENT_MODEL_ID].type === 'slide' ? 'Sistema Deslizante' : 'Mecanismo Relax') : 'Fixo';
                  if (mod.hasRelax && hasLithiumBattery) details += " + Bateria";
-                 
-                 // Nome limpo
                  return [mod.data.name, Math.round(mod.width) + " cm", details];
             });
 
             doc.autoTable({
-                startY: yPos,
-                head: [['Módulo', 'Largura', 'Configuração']],
-                body: tableBody,
-                theme: 'plain', // Estilo limpo sem linhas verticais pesadas
-                styles: { 
-                    fontSize: 10, 
-                    cellPadding: 4, 
-                    textColor: [60, 60, 60] 
-                },
-                headStyles: { 
-                    fillColor: [245, 245, 245], // Cabeçalho cinzento muito claro
-                    textColor: [33, 33, 33], 
-                    fontStyle: 'bold',
-                    lineWidth: 0
-                },
-                columnStyles: {
-                    0: { fontStyle: 'bold', width: 70 }, 
-                    1: { halign: 'left', width: 40 }
-                },
+                startY: yPos, 
+                head: [['Módulo', 'Largura', 'Configuração']], 
+                body: tableBody, 
+                theme: 'plain', 
+                styles: { fontSize: 10, cellPadding: 4, textColor: [60, 60, 60] },
+                headStyles: { fillColor: [245, 245, 245], textColor: [33, 33, 33], fontStyle: 'bold', lineWidth: 0 },
+                columnStyles: { 0: { fontStyle: 'bold', width: 70 }, 1: { halign: 'left', width: 40 } }, 
                 margin: { left: margin, right: margin }
             });
             
             yPos = doc.lastAutoTable.finalY + 15;
-
-            // --- 4. TOTAL (Destaque Final) ---
-            // Desenhar linha fina acima do total
-            doc.setDrawColor(220, 220, 220);
+            doc.setDrawColor(220, 220, 220); 
             doc.line(pageWidth - margin - 80, yPos - 5, pageWidth - margin, yPos - 5);
-
-            doc.setFontSize(10);
-            doc.setTextColor(100, 100, 100);
+            doc.setFontSize(10); doc.setTextColor(100, 100, 100); 
             doc.text("VALOR TOTAL (PONTOS)", pageWidth - margin, yPos, { align: "right" });
-            
             yPos += 10;
-            doc.setFontSize(22);
-            doc.setTextColor(232, 76, 38); // Stoffus Orange
-            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22); doc.setTextColor(232, 76, 38); doc.setFont("helvetica", "bold"); 
             doc.text(totalPoints, pageWidth - margin, yPos, { align: "right" });
 
-            // --- RODAPÉ ---
             const pageCount = doc.internal.getNumberOfPages();
-            for(let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setTextColor(180, 180, 180);
-                doc.text('Gerado por Configurador Stoffus 3D', pageWidth / 2, doc.internal.pageSize.height - 10, { align: "center" });
+            for(let i = 1; i <= pageCount; i++) { 
+                doc.setPage(i); doc.setFontSize(8); doc.setTextColor(180, 180, 180); 
+                doc.text('Gerado por Configurador Stoffus 3D', pageWidth / 2, doc.internal.pageSize.height - 10, { align: "center" }); 
             }
             
             doc.save(`Encomenda_Stoffus_${Date.now()}.pdf`);
             showFeedback("PDF Gerado com Sucesso!", "success");
             uiSet('order-modal', 'display', 'none');
-        }
+        };
 
+        window.changeModel = function(modelId) { 
+            if (!DB_MODELS[modelId]) return; 
+            pendingConfiguration = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax })); 
+            CURRENT_MODEL_ID = modelId; 
+            const modelData = DB_MODELS[modelId]; 
+            
+            if (!modelData.sizes[CURRENT_SIZE_KEY]) { 
+                const availableSizes = Object.keys(modelData.sizes);
+                if (availableSizes.includes('M')) { CURRENT_SIZE_KEY = 'M'; } 
+                else if (availableSizes.length > 0) { CURRENT_SIZE_KEY = availableSizes[0]; }
+            } 
+            
+            updateModelButtonUI(); 
+            initSizeSelector(); 
+            addedModules.forEach(m => scene.remove(m.mesh)); 
+            addedModules = []; 
+            loadModelAssets(modelId); 
+            updateSizePreview(); 
+            updateBatteryVisibility(); 
+            renderModuleButtons(); 
+        };
+
+        window.changeSize = function(sizeKey) { 
+            if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && sizeKey === 'XXL') { 
+                const hasValidModule = addedModules.some(m => m.data.id === '2seats_2arms'); 
+                if (!hasValidModule) { showFeedback("Tamanho XXL exclusivo para o módulo '2 Lug. 2 Braços'. Adicione-o primeiro.", "error"); initSizeSelector(); return; } 
+            } 
+            if (['infinity', 'magic'].includes(CURRENT_MODEL_ID) && sizeKey === 'XXL') { showFeedback("Tamanho XXL aplicado ao módulo '2 Lug. 2 Braços'.", "success"); } 
+            CURRENT_SIZE_KEY = sizeKey; 
+            initSizeSelector(); 
+            const currentModules = addedModules.map(m => ({ id: m.data.id, hasRelax: m.hasRelax })); 
+            addedModules.forEach(m => scene.remove(m.mesh)); 
+            addedModules = []; 
+            currentModules.forEach(m => addModule(m.id, true, m.hasRelax)); 
+            repositionModules(); 
+        };
+        
         // ======================== INITIALIZATION ========================
         window.init = async function() {
-            // First: Load prices from Github
-            const loaded = await loadExternalPrices();
-            if(!loaded) {
-                document.getElementById('loading-text').innerText = "Erro ao carregar preços. Funcionalidade limitada.";
+            const [pricesLoaded, modelsLoaded, configLoaded] = await Promise.all([
+                loadExternalPrices(),
+                loadExternalModels(),
+                loadExternalConfig()
+            ]);
+
+            if(!pricesLoaded || !modelsLoaded || !configLoaded) {
+                document.getElementById('loading-text').innerText = "Erro ao carregar dados. Funcionalidade limitada.";
             }
 
-            // Scene setup
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xffffff);
-            scene.fog = new THREE.Fog(0xffffff, 500, 3000);
-
-            // Camera setup
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 10, 5000);
-            camera.position.set(0, 450, 750);
-
-            // Renderer setup
-            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
+            // WebGL Renderer Setup with Try-Catch for safety
+            try {
+                renderer = new THREE.WebGLRenderer({ 
+                    antialias: true, 
+                    preserveDrawingBuffer: true, 
+                    alpha: true,
+                    powerPreference: "default", 
+                    failIfMajorPerformanceCaveat: false 
+                });
+            } catch (e) {
+                console.warn("WebGL creation failed, trying fallback", e);
+                try {
+                    renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true, alpha: true });
+                } catch (e2) {
+                    console.error("Critical WebGL Error", e2);
+                    document.getElementById('loading-text').innerText = "Erro: WebGL indisponível.";
+                    return;
+                }
+            }
+            
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -2204,63 +1556,30 @@
             renderer.toneMappingExposure = 1.2;
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            // Controls setup
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xffffff);
+            scene.fog = new THREE.Fog(0xffffff, 500, 3000);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 10, 5000);
+            camera.position.set(0, 450, 750);
+
             controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.minDistance = 200;
-            controls.maxDistance = 1500;
-            controls.maxPolarAngle = Math.PI / 2 - 0.05;
-            controls.target.set(0, 0, 0);
+            controls.enableDamping = true; controls.dampingFactor = 0.05; controls.minDistance = 200; controls.maxDistance = 1500; controls.maxPolarAngle = Math.PI / 2 - 0.05; controls.target.set(0, 0, 0);
 
-            // Lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(300, 500, 300); dirLight.castShadow = true; dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048; dirLight.shadow.camera.near = 0.5; dirLight.shadow.camera.far = 2000; dirLight.shadow.bias = -0.0001; const d = 500; dirLight.shadow.camera.left = -d; dirLight.shadow.camera.right = d; dirLight.shadow.camera.top = d; dirLight.shadow.camera.bottom = -d; scene.add(dirLight);
+            const fillLight = new THREE.DirectionalLight(0xffeedd, 0.4); fillLight.position.set(-300, 200, -300); scene.add(fillLight);
 
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(300, 500, 300);
-            dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 2048;
-            dirLight.shadow.mapSize.height = 2048;
-            dirLight.shadow.camera.near = 0.5;
-            dirLight.shadow.camera.far = 2000;
-            dirLight.shadow.bias = -0.0001;
-            const d = 500;
-            dirLight.shadow.camera.left = -d;
-            dirLight.shadow.camera.right = d;
-            dirLight.shadow.camera.top = d;
-            dirLight.shadow.camera.bottom = -d;
-            scene.add(dirLight);
+            const gridHelper = new THREE.GridHelper(2000, 40, 0xe5e7eb, 0xe5e7eb); gridHelper.name = 'env_grid'; scene.add(gridHelper);
+            const groundGeo = new THREE.PlaneGeometry(2000, 2000); const groundMat = new THREE.MeshBasicMaterial({ color: 0xffffff, visible: false }); 
+            const ground = new THREE.Mesh(groundGeo, groundMat); ground.rotation.x = -Math.PI / 2; ground.name = 'ground_plane'; scene.add(ground);
             
-            const fillLight = new THREE.DirectionalLight(0xffeedd, 0.4);
-            fillLight.position.set(-300, 200, -300);
-            scene.add(fillLight);
+            const shadowPlaneGeo = new THREE.PlaneGeometry(2000, 2000); const shadowPlaneMat = new THREE.ShadowMaterial({ opacity: 0.1 }); 
+            const shadowPlane = new THREE.Mesh(shadowPlaneGeo, shadowPlaneMat); shadowPlane.rotation.x = -Math.PI / 2; shadowPlane.position.y = 0.1; shadowPlane.receiveShadow = true; shadowPlane.name = 'env_ground_visual'; scene.add(shadowPlane);
 
-            // Environment Floor (Visual only)
-            const gridHelper = new THREE.GridHelper(2000, 40, 0xe5e7eb, 0xe5e7eb);
-            gridHelper.name = 'env_grid';
-            scene.add(gridHelper);
-
-            const groundGeo = new THREE.PlaneGeometry(2000, 2000);
-            const groundMat = new THREE.MeshBasicMaterial({ color: 0xffffff, visible: false }); // Invisible catcher
-            const ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.rotation.x = -Math.PI / 2;
-            ground.name = 'ground_plane';
-            scene.add(ground);
-            
-            const shadowPlaneGeo = new THREE.PlaneGeometry(2000, 2000);
-            const shadowPlaneMat = new THREE.ShadowMaterial({ opacity: 0.1 });
-            const shadowPlane = new THREE.Mesh(shadowPlaneGeo, shadowPlaneMat);
-            shadowPlane.rotation.x = -Math.PI / 2;
-            shadowPlane.position.y = 0.1;
-            shadowPlane.receiveShadow = true;
-            shadowPlane.name = 'env_ground_visual';
-            scene.add(shadowPlane);
-
-            // Initialize Managers
             manager = new THREE.LoadingManager();
             
-            // Failsafe for loading
             setTimeout(() => {
                 const loader = document.getElementById('app-loader');
                 if (loader && loader.style.display !== 'none') {
@@ -2273,25 +1592,14 @@
 
             manager.onLoad = function () {
                 document.getElementById('loading-bar').style.width = '100%';
-                setTimeout(() => {
-                    uiSet('app-loader', 'opacity', '0');
-                    setTimeout(() => uiSet('app-loader', 'display', 'none'), 500);
-                }, 500);
+                setTimeout(() => { uiSet('app-loader', 'opacity', '0'); setTimeout(() => uiSet('app-loader', 'display', 'none'), 500); }, 500);
             };
-            manager.onProgress = function (url, itemsLoaded, itemsTotal) {
-                 const pct = (itemsLoaded / itemsTotal) * 100;
-                 document.getElementById('loading-bar').style.width = pct + '%';
-            };
+            manager.onProgress = function (url, itemsLoaded, itemsTotal) { const pct = (itemsLoaded / itemsTotal) * 100; document.getElementById('loading-bar').style.width = pct + '%'; };
 
-            // Raycaster
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
-
-            // Dimensions group
             dimensionLinesGroup = new THREE.Group();
             scene.add(dimensionLinesGroup);
-
-            // Room Setup - Floor
             buildFloor();
 
             // Event Listeners
@@ -2301,18 +1609,13 @@
             renderer.domElement.addEventListener('touchstart', onTouchStart, {passive: false});
             renderer.domElement.addEventListener('touchend', onTouchEnd, {passive: false});
 
-            // Initialize UI and Logic
             initFabricSystem();
             initModelSelector();
             renderModuleButtons();
             initUIListeners();
             initSizeSelector();
-            
-            // Initial load
             loadModelAssets(CURRENT_MODEL_ID);
-            updateBatteryVisibility(); // Initial check
-
-            // Start Loop
+            updateBatteryVisibility(); 
             animate();
         }
 
