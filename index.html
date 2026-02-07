@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stoffus Studio - Acesso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = { theme: { extend: { colors: { 'stoffus-primary': '#e84c26' } } } }
+    </script>
+    
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #f3f4f6; 
+            font-family: 'Inter', sans-serif; 
+            /* Fundo bonito para a página de login */
+            background-image: url('https://stoffus.pt/wp-content/uploads/2024/06/brittany-com-chaise-novo-ambiente-pe-std033x-1500x844.jpg?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        }
+        .shake { animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-5px); } 50% { transform: translateX(5px); } }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen w-screen">
+
+    <div class="glass p-10 rounded-3xl w-full max-w-md text-center mx-4 relative">
+        <div class="mb-8 flex justify-center">
+            <div class="bg-white p-4 rounded-2xl shadow-md inline-block">
+                <!-- Certifica-te que o logo.png está na raiz do Github -->
+                <img src="logo.png" alt="Stoffus" class="h-16 w-auto object-contain">
+            </div>
+        </div>
+
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Área Profissional</h1>
+        <p class="text-sm text-gray-500 mb-8">Gestão de Encomendas e Configuração 3D</p>
+        
+        <div class="text-left space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Utilizador</label>
+                <input type="text" id="login-user" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-stoffus-primary outline-none transition" placeholder="Utilizador">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Palavra-passe</label>
+                <input type="password" id="login-pass" class="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-stoffus-primary outline-none transition" placeholder="••••••••">
+            </div>
+        </div>
+        
+        <button id="btn-login" class="w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl mt-6 hover:bg-stoffus-primary transition-all shadow-lg text-sm tracking-wide">ENTRAR NA PLATAFORMA</button>
+
+        <div class="flex items-center my-6 w-full"><div class="h-px bg-gray-300 flex-1"></div><span class="px-3 text-[10px] text-gray-400 font-bold uppercase">OU</span><div class="h-px bg-gray-300 flex-1"></div></div>
+
+        <button id="btn-guest" class="w-full bg-white text-gray-600 border-2 border-gray-200 font-bold py-3 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-xs">ENTRAR COMO CONVIDADO</button>
+        
+        <div id="error-msg" class="text-red-500 text-xs font-bold mt-4 hidden bg-red-50 p-2 rounded-lg border border-red-100"><i class="fas fa-exclamation-circle mr-1"></i> Dados incorretos.</div>
+        
+        <div id="loading-spinner" class="hidden absolute inset-0 bg-white/80 rounded-3xl flex flex-col items-center justify-center z-50">
+             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-stoffus-primary mb-2"></div>
+             <p class="text-xs font-bold text-gray-600">A carregar sistema...</p>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO ---
+        const TARGET_PAGE = 'app.html'; // Nome do ficheiro para onde vai redirecionar
+        const USERS_FILE = 'https://stoffus-pt.github.io/configurador-eleganza/js/users.js';
+
+        // Base de dados local (Fallback se o ficheiro JS falhar)
+        let DB_USERS = [
+            { user: "admin", pass: "admin", name: "Administrador" },
+            { user: "showroom", pass: "stoffus", name: "Showroom Lisboa" }
+        ];
+
+        // 1. Carregar utilizadores do GitHub
+        const script = document.createElement('script');
+        script.src = USERS_FILE + '?v=' + Date.now();
+        script.onload = () => { if(typeof DB_USERS_EXTERNAL !== 'undefined') DB_USERS = DB_USERS_EXTERNAL; };
+        document.head.appendChild(script);
+
+        // 2. Lógica de Login
+        function doLogin() {
+            const userIn = document.getElementById('login-user').value.trim();
+            const passIn = document.getElementById('login-pass').value.trim();
+            const btn = document.getElementById('btn-login');
+            const errorBox = document.getElementById('error-msg');
+
+            const found = DB_USERS.find(u => u.user === userIn && u.pass === passIn);
+
+            if (found) {
+                successRedirect(found);
+            } else {
+                btn.classList.add('shake');
+                btn.style.backgroundColor = '#ef4444'; // Red
+                btn.innerText = "DADOS INCORRETOS";
+                errorBox.classList.remove('hidden');
+                setTimeout(() => {
+                    btn.classList.remove('shake');
+                    btn.style.backgroundColor = '#1f2937';
+                    btn.innerText = "ENTRAR NA PLATAFORMA";
+                }, 1000);
+            }
+        }
+
+        function doGuest() {
+            successRedirect({ name: "Convidado", user: "guest", pass: "" });
+        }
+
+        function successRedirect(userData) {
+            // Guardar sessão
+            localStorage.setItem('stoffus_user', JSON.stringify(userData));
+            
+            // Mostrar loading
+            document.getElementById('loading-spinner').classList.remove('hidden');
+            
+            // Redirecionar
+            setTimeout(() => {
+                window.location.href = TARGET_PAGE;
+            }, 500);
+        }
+
+        // 3. Event Listeners
+        document.getElementById('btn-login').addEventListener('click', doLogin);
+        document.getElementById('btn-guest').addEventListener('click', doGuest);
+        document.getElementById('login-pass').addEventListener('keypress', (e) => { if(e.key === 'Enter') doLogin(); });
+
+        // 4. Auto-Login (Opcional - se quiseres que entre direto se já tiver logado antes)
+        /* if (localStorage.getItem('stoffus_user')) {
+             window.location.href = TARGET_PAGE;
+        } 
+        */
+    </script>
+</body>
+</html>
