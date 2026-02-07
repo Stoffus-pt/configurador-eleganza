@@ -5,7 +5,7 @@
     // PREVIEW FIX: Definir utilizador simulado para evitar redirecionamento
     // Usamos um formato JSON simples para simular o ambiente real
     if (!localStorage.getItem('stoffus_user')) {
-        localStorage.setItem('stoffus_user', '{"name":"Visitante"}');
+        localStorage.setItem('stoffus_user', '{"name":"Divinus Confort", "nif":"500123456"}');
     }
 
     // VERIFICAÇÃO DE SEGURANÇA
@@ -271,7 +271,7 @@
             <div class="pl-2 md:pl-4 border-l flex items-center gap-2">
                 <div class="flex items-center text-xs text-gray-500">
                     <i class="fas fa-user-circle mr-1"></i>
-                    <span id="user-display" class="font-semibold truncate max-w-[80px] md:max-w-[150px]">Utilizador</span>
+                    <span id="user-display" class="font-semibold truncate max-w-[120px] md:max-w-[300px]">Utilizador</span>
                 </div>
                 <div class="hidden sm:flex items-center gap-2">
                     <span class="text-gray-300">|</span>
@@ -731,7 +731,9 @@
                     try {
                         const parsedUser = JSON.parse(storedUser);
                         if (parsedUser && typeof parsedUser === 'object' && parsedUser.name) {
-                            el.innerText = parsedUser.name;
+                            let displayText = parsedUser.name;
+                            if(parsedUser.nif) displayText += ` | NIF:${parsedUser.nif}`; 
+                            el.innerText = displayText;
                         } else {
                             el.innerText = storedUser;
                         }
@@ -1476,30 +1478,24 @@
             
             // --- USER DISPLAY IN PDF ---
             let userName = 'Cliente';
+            let userNif = ''; // Initialize NIF
             const storedUser = localStorage.getItem('stoffus_user');
             if (storedUser) {
                 try {
                     const parsedUser = JSON.parse(storedUser);
-                    if (parsedUser && typeof parsedUser === 'object' && parsedUser.name) {
-                        userName = parsedUser.name;
+                    if (parsedUser && typeof parsedUser === 'object') {
+                         if(parsedUser.name) userName = parsedUser.name;
+                         if(parsedUser.nif) userNif = parsedUser.nif; // Get NIF
                     } else if (typeof parsedUser === 'string') {
-                        // Caso onde o JSON parse resulta numa string simples
                         userName = parsedUser;
-                    } else {
-                        // Caso onde é objeto mas sem propriedade name, ou outro formato
-                        userName = storedUser;
                     }
                 } catch (e) {
-                    // Se falhar o parse, usa a string direta (caso não seja JSON)
                     userName = storedUser;
                 }
             }
-            // Limpeza final para remover caracteres JSON residuais se ainda existirem
-            if (userName.startsWith('{') && userName.includes('"name":')) {
-                 try { const p = JSON.parse(userName); if(p.name) userName = p.name; } catch(e){}
-            }
             
             doc.text(`Cliente: ${userName}`, margin, 37);
+            if(userNif) doc.text(`NIF: ${userNif}`, margin, 42); // Add NIF line
 
             const logoUrl = `${GITHUB_REPO_URL}logo.png`; 
             try {
@@ -1517,9 +1513,9 @@
             } catch (e) { console.warn("Logo load failed", e); }
 
             doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.5); 
-            doc.line(margin, 42, pageWidth - margin, 42);
+            doc.line(margin, 45, pageWidth - margin, 45); // Moved line down to 45
 
-            let yPos = 52;
+            let yPos = 55; // Adjusted start Y pos
             const imgData = document.getElementById('order-preview-img').src;
             if(imgData) { 
                 doc.addImage(imgData, 'JPEG', margin, yPos, pageWidth - (margin*2), 85); 
