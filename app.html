@@ -267,7 +267,15 @@
                 <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-10 md:w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
             </div>
 
-            <div class="pl-4 border-l hidden sm:block"><span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span><span class="text-xs text-gray-500">V5.9</span></div>
+            <div class="pl-4 border-l hidden sm:flex items-center gap-2">
+                <div class="flex items-center text-xs text-gray-500">
+                    <i class="fas fa-user-circle mr-1"></i>
+                    <span id="user-display" class="font-semibold truncate max-w-[100px]">Utilizador</span>
+                </div>
+                <span class="text-gray-300">|</span>
+                <span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>
+                <span class="text-xs text-gray-500">V5.9</span>
+            </div>
         </div>
         
         <!-- HEADER BUTTONS (Mobile: Icons only to fit screen without scroll) -->
@@ -711,6 +719,13 @@
 
             const btnRecenter = document.getElementById('btn-recenter');
             if(btnRecenter) btnRecenter.addEventListener('click', resetCamera);
+            
+            // USER NAME DISPLAY INIT
+            const user = localStorage.getItem('stoffus_user');
+            if (user) {
+                const el = document.getElementById('user-display');
+                if(el) el.innerText = user;
+            }
         }
 
         // ======================== LÓGICA 3D & INTERAÇÃO ========================
@@ -1444,6 +1459,10 @@
             
             doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(120, 120, 120); 
             doc.text(`Data: ${dateStr}`, margin, 32);
+            
+            // --- USER DISPLAY IN PDF ---
+            const userName = localStorage.getItem('stoffus_user') || 'Cliente';
+            doc.text(`Cliente: ${userName}`, margin, 37);
 
             const logoUrl = `${GITHUB_REPO_URL}logo.png`; 
             try {
@@ -1461,9 +1480,9 @@
             } catch (e) { console.warn("Logo load failed", e); }
 
             doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.5); 
-            doc.line(margin, 40, pageWidth - margin, 40);
+            doc.line(margin, 42, pageWidth - margin, 42);
 
-            let yPos = 50;
+            let yPos = 52;
             const imgData = document.getElementById('order-preview-img').src;
             if(imgData) { 
                 doc.addImage(imgData, 'JPEG', margin, yPos, pageWidth - (margin*2), 85); 
