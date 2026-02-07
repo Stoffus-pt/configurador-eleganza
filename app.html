@@ -3,8 +3,9 @@
 <head>
     <script>
     // PREVIEW FIX: Definir utilizador simulado para evitar redirecionamento
+    // Usamos um formato JSON simples para simular o ambiente real
     if (!localStorage.getItem('stoffus_user')) {
-        localStorage.setItem('stoffus_user', 'preview_user');
+        localStorage.setItem('stoffus_user', '{"name":"Visitante"}');
     }
 
     // VERIFICAÇÃO DE SEGURANÇA
@@ -267,14 +268,16 @@
                 <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-10 md:w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
             </div>
 
-            <div class="pl-4 border-l hidden sm:flex items-center gap-2">
+            <div class="pl-2 md:pl-4 border-l flex items-center gap-2">
                 <div class="flex items-center text-xs text-gray-500">
                     <i class="fas fa-user-circle mr-1"></i>
-                    <span id="user-display" class="font-semibold truncate max-w-[100px]">Utilizador</span>
+                    <span id="user-display" class="font-semibold truncate max-w-[80px] md:max-w-[150px]">Utilizador</span>
                 </div>
-                <span class="text-gray-300">|</span>
-                <span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>
-                <span class="text-xs text-gray-500">V5.9</span>
+                <div class="hidden sm:flex items-center gap-2">
+                    <span class="text-gray-300">|</span>
+                    <span id="env-indicator" class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>
+                    <span class="text-xs text-gray-500">V5.9</span>
+                </div>
             </div>
         </div>
         
@@ -721,10 +724,21 @@
             if(btnRecenter) btnRecenter.addEventListener('click', resetCamera);
             
             // USER NAME DISPLAY INIT
-            const user = localStorage.getItem('stoffus_user');
-            if (user) {
+            const storedUser = localStorage.getItem('stoffus_user');
+            if (storedUser) {
                 const el = document.getElementById('user-display');
-                if(el) el.innerText = user;
+                if(el) {
+                    try {
+                        const parsedUser = JSON.parse(storedUser);
+                        if (parsedUser && typeof parsedUser === 'object' && parsedUser.name) {
+                            el.innerText = parsedUser.name;
+                        } else {
+                            el.innerText = storedUser;
+                        }
+                    } catch (e) {
+                        el.innerText = storedUser;
+                    }
+                }
             }
         }
 
@@ -1461,7 +1475,30 @@
             doc.text(`Data: ${dateStr}`, margin, 32);
             
             // --- USER DISPLAY IN PDF ---
-            const userName = localStorage.getItem('stoffus_user') || 'Cliente';
+            let userName = 'Cliente';
+            const storedUser = localStorage.getItem('stoffus_user');
+            if (storedUser) {
+                try {
+                    const parsedUser = JSON.parse(storedUser);
+                    if (parsedUser && typeof parsedUser === 'object' && parsedUser.name) {
+                        userName = parsedUser.name;
+                    } else if (typeof parsedUser === 'string') {
+                        // Caso onde o JSON parse resulta numa string simples
+                        userName = parsedUser;
+                    } else {
+                        // Caso onde é objeto mas sem propriedade name, ou outro formato
+                        userName = storedUser;
+                    }
+                } catch (e) {
+                    // Se falhar o parse, usa a string direta (caso não seja JSON)
+                    userName = storedUser;
+                }
+            }
+            // Limpeza final para remover caracteres JSON residuais se ainda existirem
+            if (userName.startsWith('{') && userName.includes('"name":')) {
+                 try { const p = JSON.parse(userName); if(p.name) userName = p.name; } catch(e){}
+            }
+            
             doc.text(`Cliente: ${userName}`, margin, 37);
 
             const logoUrl = `${GITHUB_REPO_URL}logo.png`; 
