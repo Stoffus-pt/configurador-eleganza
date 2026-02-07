@@ -2,6 +2,11 @@
 <html lang="pt">
 <head>
     <script>
+    // PREVIEW FIX: Definir utilizador simulado para evitar redirecionamento
+    if (!localStorage.getItem('stoffus_user')) {
+        localStorage.setItem('stoffus_user', 'preview_user');
+    }
+
     // VERIFICAÇÃO DE SEGURANÇA
     // Se não houver utilizador guardado, manda de volta para o login (index.html)
     if (!localStorage.getItem('stoffus_user')) {
@@ -873,13 +878,44 @@
         function initFabricSystem() { initFabricData(); renderFabricDock('collections'); }
         function applyTextureRepeat(texture, rapportCm) { if(!texture) return; const referenceSizeCm = 90; const repeatFactor = referenceSizeCm / rapportCm; texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(repeatFactor, repeatFactor); texture.needsUpdate = true; }
         
-        function createMaterialFromImage(sourceImg) { 
-            if(!sourceImg) return null; 
-            const tex = new THREE.Texture(sourceImg); tex.encoding = THREE.sRGBEncoding; tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; tex.needsUpdate = true; applyTextureRepeat(tex, currentRapport); 
-            let params = { map: tex, color: 0xffffff, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.02 }; 
-            return new THREE.MeshStandardMaterial(params); 
+        function setFabricFromLibrary(fabricId) {
+            activeFabricId = fabricId;
+            const fab = FABRIC_LIBRARY.find(f => f.id === fabricId);
+            if(!fab) return;
+            
+            const col = DB_COLLECTIONS.find(c => c.name.toLowerCase().replace(/\s/g, '') === fab.type);
+            const colName = col ? col.name : fab.collection;
+            
+            // Construct the full URL for the texture
+            const textureUrl = `https://stoffus-pt.github.io/configurador-eleganza/assets/compressedtextures/${colName} ${fab.fileIndex}.webp`;
+            
+            const loader = new THREE.TextureLoader();
+            loader.setCrossOrigin('anonymous');
+            
+            loader.load(textureUrl, (tex) => {
+                tex.encoding = THREE.sRGBEncoding;
+                tex.wrapS = THREE.RepeatWrapping;
+                tex.wrapT = THREE.RepeatWrapping;
+                
+                applyTextureRepeat(tex, currentRapport);
+                
+                currentFabricMaterial = new THREE.MeshStandardMaterial({ 
+                    map: tex, 
+                    color: 0xffffff, 
+                    roughness: 0.9, 
+                    metalness: 0.0,
+                    bumpMap: tex,
+                    bumpScale: 0.02
+                });
+                
+                updateAllModulesMaterial();
+                updatePriceUI();
+                showFeedback("Tecido aplicado: " + fab.name, "success");
+            }, undefined, (err) => {
+                console.error("Error loading texture", err);
+                showFeedback("Erro ao carregar textura", "error");
+            });
         }
-        function createProceduralFabricTexture(type, colorHex) { const size = 512; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); ctx.fillStyle = colorHex; ctx.fillRect(0, 0, size, size); const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; applyTextureRepeat(tex, currentRapport); return new THREE.MeshStandardMaterial({ map: tex, color: colorHex, roughness: 0.9, metalness: 0.0, bumpMap: tex, bumpScale: 0.01 }); }
         
         function updateAllModulesMaterial() { 
             addedModules.forEach(mod => { 
@@ -1116,6 +1152,23 @@
             return false;
         }
 
+        function findSlideParts(mod) {
+            if (mod.sliderParts && mod.sliderParts.length > 0) return true;
+            const foundNodes = [];
+            mod.mesh.traverse(node => {
+                const cleanName = node.name.toLowerCase();
+                if (cleanName.includes('assento') || cleanName.includes('seat')) {
+                    foundNodes.push(node);
+                }
+            });
+            if(foundNodes.length > 0) {
+                 mod.sliderParts = foundNodes;
+                 mod.sliderParts.forEach(p => { if (p.userData.origZ === undefined) p.userData.origZ = p.position.z; });
+                 return true;
+            }
+            return false;
+        }
+
         function animate() {
             if(!scene || !camera || !renderer) return;
             requestAnimationFrame(animate); controls.update();
@@ -1283,6 +1336,9 @@
         }
 
         window.openModelSelector = function() { uiSet('model-modal', 'display', 'flex'); }
+        
+        // --- MISSING FUNCTION ADDED HERE ---
+        window.openFabricSelector = function() { uiSet('fabric-modal', 'display', 'flex'); }
 
         window.openOrderSummary = function() {
             const oldPos = camera.position.clone(); 
@@ -1630,4 +1686,3 @@
     </script>
 </body>
 </html>
-
