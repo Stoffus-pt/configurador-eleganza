@@ -5,5 +5,6 @@
  */
 const DB_USERS_EXTERNAL = [
     { user: "elcorteingles", pass: "1234", name: "El Corte Inglés" },
-    { user: "showroom", pass: "stoffus1974", name: "Divinus Confort" },
+    { user: "showroom", pass: "stoffus1974", name: "Divinus Confort", nif: "506942317"},
+
 ];
