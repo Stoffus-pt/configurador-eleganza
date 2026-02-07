@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
+    <script>
+    // VERIFICAÇÃO DE SEGURANÇA
+    // Se não houver utilizador guardado, manda de volta para o login (index.html)
+    if (!localStorage.getItem('stoffus_user')) {
+        window.location.href = 'index.html';
+    }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Configurador 3D Eleganza - V5.9 (Estável)</title>
@@ -1623,3 +1630,4 @@
     </script>
 </body>
 </html>
+
