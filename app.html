@@ -2,14 +2,19 @@
 <html lang="pt">
 <head>
     <script>
-    // PREVIEW FIX: Definir utilizador simulado para evitar redirecionamento
-    // Usamos um formato JSON simples para simular o ambiente real
+    // PREVIEW FIX: Simulação de Login para Pré-visualização
     if (!localStorage.getItem('stoffus_user')) {
-        localStorage.setItem('stoffus_user', '{"name":"Divinus Confort", "nif":"500123456"}');
+        const userSimulado = { 
+            user: "showroom", 
+            pass: "stoffus1974", 
+            name: "Divinus Confort", 
+            nif: "506942317" 
+        };
+        // Para testar o modo convidado, mude user para "convidado" acima
+        localStorage.setItem('stoffus_user', JSON.stringify(userSimulado));
     }
 
     // VERIFICAÇÃO DE SEGURANÇA
-    // Se não houver utilizador guardado, manda de volta para o login (index.html)
     if (!localStorage.getItem('stoffus_user')) {
         window.location.href = 'index.html';
     }
@@ -53,6 +58,9 @@
         body { margin: 0; overflow: hidden; background-color: #f3f4f6; font-family: 'Inter', sans-serif; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         #room-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background-size: cover; background-position: center bottom; display: none; transition: background-image 0.5s ease-in-out; }
+        
+        /* GUEST MODE: Hides price elements */
+        body.guest-mode .ui-price-element { display: none !important; }
         
         /* Mobile Specific adjustments */
         #model-selector-bar { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 20; width: 95%; max-width: fit-content; }
@@ -214,7 +222,7 @@
                     <div id="summary-battery-container" class="hidden col-span-2 border-t pt-2 mt-1"><span class="text-gray-500 font-bold"><i class="fas fa-battery-full text-green-600 mr-1"></i> Bateria de Lítio:</span> <span class="font-semibold text-gray-800">Incluída</span></div>
                     
                     <!-- PRICE DISPLAY -->
-                    <div class="col-span-2 border-t pt-2 mt-1 flex justify-between items-center bg-gray-100 p-2 rounded">
+                    <div id="ui-modal-total" class="col-span-2 border-t pt-2 mt-1 flex justify-between items-center bg-gray-100 p-2 rounded ui-price-element">
                         <span class="text-gray-600 font-bold text-xs uppercase">Valor Total:</span> 
                         <span id="summary-points" class="font-bold text-xl text-stoffus-primary">0</span>
                     </div>
@@ -224,7 +232,7 @@
             <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Lista de Módulos</h4>
             <div class="overflow-x-auto max-h-40 overflow-y-auto border border-gray-100 rounded-lg">
                 <table class="order-table w-full">
-                    <thead><tr><th>Módulo</th><th>Tamanho</th><th>Pts</th></tr></thead>
+                    <thead><tr><th>Módulo</th><th>Tamanho</th><th class="ui-price-element">Pts</th></tr></thead>
                     <tbody id="order-items-body"></tbody>
                 </table>
             </div>
@@ -263,7 +271,7 @@
             <div class="font-bold text-lg md:text-2xl text-gray-800 tracking-tight"><span class="text-stoffus-primary">Stoffus</span> 3D</div>
             
             <!-- INPUT DE PONTO (UNIVERSAL) -->
-            <div class="flex items-center bg-white rounded-lg px-2 py-1 border border-gray-300 shadow-sm hover:border-stoffus-primary transition-colors">
+            <div id="ui-header-points" class="flex items-center bg-white rounded-lg px-2 py-1 border border-gray-300 shadow-sm hover:border-stoffus-primary transition-colors ui-price-element">
                 <span class="text-[10px] font-bold text-gray-500 mr-1 md:mr-2 uppercase select-none"><span class="hidden md:inline">Ponto</span><span class="md:hidden">Pt</span></span>
                 <input type="number" id="price-multiplier" value="23.5" min="10" max="30" step="0.5" class="w-10 md:w-12 text-sm font-bold text-gray-800 outline-none bg-transparent text-center focus:text-stoffus-primary">
             </div>
@@ -271,7 +279,8 @@
             <div class="pl-2 md:pl-4 border-l flex items-center gap-2">
                 <div class="flex items-center text-xs text-gray-500">
                     <i class="fas fa-user-circle mr-1"></i>
-                    <span id="user-display" class="font-semibold truncate max-w-[120px] md:max-w-[300px]">Utilizador</span>
+                    <!-- Permite largura maior para mostrar o NIF -->
+                    <span id="user-display" class="font-semibold truncate max-w-[200px] md:max-w-[300px]">Utilizador</span>
                 </div>
                 <div class="hidden sm:flex items-center gap-2">
                     <span class="text-gray-300">|</span>
@@ -384,7 +393,7 @@
              
              <!-- Price & Dimensions (Left on Mobile) -->
              <div class="flex flex-col items-start md:w-full md:items-stretch">
-                 <div class="flex flex-col md:flex-row md:justify-between md:items-center px-1">
+                 <div id="ui-sidebar-points" class="flex flex-col md:flex-row md:justify-between md:items-center px-1 ui-price-element">
                      <span id="lbl-total" class="text-[9px] font-bold text-gray-400 uppercase leading-none mb-1 md:mb-0">Total</span>
                      <span id="sidebar-points" class="font-bold text-lg md:text-lg text-stoffus-primary leading-none">0</span>
                  </div>
@@ -405,6 +414,12 @@
     </div>
 
     <script>
+        // CONFIGURAÇÃO DO SERVIDOR (Mude para true quando migrar para o servidor PHP)
+        const ENABLE_SERVER_SEND = false; 
+        const SERVER_URL = 'enviar_encomenda.php';
+        
+        let IS_GUEST = false;
+
         // Failsafe imediato: se o loading demorar mais de 5s, remove-o à força
         setTimeout(() => {
             const loader = document.getElementById('app-loader');
@@ -730,6 +745,12 @@
                 if(el) {
                     try {
                         const parsedUser = JSON.parse(storedUser);
+                        // Check if guest
+                        if((parsedUser.user && parsedUser.user.toLowerCase() === 'convidado') || (parsedUser.name && parsedUser.name.toLowerCase() === 'convidado')) {
+                            IS_GUEST = true;
+                            document.body.classList.add('guest-mode');
+                        }
+
                         if (parsedUser && typeof parsedUser === 'object' && parsedUser.name) {
                             let displayText = parsedUser.name;
                             if(parsedUser.nif) displayText += ` | NIF:${parsedUser.nif}`; 
@@ -1368,7 +1389,6 @@
 
         window.openModelSelector = function() { uiSet('model-modal', 'display', 'flex'); }
         
-        // --- MISSING FUNCTION ADDED HERE ---
         window.openFabricSelector = function() { uiSet('fabric-modal', 'display', 'flex'); }
 
         window.openOrderSummary = function() {
@@ -1442,10 +1462,21 @@
                 if(isNaN(basePts)) basePts = 0; 
                 let finalItemPts = basePts + extraPts;
 
-                let pointsStr = `${finalItemPts} pts`; 
-                if(extraPts > 0) { pointsStr = `<span class="text-xs font-normal text-gray-400">(${basePts} + ${extraPts})</span> ${finalItemPts} pts`; }
+                // GUEST MODE: If guest, hide points column content
+                let pointsStr = "";
+                if (!IS_GUEST) {
+                    pointsStr = `${finalItemPts} pts`; 
+                    if(extraPts > 0) { pointsStr = `<span class="text-xs font-normal text-gray-400">(${basePts} + ${extraPts})</span> ${finalItemPts} pts`; }
+                }
 
-                tr.innerHTML = `<td>${mod.data.name}${nameSuffix}</td><td>${Math.round(mod.width)} cm</td><td class="font-bold text-gray-500 whitespace-nowrap">${pointsStr}</td>`; 
+                let rowHtml = `<td>${mod.data.name}${nameSuffix}</td><td>${Math.round(mod.width)} cm</td>`;
+                if (!IS_GUEST) {
+                    rowHtml += `<td class="font-bold text-gray-500 whitespace-nowrap ui-price-element">${pointsStr}</td>`;
+                } else {
+                    rowHtml += `<td class="ui-price-element"></td>`; // Empty or hidden by CSS
+                }
+
+                tr.innerHTML = rowHtml; 
                 tbody.appendChild(tr);
             });
 
@@ -1459,6 +1490,7 @@
         };
 
         window.confirmAndGeneratePDF = async function() {
+            // ---- (A) Geração do PDF (Original) ----
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth(); 
@@ -1478,14 +1510,14 @@
             
             // --- USER DISPLAY IN PDF ---
             let userName = 'Cliente';
-            let userNif = ''; // Initialize NIF
+            let userNif = ''; 
             const storedUser = localStorage.getItem('stoffus_user');
             if (storedUser) {
                 try {
                     const parsedUser = JSON.parse(storedUser);
                     if (parsedUser && typeof parsedUser === 'object') {
                          if(parsedUser.name) userName = parsedUser.name;
-                         if(parsedUser.nif) userNif = parsedUser.nif; // Get NIF
+                         if(parsedUser.nif) userNif = parsedUser.nif; 
                     } else if (typeof parsedUser === 'string') {
                         userName = parsedUser;
                     }
@@ -1495,7 +1527,7 @@
             }
             
             doc.text(`Cliente: ${userName}`, margin, 37);
-            if(userNif) doc.text(`NIF: ${userNif}`, margin, 42); // Add NIF line
+            if(userNif) doc.text(`NIF: ${userNif}`, margin, 42); 
 
             const logoUrl = `${GITHUB_REPO_URL}logo.png`; 
             try {
@@ -1513,9 +1545,9 @@
             } catch (e) { console.warn("Logo load failed", e); }
 
             doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.5); 
-            doc.line(margin, 45, pageWidth - margin, 45); // Moved line down to 45
+            doc.line(margin, 45, pageWidth - margin, 45); 
 
-            let yPos = 55; // Adjusted start Y pos
+            let yPos = 55; 
             const imgData = document.getElementById('order-preview-img').src;
             if(imgData) { 
                 doc.addImage(imgData, 'JPEG', margin, yPos, pageWidth - (margin*2), 85); 
@@ -1578,10 +1610,14 @@
             doc.setDrawColor(220, 220, 220); 
             doc.line(pageWidth - margin - 80, yPos - 5, pageWidth - margin, yPos - 5);
             doc.setFontSize(10); doc.setTextColor(100, 100, 100); 
-            doc.text("VALOR TOTAL (PONTOS)", pageWidth - margin, yPos, { align: "right" });
-            yPos += 10;
-            doc.setFontSize(22); doc.setTextColor(232, 76, 38); doc.setFont("helvetica", "bold"); 
-            doc.text(totalPoints, pageWidth - margin, yPos, { align: "right" });
+            
+            // GUEST MODE: Hide total price in PDF
+            if (!IS_GUEST) {
+                doc.text("VALOR TOTAL (PONTOS)", pageWidth - margin, yPos, { align: "right" });
+                yPos += 10;
+                doc.setFontSize(22); doc.setTextColor(232, 76, 38); doc.setFont("helvetica", "bold"); 
+                doc.text(totalPoints, pageWidth - margin, yPos, { align: "right" });
+            }
 
             const pageCount = doc.internal.getNumberOfPages();
             for(let i = 1; i <= pageCount; i++) { 
@@ -1589,9 +1625,41 @@
                 doc.text('Gerado por Configurador Stoffus 3D', pageWidth / 2, doc.internal.pageSize.height - 10, { align: "center" }); 
             }
             
+            // 1. Download Local (Funciona sempre)
             doc.save(`Encomenda_Stoffus_${Date.now()}.pdf`);
             showFeedback("PDF Gerado com Sucesso!", "success");
             uiSet('order-modal', 'display', 'none');
+
+            // 2. Envio para o Servidor (Se ativado)
+            if (ENABLE_SERVER_SEND) {
+                const pdfBlob = doc.output('blob');
+                const formData = new FormData();
+                
+                // Dados para o email
+                formData.append('pdf', pdfBlob, `Encomenda_${Date.now()}.pdf`);
+                formData.append('cliente_nome', userName);
+                formData.append('cliente_nif', userNif);
+                formData.append('modelo', modelName);
+                formData.append('observacoes', observations);
+
+                // Envio assíncrono
+                fetch(SERVER_URL, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showFeedback("Encomenda enviada para a fábrica!", "success");
+                    } else {
+                        showFeedback("Erro ao enviar email: " + data.message, "error");
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro de envio:', error);
+                    showFeedback("Erro de conexão ao servidor.", "error");
+                });
+            }
         };
 
         window.changeModel = function(modelId) { 
