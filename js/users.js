@@ -15,5 +15,12 @@ const DB_USERS_EXTERNAL = [
         pass: "stoffus1974", 
         name: "Divinus Confort", 
         nif: "506942317"
+    },
+    { 
+        user: "sousaeferreira", 
+        pass: "açores2026", 
+        name: "Sousa e Ferreira", 
+        nif: "512014922"
     }
 ];
+
