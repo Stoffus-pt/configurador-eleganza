@@ -23,7 +23,7 @@ const DB_MODELS_EXTERNAL = {
         depth: 100, 
         chaiseDepth: 165, 
         cornerSize: 108, 
-        modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r', 'meiple'] 
+        modules: ['seat_no_arm', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', 'corner', 'chaise_l', 'chaise_r', 'meridien_l', 'meridien_r', 'meiple'] 
     },
     'brittany': { 
         name: 'Brittany', 
@@ -202,4 +202,5 @@ const DB_MODELS_EXTERNAL = {
         cornerSize: 105,
         modules: ['meiple', 'seat_arm_l', 'seat_arm_r', '2seats_arm_l', '2seats_arm_r', '2seats_2arms', 'chaise_l', 'chaise_r', 'corner', 'meridien_l', 'meridien_r'] 
     }
+
 };
